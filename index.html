@@ -339,14 +339,14 @@
   </div>
 </div>
 
-<script src="db_p1.js?v=f9c7e6ab"></script>
-<script src="db_p2.js?v=f9c7e6ab"></script>
-<script src="db_p3.js?v=f9c7e6ab"></script>
-<script src="db_p4.js?v=f9c7e6ab"></script>
-<script src="db_p5.js?v=f9c7e6ab"></script>
-<script src="db_p6.js?v=f9c7e6ab"></script>
-<script src="db_p7.js?v=f9c7e6ab"></script>
-<script src="db_p8.js?v=f9c7e6ab"></script>
+<script src="db_p1.js?v=97c6c510"></script>
+<script src="db_p2.js?v=97c6c510"></script>
+<script src="db_p3.js?v=97c6c510"></script>
+<script src="db_p4.js?v=97c6c510"></script>
+<script src="db_p5.js?v=97c6c510"></script>
+<script src="db_p6.js?v=97c6c510"></script>
+<script src="db_p7.js?v=97c6c510"></script>
+<script src="db_p8.js?v=97c6c510"></script>
 
 <div id="loginModal">
   <form class="lbox" id="loginForm">
@@ -2103,13 +2103,40 @@ function tabCalc(o, el){
 const TG_PWH='86551b783a42adbab63463e091b77083bc72cd51b9a77fb8a8e8c3d3c9b5d25a'; // пароль раздела
 let TG=JSON.parse(localStorage.getItem('ngk_tg_v1')||'{"users":[],"recs":{}}');
 function saveTG(){ try{ localStorage.setItem('ngk_tg_v1', JSON.stringify(TG)); }catch(e){ alert('Хранилище переполнено — данные не сохранены.'); } }
-function tgUser(){ return TG.users.find(u=>u.verified)||null; }
-function tgStatus(r){
-  if(r.done) return 'устранено';
-  if(r.replies&&r.replies.length) return 'в работе';
-  if(r.deadline && new Date(r.deadline)<new Date()) return 'просрочено';
+/* --- Supabase-режим: общий реестр для всех пользователей + настоящая email-верификация ---
+   Подключение: на экране входа в раздел — «⚙ подключение общего реестра», ввести Project URL и anon key
+   (сохраняется в localStorage ngk_tg_sb). Без конфигурации — локальный режим (данные только в этом браузере). */
+const TG_SB=JSON.parse(localStorage.getItem('ngk_tg_sb')||'null');
+let TG_SESS=JSON.parse(sessionStorage.getItem('ngk_tg_sess')||'null');
+function sbMode(){ return !!(TG_SB&&TG_SB.url&&TG_SB.key); }
+async function sbFetch(path,opts){
+  opts=opts||{};
+  const r=await fetch(TG_SB.url.replace(/\/+$/,'')+path,{method:opts.method||'GET',
+    headers:Object.assign({'apikey':TG_SB.key,'Authorization':'Bearer '+(opts.token||TG_SB.key),'Content-Type':'application/json'},opts.headers||{}),
+    body:opts.body});
+  const t=await r.text(); let j=null; try{ j=t?JSON.parse(t):null; }catch(e){}
+  if(!r.ok){ let m=j&&(j.msg||j.message||j.error_description||j.error); if(typeof m!=='string') m='Ошибка сервера ('+r.status+')'; throw new Error(m); }
+  return j;
+}
+async function sbLoad(addr){ // все записи реестра по адресу объекта
+  return (await sbFetch('/rest/v1/telegrammy?addr=eq.'+encodeURIComponent(addr)+'&select=rec_id,data',{token:TG_SESS.access_token}))||[];
+}
+async function sbSave(addr,recId,data){ // upsert по (addr, rec_id)
+  return sbFetch('/rest/v1/telegrammy',{method:'POST',token:TG_SESS.access_token,
+    headers:{'Prefer':'resolution=merge-duplicates,return=minimal'},
+    body:JSON.stringify({addr:addr,rec_id:String(recId),data:data,updated_at:new Date().toISOString()})});
+}
+function tgUser(){
+  if(sbMode()) return (TG_SESS&&TG_SESS.profile)||null;
+  return TG.users.find(u=>u.verified)||null;
+}
+function tgStatus(rr){ // rr — уже объединённая запись (база + правки)
+  if(rr.done) return 'устранено';
+  if(rr.replies&&rr.replies.length) return 'в работе';
+  if(rr.deadline && new Date(rr.deadline)<new Date()) return 'просрочено';
   return 'выдано';
 }
+function tgOvr(id){ TG.ovr=TG.ovr||{}; return TG.ovr[id]=TG.ovr[id]||{replies:[]}; }
 function openTg(o){
   const m=document.getElementById('tgModal'); m.style.display='block';
   tgRender(o);
@@ -2128,17 +2155,94 @@ async function tgRender(o){
         <input type="password" id="tgPw" placeholder="Пароль раздела" style="width:100%; margin-bottom:8px">
         <button id="tgEnter" style="width:100%; padding:7px; background:var(--bg); color:#fff; border:none; border-radius:6px; cursor:pointer">Войти в раздел</button>
         <div class="lerr" id="tgErr" style="color:var(--crit); font-size:12px; margin-top:6px"></div>
+        <div style="margin-top:12px; font-size:11.5px">Режим: <b>${sbMode()?'общий реестр (Supabase)':'локальный — данные только в этом браузере'}</b> · <a href="#" id="tgCfg" style="color:var(--c-centr)">⚙ подключение общего реестра</a></div>
+        <div id="tgCfgArea"></div>
       </div>`;
     document.getElementById('tgEnter').onclick=async()=>{
       const h=await sha256Hex(document.getElementById('tgPw').value);
       if(h===TG_PWH){ sessionStorage.setItem('ngk_tg_ok','1'); tgRender(o); }
       else document.getElementById('tgErr').textContent='Неверный пароль раздела';
     };
+    document.getElementById('tgCfg').onclick=e=>{
+      e.preventDefault();
+      document.getElementById('tgCfgArea').innerHTML=`
+        <div style="margin-top:8px; padding:10px; background:#fff; border:1px dashed var(--c-centr); border-radius:6px; text-align:left; font-size:12px">
+          Общий реестр хранится в Supabase (таблица <code>telegrammy</code>, настройка — по файлу <code>supabase_setup.sql</code>). Введите параметры проекта:
+          <input id="sbUrl" placeholder="Project URL, https://xxxx.supabase.co" style="width:100%; margin:6px 0" value="${TG_SB?esc(TG_SB.url||''):''}">
+          <input id="sbKey" placeholder="anon public key" style="width:100%; margin-bottom:6px" value="${TG_SB?esc(TG_SB.key||''):''}">
+          <div style="display:flex; gap:6px">
+            <button id="sbCfgSave" style="padding:5px 10px; background:var(--c-centr); color:#fff; border:none; border-radius:6px; cursor:pointer">Сохранить</button>
+            <button id="sbCfgClear" style="padding:5px 10px; background:#fff; border:1px solid var(--line); border-radius:6px; cursor:pointer">Отключить</button>
+          </div>
+          <div class="note" style="margin-top:6px">После сохранения страница перезагрузится. Регистрация станет с настоящим подтверждением email, а предписания — общими для всех пользователей.</div>
+        </div>`;
+      document.getElementById('sbCfgSave').onclick=()=>{
+        const url=document.getElementById('sbUrl').value.trim(), key=document.getElementById('sbKey').value.trim();
+        if(!/^https:\/\/[^/\s]+\.supabase\.co\/?$/.test(url)||!key){ alert('Укажите Project URL вида https://xxxx.supabase.co и anon key.'); return; }
+        localStorage.setItem('ngk_tg_sb', JSON.stringify({url:url.replace(/\/+$/,''),key:key}));
+        location.reload();
+      };
+      document.getElementById('sbCfgClear').onclick=()=>{ localStorage.removeItem('ngk_tg_sb'); sessionStorage.removeItem('ngk_tg_sess'); location.reload(); };
+    };
     return;
   }
-  // 2) регистрация пользователя (email-верификация)
+  // 2) регистрация / вход исполнителя
   const u=tgUser();
   if(!u){
+    if(sbMode()){
+      el.innerHTML=`
+        <h2 style="font-size:16px">Вход исполнителя — общий реестр</h2>
+        <div class="normref">Реестр телефонограмм общий для всех пользователей (Supabase). Регистрация подтверждается письмом на email — без перехода по ссылке из письма вход невозможен.</div>
+        <div style="max-width:420px">
+          <div style="display:grid; gap:8px; margin:10px 0">
+            <input id="sbEmail" type="email" placeholder="Электронная почта">
+            <input id="sbPass" type="password" placeholder="Пароль (не короче 6 символов)">
+          </div>
+          <div style="display:flex; gap:8px">
+            <button id="sbLogin" style="padding:7px 14px; background:var(--bg); color:#fff; border:none; border-radius:6px; cursor:pointer">Войти</button>
+            <button id="sbShowReg" style="padding:7px 14px; background:#fff; border:1px solid var(--line); border-radius:6px; cursor:pointer">Регистрация</button>
+          </div>
+          <div id="sbRegArea"></div>
+          <div id="sbErr" style="color:var(--crit); font-size:12px; margin-top:6px"></div>
+        </div>`;
+      const sbErr=m=>{ document.getElementById('sbErr').textContent=m; };
+      document.getElementById('sbLogin').onclick=async()=>{
+        const email=document.getElementById('sbEmail').value.trim(), password=document.getElementById('sbPass').value;
+        if(!email||!password){ sbErr('Введите email и пароль.'); return; }
+        sbErr('Вход…');
+        try{
+          const j=await sbFetch('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify({email,password})});
+          const md=(j.user&&j.user.user_metadata)||{};
+          TG_SESS={access_token:j.access_token,refresh_token:j.refresh_token,
+                   profile:{name:md.name||email,org:md.org||'—',role:md.role||'ук',email:email}};
+          sessionStorage.setItem('ngk_tg_sess',JSON.stringify(TG_SESS));
+          tgRender(o);
+        }catch(e){ sbErr(/email not confirmed/i.test(e.message)?'Email не подтверждён — откройте письмо и перейдите по ссылке из него.':('Ошибка входа: '+e.message)); }
+      };
+      document.getElementById('sbShowReg').onclick=()=>{
+        document.getElementById('sbRegArea').innerHTML=`
+          <div style="margin-top:12px; padding:10px; background:#fff; border:1px dashed var(--c-centr); border-radius:6px; display:grid; gap:8px">
+            <input id="rgName" placeholder="ФИО ответственного">
+            <input id="rgOrg" placeholder="Организация (УК / надзорная)">
+            <select id="rgRole"><option value="">— роль —</option><option value="надзор">Организация мерзлотно-технического надзора (выдаёт предписания)</option><option value="ук">Управляющая компания (отчитывается об устранении)</option></select>
+            <button id="rgGo" style="padding:7px 14px; background:var(--c-centr); color:#fff; border:none; border-radius:6px; cursor:pointer">Зарегистрировать (письмо с подтверждением)</button>
+            <div id="rgMsg" style="font-size:12px"></div>
+          </div>`;
+        document.getElementById('rgGo').onclick=async()=>{
+          const name=document.getElementById('rgName').value.trim(), org=document.getElementById('rgOrg').value.trim(),
+                role=document.getElementById('rgRole').value, email=document.getElementById('sbEmail').value.trim(),
+                password=document.getElementById('sbPass').value;
+          if(!name||!org||!role||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)||password.length<6){ alert('Заполните ФИО, организацию, роль, корректный email и пароль от 6 символов.'); return; }
+          const msg=document.getElementById('rgMsg');
+          msg.textContent='Отправка…';
+          try{
+            await sbFetch('/auth/v1/signup',{method:'POST',body:JSON.stringify({email,password,data:{name,org,role}})});
+            msg.innerHTML='<b style="color:var(--ok)">Готово.</b> На '+esc(email)+' отправлено письмо — подтвердите email по ссылке из письма, затем войдите.';
+          }catch(e){ msg.innerHTML='<span style="color:var(--crit)">Ошибка регистрации: '+esc(e.message)+'</span>'; }
+        };
+      };
+      return;
+    }
     const pend=TG.pending;
     el.innerHTML=`
       <h2 style="font-size:16px">Регистрация ответственного исполнителя</h2>
@@ -2175,20 +2279,48 @@ async function tgRender(o){
     };
     return;
   }
-  // 3) реестр телефонограмм объекта
-  const recs=(TG.recs[o.a]=TG.recs[o.a]||[]);
+  // 3) реестр телефонограмм объекта (базовые из писем ЖКС + пользовательские)
+  const baseRecs=(o.tg||[]).map(r=>({...r, base:true}));
+  let extraRecs, ovrMap={};
+  if(sbMode()){
+    el.innerHTML='<div class="note" style="padding:24px">Загрузка общего реестра…</div>';
+    let rows;
+    try{ rows=await sbLoad(o.a); }
+    catch(e){
+      el.innerHTML='<div class="note" style="color:var(--crit); padding:24px">Не удалось загрузить общий реестр: '+esc(e.message)+' <a href="#" id="tgRetry" style="color:var(--c-centr)">повторить</a></div>';
+      document.getElementById('tgRetry').onclick=ev=>{ ev.preventDefault(); tgRender(o); };
+      return;
+    }
+    extraRecs=[];
+    rows.forEach(row=>{
+      const rid=String(row.rec_id);
+      if(rid.charAt(0)==='u') extraRecs.push(Object.assign({},row.data,{id:rid,base:false}));
+      else ovrMap[rid]=row.data||{};
+    });
+  } else {
+    extraRecs=(TG.recs[o.a]=TG.recs[o.a]||[]);
+    ovrMap=TG.ovr||{};
+  }
+  const recs=baseRecs.concat(extraRecs).map(r=>{
+    if(!r.base) return r; // пользовательские записи хранятся целиком
+    const ov=ovrMap[String(r.id)];
+    return ov?Object.assign({},r,{done:ov.done||false,doneDate:ov.doneDate,doneBy:ov.doneBy,replies:ov.replies||[]}):r;
+  });
   const stats={выдано:0, 'в работе':0, устранено:0, просрочено:0};
   recs.forEach(r=>stats[tgStatus(r)]++);
   el.innerHTML=`
     <h2 style="font-size:16px">Телефонограммы — ${esc(o.a)}</h2>
-    <div class="normref">Исполнитель: <b>${esc(u.name)}</b> · ${esc(u.org)} · ${u.role==='надзор'?'надзорная организация':'УК'} · ${esc(u.email)} ✔ · <a href="#" id="tgReauth" style="color:var(--c-centr)">сменить пользователя</a></div>
+    <div class="normref">${sbMode()?'Общий реестр (Supabase)':'Локальный режим (этот браузер)'} · Исполнитель: <b>${esc(u.name)}</b> · ${esc(u.org)} · ${u.role==='надзор'?'надзорная организация':'УК'} · ${esc(u.email)} ✔ · <a href="#" id="tgReauth" style="color:var(--c-centr)">сменить пользователя</a></div>
     <div style="display:flex; gap:14px; font-size:12.5px; margin:6px 0">
       <span>выдано: <b>${stats['выдано']}</b></span><span>в работе: <b>${stats['в работе']}</b></span>
       <span>устранено: <b style="color:var(--ok)">${stats['устранено']}</b></span><span>просрочено: <b style="color:var(--crit)">${stats['просрочено']}</b></span>
     </div>
     ${u.role==='надзор'?`<button class="addrow" id="tgNew" style="border-style:solid">+ Новая телефонограмма (предписание)</button><div id="tgNewArea"></div>`:'<div class="note">Новые предписания выдаёт надзорная организация; УК отчитывается в записях ниже.</div>'}
     <div id="tgList"></div>`;
-  document.getElementById('tgReauth').onclick=e=>{ e.preventDefault(); TG.users=[]; saveTG(); tgRender(o); };
+  document.getElementById('tgReauth').onclick=e=>{ e.preventDefault();
+    if(sbMode()){ TG_SESS=null; sessionStorage.removeItem('ngk_tg_sess'); }
+    else { TG.users=[]; saveTG(); }
+    tgRender(o); };
   if(u.role==='надзор') document.getElementById('tgNew').onclick=()=>{
     document.getElementById('tgNewArea').innerHTML=`
       <div style="border:1px solid var(--line); border-radius:8px; padding:10px 12px; background:#fff; margin:8px 0; display:grid; gap:7px">
@@ -2201,48 +2333,75 @@ async function tgRender(o){
         </div>
         <button id="tgSave" style="padding:6px 14px; background:var(--c-centr); color:#fff; border:none; border-radius:6px; cursor:pointer">Зарегистрировать предписание</button>
       </div>`;
-    document.getElementById('tgSave').onclick=()=>{
+    document.getElementById('tgSave').onclick=async()=>{
       const v=document.getElementById('tgViol').value.trim(), q=document.getElementById('tgReq').value.trim();
       if(!v||!q){ alert('Заполните нарушение и требование.'); return; }
-      recs.push({id:Date.now(), date:document.getElementById('tgDate').value, violation:v, requirement:q,
+      const rec={id:sbMode()?('u'+Date.now()):Date.now(), date:document.getElementById('tgDate').value, violation:v, requirement:q,
                  deadline:document.getElementById('tgDeadline').value, uk:document.getElementById('tgUk').value,
-                 by:u.name, byOrg:u.org, done:false, replies:[]});
-      saveTG(); tgRender(o);
+                 by:u.name, byOrg:u.org, done:false, replies:[]};
+      if(sbMode()){
+        try{ await sbSave(o.a, rec.id, rec); }
+        catch(e){ alert('Не сохранено в общем реестре: '+e.message); return; }
+      } else {
+        (TG.recs[o.a]=TG.recs[o.a]||[]).push(rec); saveTG();
+      }
+      tgRender(o);
     };
   }
   const list=document.getElementById('tgList');
   list.innerHTML='';
-  recs.slice().reverse().forEach(r=>{
-    const st=tgStatus(r);
+  recs.slice().reverse().forEach(rr=>{
+    const st=tgStatus(rr);
     const div=document.createElement('div');
     div.className='tg-rec';
     div.innerHTML=`
-      <div class="tg-head"><b>Предписание №${String(r.id).slice(-6)}</b><span class="note">от ${esc(r.date||'')}</span>
+      <div class="tg-head"><b>${rr.base?'Письмо ЖКС №':'Предписание №'}${String(rr.id).slice(-6)}</b><span class="note">${rr.date?('от '+esc(rr.date)):'дата не установлена'}</span>
         <span class="tg-status tg-${st.replace(' ','')}">${st.toUpperCase()}</span>
-        <span class="note">ответств.: ${esc(r.uk||'—')} · срок: ${esc(r.deadline||'—')}</span></div>
-      <div style="font-size:12.5px; margin-top:5px"><b>Нарушение:</b> ${esc(r.violation)}</div>
-      <div style="font-size:12.5px"><b>Требование:</b> ${esc(r.requirement)}</div>
-      <div class="note">выдал: ${esc(r.by)} (${esc(r.byOrg)})</div>
+        <span class="note">ответств.: ${esc(rr.uk||'—')} · срок: ${esc(rr.deadline||'—')}</span></div>
+      <div style="font-size:12.5px; margin-top:5px"><b>Нарушение:</b> ${esc(rr.violation)}</div>
+      <div style="font-size:12.5px"><b>Требование:</b> ${esc(rr.requirement)}</div>
+      <div class="note">выдал: ${esc(rr.by)} (${esc(rr.byOrg||'')})${rr.done&&rr.doneDate?` · <b style="color:var(--ok)">устранено ${esc(rr.doneDate)}</b> (${esc(rr.doneBy||'')})`:''}</div>
       <div class="tg-replies"></div>
-      ${u.role==='ук'&&!r.done?`<div style="margin-top:6px; display:flex; gap:6px"><input placeholder="Отчёт об устранении / ход работ" style="flex:1" class="tg-rep-inp"><button class="wbtn tg-rep-btn">Отправить отчёт</button><button class="wbtn tg-done-btn">Отметить устранённым</button></div>`:''}`;
+      ${u.role==='ук'&&!rr.done?`<div style="margin-top:6px; display:flex; gap:6px"><input placeholder="Отчёт об устранении / ход работ" style="flex:1" class="tg-rep-inp"><button class="wbtn tg-rep-btn">Отправить отчёт</button><button class="wbtn tg-done-btn">Отметить устранённым</button></div>`:''}`;
     const rl=div.querySelector('.tg-replies');
-    (r.replies||[]).forEach(rp=>{
+    (rr.replies||[]).forEach(rp=>{
       const d=document.createElement('div');
       d.className='tg-reply';
       d.innerHTML=`<b>${esc(rp.by)}</b> (${esc(rp.byOrg)}), ${esc(rp.date)}: ${esc(rp.text)}`;
       rl.appendChild(d);
     });
-    if(u.role==='ук'&&!r.done){
-      div.querySelector('.tg-rep-btn').onclick=()=>{
+    if(u.role==='ук'&&!rr.done){
+      div.querySelector('.tg-rep-btn').onclick=async()=>{
         const t=div.querySelector('.tg-rep-inp').value.trim();
         if(!t){ alert('Введите текст отчёта.'); return; }
-        r.replies=r.replies||[]; r.replies.push({by:u.name, byOrg:u.org, date:new Date().toISOString().slice(0,10), text:t});
-        saveTG(); tgRender(o);
+        const reply={by:u.name, byOrg:u.org, date:new Date().toISOString().slice(0,10), text:t};
+        if(sbMode()){
+          const data=rr.base
+            ?{done:false,replies:(rr.replies||[]).concat([reply])}
+            :Object.assign({},rr,{replies:(rr.replies||[]).concat([reply])});
+          delete data.base;
+          try{ await sbSave(o.a, rr.id, data); }catch(e){ alert('Не сохранено: '+e.message); return; }
+        } else {
+          if(rr.base){ tgOvr(rr.id).replies.push(reply); } else { rr.replies=rr.replies||[]; rr.replies.push(reply); }
+          saveTG();
+        }
+        tgRender(o);
       };
-      div.querySelector('.tg-done-btn').onclick=()=>{
+      div.querySelector('.tg-done-btn').onclick=async()=>{
         if(!confirm('Отметить предписание устранённым?')) return;
-        r.done=true; r.doneDate=new Date().toISOString().slice(0,10); r.doneBy=u.name+' ('+u.org+')';
-        saveTG(); tgRender(o);
+        const dDate=new Date().toISOString().slice(0,10), dBy=u.name+' ('+u.org+')';
+        if(sbMode()){
+          const data=rr.base
+            ?{done:true,doneDate:dDate,doneBy:dBy,replies:rr.replies||[]}
+            :Object.assign({},rr,{done:true,doneDate:dDate,doneBy:dBy});
+          delete data.base;
+          try{ await sbSave(o.a, rr.id, data); }catch(e){ alert('Не сохранено: '+e.message); return; }
+        } else {
+          if(rr.base){ const ov2=tgOvr(rr.id); ov2.done=true; ov2.doneDate=dDate; ov2.doneBy=dBy; }
+          else { rr.done=true; rr.doneDate=dDate; rr.doneBy=dBy; }
+          saveTG();
+        }
+        tgRender(o);
       };
     }
     list.appendChild(div);
@@ -2272,7 +2431,7 @@ function enterApp(role){
 })();
 
 };
-const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",ivD:"gViLiIYVAxhhhbKu"};
+const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",ivD:"d+qJ4ixLb9DKgUox"};
 function enterApp(role){ sessionStorage.setItem("ngk_role",role); document.body.classList.add("authed","role-"+role); document.getElementById("loginModal").style.display="none"; document.getElementById("roleBadge").textContent=role==="edit"?"оператор":"наблюдатель"; }
 const _b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 async function _unwrap(pw,saltB,ivB,wrapB){
