@@ -330,6 +330,7 @@
       <select id="regUK" style="padding:5px 8px; border:1px solid var(--line); border-radius:6px; font-size:12.5px"></select>
       <button id="regExport" style="border:1px solid var(--c-centr); background:var(--c-centr); color:#fff; border-radius:6px; padding:6px 14px; font-size:12.5px; cursor:pointer">⬇ Выгрузить в Excel</button>
       <button id="regExportUK" title="Один файл, отдельный лист на каждую управляющую компанию" style="border:1px solid var(--c-centr); background:#fff; color:var(--c-centr); border-radius:6px; padding:6px 14px; font-size:12.5px; cursor:pointer">⬇ Ведомости по УК (листы)</button>
+      <button id="regPlansUK" title="Один файл на УК: все планы мероприятий её домов (ремонт + противоаварийные). УК выбирается в фильтре слева; без фильтра — файлы по всем УК" style="border:1px solid var(--ok); background:#fff; color:var(--ok); border-radius:6px; padding:6px 14px; font-size:12.5px; cursor:pointer">📦 Планы УК (Excel)</button>
       <span class="note">Клик по строке открывает карточку объекта.</span>
     </div>
     <div id="regWrap"><table class="reg" id="regTable"></table></div>
@@ -1737,6 +1738,62 @@ function exportPlanXls(o){
   XLSX.writeFile(wb, 'План_мероприятий_'+o.a.replace(/[\s\/]+/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.xlsx');
 }
 
+/* ---------- пакетная выгрузка планов: один файл на УК со всеми домами ---------- */
+function plansBookForUk(uk){
+  const objs=DB.objects.filter(o=>effectiveUK(o)===uk);
+  const repRows=[], avRows=[], withPlans=[];
+  objs.forEach(o=>{
+    const c=cardOf(o.a);
+    if(!(c.planRep&&c.planRep.length)&&!(c.planAv&&c.planAv.length)) draftPlans(o);
+    const rep=c.planRep||[], av=c.planAv||[];
+    if(!rep.length&&!av.length) return;
+    withPlans.push({o:o, rep:rep, av:av});
+    rep.forEach((r,i)=>repRows.push([o.a, i+1, r.elem, r.def, r.mer, r.kind, r.prio, r.srok, r.note]));
+    av.forEach((r,i)=>avRows.push([o.a, i+1, r.mer, r.obsn, r.prio, r.srok, r.ctrl]));
+  });
+  if(!withPlans.length) return null;
+  const dateStr=new Date().toLocaleDateString('ru-RU');
+  const wb=XLSX.utils.book_new();
+  const ws0=XLSX.utils.aoa_to_sheet([
+    ['Комплект планов мероприятий — '+uk+', г. Норильск'],
+    ['Сформирован: '+dateStr+' · ГИС-база геотехнического мониторинга зданий · АНО «АНИИГБ» им. М.В. Кима'],
+    [],
+    ['Объектов УК в базе', objs.length],
+    ['Объектов с планами мероприятий', withPlans.length],
+    ['Мероприятий по текущему/капитальному ремонту', repRows.length],
+    ['Противоаварийных / компенсирующих мероприятий', avRows.length],
+    [],
+    ['Адрес','Район','Статус','Мероприятий']
+  ].concat(withPlans.map(x=>[x.o.a, x.o.d||'', statusOf(x.o)||'—', x.rep.length+x.av.length])));
+  ws0['!cols']=[{wch:34},{wch:14},{wch:12},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, ws0, 'Сводка');
+  const ws1=XLSX.utils.aoa_to_sheet([['План текущего / капитального ремонта — объекты '+uk+' · '+dateStr],[],
+    ['Адрес','№','Элемент','Дефект / повреждение','Мероприятие','Вид','Приоритет','Срок','Примечание']].concat(repRows));
+  ws1['!cols']=[{wch:26},{wch:4},{wch:20},{wch:40},{wch:46},{wch:12},{wch:10},{wch:10},{wch:24}];
+  XLSX.utils.book_append_sheet(wb, ws1, 'План ремонта');
+  const ws2=XLSX.utils.aoa_to_sheet([['План противоаварийных / компенсирующих мероприятий (восстановление работоспособности основания и фундаментов) — объекты '+uk+' · '+dateStr],[],
+    ['Адрес','№','Мероприятие','Обоснование (сработавшее правило)','Приоритет','Срок','Контроль']].concat(avRows));
+  ws2['!cols']=[{wch:26},{wch:4},{wch:50},{wch:50},{wch:12},{wch:10},{wch:22}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Противоаварийные');
+  return {wb:wb, nObj:withPlans.length, nAll:objs.length, nRep:repRows.length, nAv:avRows.length};
+}
+function exportPlansUK(){
+  const fuk=document.getElementById('regUK').value;
+  const uks=fuk?[fuk]:UK_LIST.concat(['Не определена']);
+  if(!fuk && !confirm('УК не выбрана в фильтре: будет сформировано по одному файлу на каждую управляющую компанию (до '+uks.length+' файлов; браузер может запросить разрешение на несколько скачиваний). Продолжить?')) return;
+  const noPlans=[];
+  uks.forEach((u,k)=>{
+    setTimeout(()=>{
+      const r=plansBookForUk(u);
+      if(r) XLSX.writeFile(r.wb, 'Планы_мероприятий_'+u.replace(/[«»\\/?*\[\]:]/g,'').replace(/\s+/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.xlsx');
+      else noPlans.push(u);
+      if(k===uks.length-1){
+        alert('Пакетная выгрузка завершена.'+(noPlans.length?('\nБез планов (нет дефектов/статусов для формирования): '+noPlans.join(', ')):''));
+      }
+    }, k*500);
+  });
+}
+
 /* ---------- экспорт плана мероприятий в Word ---------- */
 async function exportPlanWord(o){
   if(!window.docx){ alert('Библиотека Word не загрузилась (нужен интернет). Попробуйте ещё раз.'); return; }
@@ -1909,6 +1966,7 @@ document.getElementById('regExportUK').onclick=()=>{
   });
   XLSX.writeFile(wb, 'Ведомости_РИСК_КРИТИЧНО_по_УК'+(fd?'_'+fd:'')+'_'+new Date().toISOString().slice(0,10)+'.xlsx');
 };
+document.getElementById('regPlansUK').onclick=exportPlansUK;
 
 /* ---------- настройки порогов ---------- */
 const setEl=document.getElementById('settings');
