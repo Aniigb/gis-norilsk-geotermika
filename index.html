@@ -2569,25 +2569,38 @@ let SR=null, SR_BTN=null;
 function stopSR(){ if(SR){ try{ SR.stop(); }catch(e){} } }
 function micAttach(btn, inp){
   if(!btn) return;
+  const st=document.createElement('span'); st.className='note mic-st'; st.style.marginLeft='4px';
+  btn.insertAdjacentElement('afterend', st);
+  let watchdog=null;
+  const say=(t,err)=>{ st.textContent=t; st.style.color=err?'var(--crit)':'var(--mut)'; };
   btn.onclick=()=>{
     const C=window.SpeechRecognition||window.webkitSpeechRecognition;
-    if(!C){ alert('Голосовой ввод не поддерживается этим браузером. Используйте Chrome / Edge / Яндекс.Браузер или браузер смартфона.'); return; }
-    if(SR){ const was=SR_BTN===btn; stopSR(); if(was) return; }
+    if(!C){ say('голосовой ввод не поддерживается этим браузером — откройте сайт в Chrome / Edge / Яндекс', true); return; }
+    if(SR){ const was=SR_BTN===btn; stopSR(); if(was){ say(''); return; } }
     SR=new C(); SR_BTN=btn;
     SR.lang='ru-RU'; SR.interimResults=true; SR.continuous=true;
     const base=inp.value?inp.value+' ':'';
+    let started=false;
+    SR.onstart=()=>{ started=true; clearTimeout(watchdog); say('🔴 слушаю… говорите'); };
     SR.onresult=e=>{
       let fin='', inter='';
       for(let i=0;i<e.results.length;i++){ const r=e.results[i]; if(r.isFinal) fin+=r[0].transcript; else inter+=r[0].transcript; }
       inp.value=base+fin+inter;
       inp.dispatchEvent(new Event('input',{bubbles:true}));
     };
-    SR.onend=()=>{ btn.classList.remove('on'); SR=null; SR_BTN=null; };
-    SR.onerror=ev=>{ btn.classList.remove('on'); SR=null; SR_BTN=null;
-      if(ev.error==='not-allowed'||ev.error==='service-not-allowed') alert('Доступ к микрофону запрещён — разрешите микрофон в настройках браузера.');
-      else if(ev.error==='network') alert('Служба распознавания речи недоступна в этом браузере. Откройте страницу в Chrome / Edge на смартфоне или компьютере.'); };
+    SR.onend=()=>{ btn.classList.remove('on'); clearTimeout(watchdog); SR=null; SR_BTN=null; if(started) say(''); };
+    SR.onerror=ev=>{ btn.classList.remove('on'); clearTimeout(watchdog); SR=null; SR_BTN=null;
+      const M={'not-allowed':'доступ к микрофону запрещён — разрешите микрофон в настройках браузера',
+        'service-not-allowed':'служба распознавания недоступна в этом браузере — откройте сайт в Chrome / Edge / Яндекс',
+        'network':'служба распознавания недоступна в этом браузере — откройте сайт в Chrome / Edge / Яндекс',
+        'audio-capture':'микрофон не найден — проверьте подключение микрофона',
+        'no-speech':'ничего не услышано — попробуйте ещё раз'};
+      say(M[ev.error]||('ошибка распознавания: '+ev.error), true); };
     btn.classList.add('on');
-    try{ SR.start(); }catch(e){ btn.classList.remove('on'); SR=null; SR_BTN=null; }
+    say('запускаю микрофон…');
+    try{ SR.start(); }catch(e){ btn.classList.remove('on'); SR=null; SR_BTN=null; say('не удалось запустить распознавание: '+e.message, true); return; }
+    // сторож: если служба не ответила (встроенные браузеры без службы речи) — честно сообщаем
+    watchdog=setTimeout(()=>{ if(SR&&!started){ stopSR(); say('служба распознавания не отвечает в этом браузере — откройте сайт в Chrome / Edge / Яндекс (на смартфоне работает штатно)', true); } }, 3500);
   };
 }
 /* --- геопривязка фото: EXIF GPS (JPEG) --- */
