@@ -2509,7 +2509,9 @@ const INSP_SEC=[
   ['Нет затопления / подтопления грунта основания','СП 497.1325800.2020'],
   ['Подполье не захламлено, не используется под склад или мастерские','Правила № 170'],
   ['Нет самовольных врезок, перепланировок, вскрытий грунта','ПП РФ № 491'],
-  ['Вводы инженерных коммуникаций исправны, без протечек','Правила № 170']]},
+  ['Вводы инженерных коммуникаций исправны, без протечек','Правила № 170'],
+  ['Лазы в подполье закрыты и исправны, доступ контролируется','Правила № 170'],
+  ['Освещение подполья / техэтажа исправно (безопасность осмотров)','Правила № 170']]},
  {id:'D',t:'Цокольное ограждение и вентиляция подполья',norm:'СП 497.1325800.2020',items:[
   ['Цокольное ограждение без трещин, разрушений, отклонений от вертикали','ГОСТ 31937-2024'],
   ['Продухи / вентканалы в наличии, не загромождены; сезонное положение соответствует проектному режиму','СП 497.1325800.2020'],
@@ -2526,7 +2528,12 @@ const INSP_SEC=[
  {id:'G',t:'Крыша и водоотвод',norm:'Правила № 170; ПП РФ № 290',items:[
   ['Кровля без повреждений и следов протечек','Правила № 170'],
   ['Наружные водостоки исправны; отвод воды организован от здания','СП 497.1325800.2020'],
-  ['Нет опасных наледей и сосулек над входами и тротуарами (в зимний период)','ПП РФ № 290']]},
+  ['Нет опасных наледей и сосулек над входами и тротуарами (в зимний период)','ПП РФ № 290'],
+  ['Вентиляционные каналы и оголовки на крыше без разрушений','Правила № 170']]},
+ {id:'K',t:'Подъезды и места общего пользования',norm:'ПП РФ № 290; Правила № 170',items:[
+  ['Входные двери, доводчики и освещение подъездов исправны','ПП РФ № 290'],
+  ['Лестничные марши и перила без повреждений','ПП РФ № 290'],
+  ['Оконные блоки мест общего пользования без разрушений','ПП РФ № 290']]},
  {id:'H',t:'Отмостка и прилегающая территория',norm:'СП 497.1325800.2020',items:[
   ['Отмостка без трещин и просадок; уклон от здания сохранён','СП 497.1325800.2020'],
   ['Нет провалов грунта и термокарстовых просадок у здания','СП 497.1325800.2020'],
@@ -2661,6 +2668,31 @@ async function importPhotos(files, rec){
   }
   saveINSP();
 }
+/* --- погодные данные: Open-Meteo (текущие / архив на дату осмотра) --- */
+const WX_CODE={0:'ясно',1:'преимущественно ясно',2:'переменная облачность',3:'пасмурно',45:'туман',48:'изморозь/туман',51:'морось слабая',53:'морось',55:'морось сильная',56:'ледяная морось',57:'ледяная морось сильная',61:'дождь слабый',63:'дождь',65:'дождь сильный',66:'ледяной дождь',67:'ледяной дождь сильный',71:'снег слабый',73:'снег',75:'снег сильный',77:'снежные зёрна',80:'ливневый дождь слабый',81:'ливневый дождь',82:'ливневый дождь сильный',85:'снегопад слабый',86:'снегопад сильный',95:'гроза',96:'гроза с градом',99:'гроза с сильным градом'};
+function wxDescr(c){ return WX_CODE[c]||('код погоды '+c); }
+function windDir(d){ const w=['С','СВ','В','ЮВ','Ю','ЮЗ','З','СЗ']; return w[Math.round(d/45)%8]; }
+async function loadWeather(o, cur){
+  const lat=o.lat||69.3535, lon=o.lon||88.2027;
+  const d=cur.head.date||new Date().toISOString().slice(0,10);
+  const today=new Date().toISOString().slice(0,10);
+  if(d>=today){
+    const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,wind_direction_10m,weather_code&timezone=Asia%2FKrasnoyarsk`);
+    const j=await r.json();
+    if(!j.current) throw new Error(j.reason||'нет данных');
+    const c=j.current;
+    cur.head.tempAir=String(Math.round(c.temperature_2m*10)/10);
+    cur.head.weather=wxDescr(c.weather_code)+', ветер '+windDir(c.wind_direction_10m)+' '+Math.round(c.wind_speed_10m)+' м/с, влажность '+c.relative_humidity_2m+'%'+(c.precipitation?(', осадки '+c.precipitation+' мм'):'');
+  } else {
+    const r=await fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${d}&end_date=${d}&hourly=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,wind_direction_10m,weather_code&timezone=Asia%2FKrasnoyarsk`);
+    const j=await r.json();
+    if(!j.hourly) throw new Error(j.reason||'нет данных архива');
+    const hr=cur.head.time?Math.min(23,Math.max(0,parseInt(cur.head.time.slice(0,2),10)||12)):12;
+    const H2=j.hourly;
+    cur.head.tempAir=String(Math.round(H2.temperature_2m[hr]*10)/10);
+    cur.head.weather=wxDescr(H2.weather_code[hr])+', ветер '+windDir(H2.wind_direction_10m[hr])+' '+Math.round(H2.wind_speed_10m[hr])+' м/с, влажность '+H2.relative_humidity_2m[hr]+'%'+(H2.precipitation[hr]?(', осадки '+H2.precipitation[hr]+' мм'):'')+' (архив на '+d+')';
+  }
+}
 /* --- представление раздела осмотров --- */
 function inspView(o){
   stopSR();
@@ -2673,7 +2705,7 @@ function inspView(o){
     el.innerHTML=`
       <h2 style="font-size:16px">📋 Текущий осмотр — ${esc(o.a)}</h2>
       <div class="normref">Исполнитель: <b>${esc(u.name)}</b> · ${esc(u.org)} · ${u.role==='надзор'?'надзорная организация':'УК (просмотр)'} · <a href="#" id="goTg" style="color:var(--c-centr)">📞 телефонограммы</a></div>
-      <div class="normref">Чек-лист текущего осмотра общего имущества МКД: ФЗ-384 (ст. 36); ЖК РФ (ст. 161); ПП РФ № 491; ПП РФ № 290; Правила № 170 (разд. 3); ГОСТ 31937-2024; СП 13-102-2003; СП 497.1325800.2020. Комментарии можно надиктовывать кнопкой 🎤 (русский язык), фото привязываются к координатам (EXIF или GPS устройства).</div>
+      <div class="normref">Чек-лист текущего осмотра общего имущества МКД: ФЗ-384 (ст. 36); ЖК РФ (ст. 161); ПП РФ № 491; ПП РФ № 290; Правила № 170 (разд. 3); ГОСТ 31937-2024; СП 13-102-2003; СП 497.1325800.2020. Комментарии можно надиктовывать кнопкой 🎤 (русский язык), фото привязываются к координатам (EXIF или GPS устройства). Погода — кнопкой «🌡 Загрузить погодные данные» (Open-Meteo: текущая или архив на дату осмотра, по координатам объекта).</div>
       ${RO?'<div class="note">УК доступен просмотр актов; проведение осмотра — организация мерзлотно-технического надзора.</div>':'<button class="addrow" id="inspNew" style="border-style:solid">+ Начать новый осмотр</button>'}
       <div id="inspHist"></div>`;
     document.getElementById('goTg').onclick=e=>{ e.preventDefault(); TG_VIEW='tg'; tgRender(o); };
@@ -2716,6 +2748,7 @@ function inspForm(o, cur, RO){
         <label>t° в подполье, °C <input id="ihTempP" style="width:70px" value="${esc(cur.head.tempPodpol||'')}" ${RO?'disabled':''}></label>
       </div>
       <input id="ihWeather" style="width:100%; margin-top:6px" placeholder="Погодные условия (облачность, осадки, ветер)" value="${esc(cur.head.weather||'')}" ${RO?'disabled':''}>
+      ${RO?'':'<button class="wbtn" id="ihWx" style="margin-top:6px" title="Текущая погода или архив на дату осмотра — Open-Meteo, по координатам объекта">🌡 Загрузить погодные данные</button>'}
       <input id="ihComm" style="width:100%; margin-top:6px" placeholder="Состав комиссии (ФИО, должность, организация)" value="${esc(cur.head.commission||'')}" ${RO?'disabled':''}>
     </div>
     <div class="insp-prog"><div id="inspBar"></div></div>
@@ -2743,6 +2776,17 @@ function inspForm(o, cur, RO){
       ${RO?'':'<button class="wbtn" id="inspDel" style="color:var(--crit)">🗑 Удалить</button>'}
     </div>`;
   const H=cur.head;
+  const wxBtn=document.getElementById('ihWx');
+  if(wxBtn) wxBtn.onclick=async()=>{
+    wxBtn.disabled=true; const t0=wxBtn.textContent; wxBtn.textContent='…загрузка погоды';
+    try{
+      await loadWeather(o, cur);
+      document.getElementById('ihTemp').value=H.tempAir||'';
+      document.getElementById('ihWeather').value=H.weather||'';
+      saveINSP();
+    }catch(e){ alert('Не удалось получить погодные данные (нужен интернет): '+e.message); }
+    wxBtn.disabled=false; wxBtn.textContent=t0;
+  };
   [['ihDate','date'],['ihTime','time'],['ihTemp','tempAir'],['ihTempP','tempPodpol'],['ihWeather','weather'],['ihComm','commission']].forEach(([id,k])=>{
     const inp=document.getElementById(id);
     if(inp) inp.oninput=()=>{ H[k]=inp.value; saveINSP(); };
