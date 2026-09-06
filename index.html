@@ -209,6 +209,29 @@
   .tg-устранено{background:#d8ecd9; color:var(--ok)}
   .tg-просрочено{background:#f7dcd7; color:var(--crit)}
   .tg-reply{border-left:3px solid var(--line); margin:6px 0 0 10px; padding:4px 10px; font-size:12.3px; background:#faf8f3}
+  /* ---------- текущий осмотр (интерактивный чек-лист) ---------- */
+  .insp-sec{border:1px solid var(--line); border-radius:8px; background:#fff; margin:8px 0}
+  .insp-sec>summary{cursor:pointer; padding:9px 12px; font-weight:600; font-size:13px; list-style:none; display:flex; justify-content:space-between; gap:8px}
+  .insp-sec>summary::-webkit-details-marker{display:none}
+  .insp-sec .normref{margin:0 12px 6px}
+  .insp-item{border-top:1px dashed var(--line); padding:8px 12px}
+  .insp-item .q{font-size:12.8px; line-height:1.35}
+  .insp-item .nref{font-size:11px; color:var(--mut)}
+  .insp-item .acts{display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; align-items:center}
+  .stbtn{border:1px solid var(--line); background:#fff; border-radius:6px; cursor:pointer; padding:3px 10px; font-size:12.5px}
+  .stbtn.on-ok{background:var(--ok); color:#fff; border-color:var(--ok)}
+  .stbtn.on-warn{background:#e9a23b; color:#fff; border-color:#e9a23b}
+  .stbtn.on-viol{background:var(--crit); color:#fff; border-color:var(--crit)}
+  .mic{border:1px solid var(--line); background:#fff; border-radius:6px; cursor:pointer; padding:3px 8px; font-size:13px}
+  .mic.on{background:var(--crit); color:#fff; border-color:var(--crit); animation:micpulse 1s infinite}
+  @keyframes micpulse{50%{opacity:.55}}
+  .insp-photos{display:flex; gap:8px; flex-wrap:wrap; margin-top:6px}
+  .insp-ph{width:112px; font-size:10px; color:var(--mut); text-align:center; position:relative}
+  .insp-ph img{width:112px; height:84px; object-fit:cover; border-radius:6px; border:1px solid var(--line); cursor:pointer}
+  .insp-ph .del{position:absolute; top:-6px; right:-6px; width:18px; height:18px; border-radius:50%; border:none; background:var(--crit); color:#fff; font-size:11px; cursor:pointer; line-height:1}
+  .insp-prog{height:8px; background:#e8e4da; border-radius:4px; overflow:hidden; margin:8px 0}
+  .insp-prog>div{height:100%; background:var(--ok); width:0; transition:width .3s}
+  .insp-hist{border:1px solid var(--line); border-radius:8px; background:#fff; padding:8px 12px; margin:8px 0; font-size:12.8px}
 </style>
 </head>
 <body>
@@ -339,14 +362,14 @@
   </div>
 </div>
 
-<script src="db_p1.js?v=97c6c510"></script>
-<script src="db_p2.js?v=97c6c510"></script>
-<script src="db_p3.js?v=97c6c510"></script>
-<script src="db_p4.js?v=97c6c510"></script>
-<script src="db_p5.js?v=97c6c510"></script>
-<script src="db_p6.js?v=97c6c510"></script>
-<script src="db_p7.js?v=97c6c510"></script>
-<script src="db_p8.js?v=97c6c510"></script>
+<script src="db_p1.js?v=622c4c55"></script>
+<script src="db_p2.js?v=622c4c55"></script>
+<script src="db_p3.js?v=622c4c55"></script>
+<script src="db_p4.js?v=622c4c55"></script>
+<script src="db_p5.js?v=622c4c55"></script>
+<script src="db_p6.js?v=622c4c55"></script>
+<script src="db_p7.js?v=622c4c55"></script>
+<script src="db_p8.js?v=622c4c55"></script>
 
 <div id="loginModal">
   <form class="lbox" id="loginForm">
@@ -916,7 +939,7 @@ function renderDetail(o){
     ? `<div class="reasons">${sd.reasons.map(r=>`<div class="rsn r-${r.level}">${r.level==='crit'?'⛔':'⚠️'} ${esc(r.text)}</div>`).join('')}</div>`
     : (st?'<div class="reasons"><div class="rsn r-ok">✔ все показатели в пределах превентивных порогов</div></div>':'');
   d.innerHTML=`
-    <h2>${esc(o.a)}<span class="badge ${st?('b-'+{НОРМА:'ok',РИСК:'risk',КРИТИЧНО:'crit'}[st]):'b-card'}">${st||'карточка'}</span><button class="tglock" id="tgLock" title="Телефонограммы (доступ для УК и надзорной организации)">🔒</button></h2>
+    <h2>${esc(o.a)}<span class="badge ${st?('b-'+{НОРМА:'ok',РИСК:'risk',КРИТИЧНО:'crit'}[st]):'b-card'}">${st||'карточка'}</span><button class="tglock" id="tgLock" title="Телефонограммы (доступ для УК и надзорной организации)">🔒</button><button class="tglock" id="inspLock" title="Текущий осмотр — чек-лист (доступ для надзорной организации)">📋</button></h2>
     <div class="rayon">Район: <b style="color:${DCOL[o.d]||'#666'}">${esc(o.d||'не определён')}</b> · УК: <b>${esc(effectiveUK(o))}</b> · г. Норильск</div>
     ${reasonsHtml}
     <div class="tabs" id="cardTabs"></div>
@@ -930,6 +953,7 @@ function renderDetail(o){
     tb.appendChild(b);
   });
   document.getElementById('tgLock').onclick=()=>openTg(o);
+  document.getElementById('inspLock').onclick=()=>openTg(o,'insp');
   renderTab(o);
 }
 function renderTab(o){
@@ -2137,7 +2161,9 @@ function tgStatus(rr){ // rr — уже объединённая запись (�
   return 'выдано';
 }
 function tgOvr(id){ TG.ovr=TG.ovr||{}; return TG.ovr[id]=TG.ovr[id]||{replies:[]}; }
-function openTg(o){
+let TG_VIEW='tg';
+function openTg(o,view){
+  TG_VIEW=view||'tg';
   const m=document.getElementById('tgModal'); m.style.display='block';
   tgRender(o);
 }
@@ -2149,7 +2175,7 @@ async function tgRender(o){
   // 1) пароль раздела
   if(sessionStorage.getItem('ngk_tg_ok')!=='1'){
     el.innerHTML=`
-      <h2 style="font-size:16px">🔒 Телефонограммы — ${esc(o.a)}</h2>
+      <h2 style="font-size:16px">🔒 ${TG_VIEW==='insp'?'Текущий осмотр — чек-лист':'Телефонограммы'} — ${esc(o.a)}</h2>
       <div class="normref">Раздел предписаний и отчётов об устранении. Доступ: управляющая компания и организация мерзлотно-технического надзора.</div>
       <div style="max-width:340px; margin:18px auto; text-align:center">
         <input type="password" id="tgPw" placeholder="Пароль раздела" style="width:100%; margin-bottom:8px">
@@ -2279,6 +2305,7 @@ async function tgRender(o){
     };
     return;
   }
+  if(TG_VIEW==='insp'){ inspView(o); return; }
   // 3) реестр телефонограмм объекта (базовые из писем ЖКС + пользовательские)
   const baseRecs=(o.tg||[]).map(r=>({...r, base:true}));
   let extraRecs, ovrMap={};
@@ -2310,7 +2337,7 @@ async function tgRender(o){
   recs.forEach(r=>stats[tgStatus(r)]++);
   el.innerHTML=`
     <h2 style="font-size:16px">Телефонограммы — ${esc(o.a)}</h2>
-    <div class="normref">${sbMode()?'Общий реестр (Supabase)':'Локальный режим (этот браузер)'} · Исполнитель: <b>${esc(u.name)}</b> · ${esc(u.org)} · ${u.role==='надзор'?'надзорная организация':'УК'} · ${esc(u.email)} ✔ · <a href="#" id="tgReauth" style="color:var(--c-centr)">сменить пользователя</a></div>
+    <div class="normref">${sbMode()?'Общий реестр (Supabase)':'Локальный режим (этот браузер)'} · Исполнитель: <b>${esc(u.name)}</b> · ${esc(u.org)} · ${u.role==='надзор'?'надзорная организация':'УК'} · ${esc(u.email)} ✔ · <a href="#" id="tgReauth" style="color:var(--c-centr)">сменить пользователя</a> · <a href="#" id="goInsp" style="color:var(--c-centr)">📋 текущий осмотр</a></div>
     <div style="display:flex; gap:14px; font-size:12.5px; margin:6px 0">
       <span>выдано: <b>${stats['выдано']}</b></span><span>в работе: <b>${stats['в работе']}</b></span>
       <span>устранено: <b style="color:var(--ok)">${stats['устранено']}</b></span><span>просрочено: <b style="color:var(--crit)">${stats['просрочено']}</b></span>
@@ -2321,6 +2348,7 @@ async function tgRender(o){
     if(sbMode()){ TG_SESS=null; sessionStorage.removeItem('ngk_tg_sess'); }
     else { TG.users=[]; saveTG(); }
     tgRender(o); };
+  document.getElementById('goInsp').onclick=e=>{ e.preventDefault(); TG_VIEW='insp'; tgRender(o); };
   if(u.role==='надзор') document.getElementById('tgNew').onclick=()=>{
     document.getElementById('tgNewArea').innerHTML=`
       <div style="border:1px solid var(--line); border-radius:8px; padding:10px 12px; background:#fff; margin:8px 0; display:grid; gap:7px">
@@ -2407,6 +2435,408 @@ async function tgRender(o){
     list.appendChild(div);
   });
 }
+
+/* ---------- текущий осмотр: интерактивный чек-лист (скрытый раздел, надзорная организация) ---------- */
+const INSP_SEC=[
+ {id:'B',t:'Фундаменты и основание',norm:'СП 497.1325800.2020; ГОСТ 31937-2024; СП 25.13330.2020',items:[
+  ['Сваи: нет обнажения, коррозии, разрушения, признаков выпучивания (визуально доступные участки)','ГОСТ 31937-2024'],
+  ['Балки ростверка: нет трещин, прогибов, разрушения защитного слоя бетона, оголения арматуры','ГОСТ 31937-2024'],
+  ['Оголовки свай: нет разрушения бетона, коррозии закладных деталей, смещений','ГОСТ 31937-2024'],
+  ['Нет визуальных признаков неравномерной осадки (крен, перекос проёмов, свежие трещины)','СП 25.13330.2020'],
+  ['Деформационные марки и маяки на трещинах сохранны и доступны для наблюдений','ГОСТ 24846-2019'],
+  ['Устья термометрических скважин закрыты, промаркированы, доступны для замеров','ГОСТ 25358-2020']]},
+ {id:'C',t:'Подполье / технический этаж',norm:'СП 497.1325800.2020; Правила № 170',items:[
+  ['Температура воздуха в подполье соответствует проектному тепловому режиму (замер, °C)','СП 497.1325800.2020'],
+  ['Нет наледей и обмерзания конструкций и грунта основания','СП 497.1325800.2020'],
+  ['Нет затопления / подтопления грунта основания','СП 497.1325800.2020'],
+  ['Подполье не захламлено, не используется под склад или мастерские','Правила № 170'],
+  ['Нет самовольных врезок, перепланировок, вскрытий грунта','ПП РФ № 491'],
+  ['Вводы инженерных коммуникаций исправны, без протечек','Правила № 170']]},
+ {id:'D',t:'Цокольное ограждение и вентиляция подполья',norm:'СП 497.1325800.2020',items:[
+  ['Цокольное ограждение без трещин, разрушений, отклонений от вертикали','ГОСТ 31937-2024'],
+  ['Продухи / вентканалы в наличии, не загромождены; сезонное положение соответствует проектному режиму','СП 497.1325800.2020'],
+  ['Модуль вентилирования подполья соответствует проектному значению (подсчёт продухов)','СП 497.1325800.2020'],
+  ['Нет самовольных устройств (короба, витрины, рекламные конструкции), закрывающих продухи','ПП РФ № 491']]},
+ {id:'E',t:'Цокольное перекрытие',norm:'ГОСТ 31937-2024; СП 497.1325800.2020',items:[
+  ['Плиты и балки цокольного перекрытия без трещин, прогибов, коррозии арматуры','ГОСТ 31937-2024'],
+  ['Нет следов увлажнения, промерзания, разрушения теплоизоляции перекрытия','СП 497.1325800.2020']]},
+ {id:'F',t:'Стены, фасад, лоджии',norm:'ГОСТ 31937-2024; СП 13-102-2003',items:[
+  ['Трещины в наружных стенах: характер, раскрытие и развитие (по маякам) зафиксированы','ГОСТ 31937-2024'],
+  ['Лоджии и балконы: нет отклонений от вертикали, разрушения ограждений и сопряжений','СП 13-102-2003'],
+  ['Межпанельные швы герметичны, герметизация без разрушений','Правила № 170'],
+  ['Отделка цоколя без отслоений и разрушений','Правила № 170']]},
+ {id:'G',t:'Крыша и водоотвод',norm:'Правила № 170; ПП РФ № 290',items:[
+  ['Кровля без повреждений и следов протечек','Правила № 170'],
+  ['Наружные водостоки исправны; отвод воды организован от здания','СП 497.1325800.2020'],
+  ['Нет опасных наледей и сосулек над входами и тротуарами (в зимний период)','ПП РФ № 290']]},
+ {id:'H',t:'Отмостка и прилегающая территория',norm:'СП 497.1325800.2020',items:[
+  ['Отмостка без трещин и просадок; уклон от здания сохранён','СП 497.1325800.2020'],
+  ['Нет провалов грунта и термокарстовых просадок у здания','СП 497.1325800.2020'],
+  ['Поверхностные воды отводятся от здания, застойных вод нет','СП 497.1325800.2020'],
+  ['Колодцы инженерных сетей у здания без разрушений, не залиты','Правила № 170']]},
+ {id:'I',t:'Инженерные системы (влияние на тепловой режим основания)',norm:'СП 497.1325800.2020',items:[
+  ['Нет аварий и протечек трубопроводов в подполье','СП 497.1325800.2020'],
+  ['Теплоизоляция трубопроводов отопления и ГВС в подполье исправна','СП 497.1325800.2020'],
+  ['Нет сброса воды из канализации / водостока в подполье','СП 497.1325800.2020']]}
+];
+const INSP_ST={ok:'норма',warn:'замечание',viol:'нарушение'};
+let INSP=JSON.parse(localStorage.getItem('ngk_insp_v1')||'{}');
+function saveINSP(){ try{ localStorage.setItem('ngk_insp_v1', JSON.stringify(INSP)); return true; }catch(e){ alert('Хранилище переполнено — уменьшите количество или размер фотографий. Изменения НЕ сохранены.'); return false; } }
+function inspList(o){ return INSP[o.a]=INSP[o.a]||[]; }
+let INSP_CUR=null;
+function newInsp(o,u){ return {id:'I'+Date.now(), addr:o.a, created:new Date().toISOString(), status:'черновик',
+  by:u.name, byOrg:u.org,
+  head:{date:new Date().toISOString().slice(0,10), time:new Date().toTimeString().slice(0,5),
+        commission:u.name+' ('+u.org+')', weather:'', tempAir:'', tempPodpol:''},
+  items:{}, concl:{cat:'', rec:'', instr:false} }; }
+function inspCounts(cur){ let tot=0, done=0, viol=0, warn=0;
+  INSP_SEC.forEach(s=>s.items.forEach((it,ix)=>{ tot++; const v=(cur.items[s.id+ix]||{}).st;
+    if(v){ done++; if(v==='viol') viol++; if(v==='warn') warn++; } }));
+  return {tot,done,viol,warn}; }
+function fmtPhTs(ts){
+  if(!ts) return '';
+  ts=String(ts);
+  if(/^\d{4}:\d{2}:\d{2}/.test(ts)) return ts.slice(8,10)+'.'+ts.slice(5,7)+'.'+ts.slice(0,4)+(ts.length>13?(' '+ts.slice(11,16)):'');
+  return ts.slice(0,16).replace('T',' ');
+}
+/* --- голосовой ввод (русский), Web Speech API --- */
+let SR=null, SR_BTN=null;
+function stopSR(){ if(SR){ try{ SR.stop(); }catch(e){} } }
+function micAttach(btn, inp){
+  if(!btn) return;
+  btn.onclick=()=>{
+    const C=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!C){ alert('Голосовой ввод не поддерживается этим браузером. Используйте Chrome / Edge / Яндекс.Браузер или браузер смартфона.'); return; }
+    if(SR){ const was=SR_BTN===btn; stopSR(); if(was) return; }
+    SR=new C(); SR_BTN=btn;
+    SR.lang='ru-RU'; SR.interimResults=true; SR.continuous=true;
+    const base=inp.value?inp.value+' ':'';
+    SR.onresult=e=>{
+      let fin='', inter='';
+      for(let i=0;i<e.results.length;i++){ const r=e.results[i]; if(r.isFinal) fin+=r[0].transcript; else inter+=r[0].transcript; }
+      inp.value=base+fin+inter;
+      inp.dispatchEvent(new Event('input',{bubbles:true}));
+    };
+    SR.onend=()=>{ btn.classList.remove('on'); SR=null; SR_BTN=null; };
+    SR.onerror=ev=>{ btn.classList.remove('on'); SR=null; SR_BTN=null;
+      if(ev.error==='not-allowed'||ev.error==='service-not-allowed') alert('Доступ к микрофону запрещён — разрешите микрофон в настройках браузера.');
+      else if(ev.error==='network') alert('Служба распознавания речи недоступна в этом браузере. Откройте страницу в Chrome / Edge на смартфоне или компьютере.'); };
+    btn.classList.add('on');
+    try{ SR.start(); }catch(e){ btn.classList.remove('on'); SR=null; SR_BTN=null; }
+  };
+}
+/* --- геопривязка фото: EXIF GPS (JPEG) --- */
+function exifGps(buf){
+  try{
+    const v=new DataView(buf);
+    if(v.byteLength<4||v.getUint16(0)!==0xFFD8) return null;
+    let off=2;
+    while(off+4<=v.byteLength){
+      if(v.getUint8(off)!==0xFF) return null;
+      const mk=v.getUint8(off+1), ln=v.getUint16(off+2);
+      if(mk===0xDA) break;
+      if(mk===0xE1){
+        const t=off+4;
+        if(v.getUint32(t)!==0x45786966) return null; // 'Exif'
+        const b=t+6;
+        const le=v.getUint16(b)===0x4949;
+        const g16=o=>le?v.getUint16(b+o,true):v.getUint16(b+o);
+        const g32=o=>le?v.getUint32(b+o,true):v.getUint32(b+o);
+        const tag=(ifd,w)=>{ const n=g16(ifd); for(let i=0;i<n;i++){ const e=ifd+2+12*i; if(g16(e)===w) return e; } return -1; };
+        const rats=(e,k)=>{ const p=g32(e+8), a=[]; for(let i=0;i<k;i++){ const nn=g32(p+8*i), dd=g32(p+8*i+4); a.push(dd?nn/dd:0); } return a; };
+        const res={};
+        const ifd0=g32(4);
+        const ge=tag(ifd0,0x8825);
+        if(ge>0){
+          const gd=g32(ge+8);
+          const la=tag(gd,2), lo=tag(gd,4), lar=tag(gd,1), lor=tag(gd,3);
+          if(la>0&&lo>0){
+            const d2=a=>a[0]+a[1]/60+a[2]/3600;
+            let lat=d2(rats(la,3)), lon=d2(rats(lo,3));
+            if(lar>0&&String.fromCharCode(v.getUint8(b+lar+8))==='S') lat=-lat;
+            if(lor>0&&String.fromCharCode(v.getUint8(b+lor+8))==='W') lon=-lon;
+            res.lat=+lat.toFixed(6); res.lon=+lon.toFixed(6);
+          }
+        }
+        const xe=tag(ifd0,0x8769);
+        if(xe>0){ const xd=g32(xe+8), de=tag(xd,0x9003);
+          if(de>0){ const dp=g32(de+8); let s=''; for(let i=0;i<19;i++) s+=String.fromCharCode(v.getUint8(b+dp+i)); res.dt=s; } }
+        return res.lat!==undefined?res:null;
+      }
+      off+=2+ln;
+    }
+    return null;
+  }catch(e){ return null; }
+}
+function downscaleImg(buf,max,q){
+  return new Promise(res=>{
+    const url=URL.createObjectURL(new Blob([buf]));
+    const img=new Image();
+    img.onload=()=>{
+      const k=Math.min(1,max/(Math.max(img.naturalWidth,img.naturalHeight)||1));
+      const cv=document.createElement('canvas');
+      cv.width=Math.max(1,Math.round(img.naturalWidth*k));
+      cv.height=Math.max(1,Math.round(img.naturalHeight*k));
+      cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+      URL.revokeObjectURL(url);
+      res(cv.toDataURL('image/jpeg',q));
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); res(null); };
+    img.src=url;
+  });
+}
+async function importPhotos(files, rec){
+  let geo=null;
+  for(const f of files){
+    const buf=await f.arrayBuffer();
+    const g=exifGps(buf);
+    const d=await downscaleImg(buf,1280,0.72);
+    if(!d) continue;
+    const p={d:d, lat:g?g.lat:null, lon:g?g.lon:null, ts:(g&&g.dt)?g.dt:new Date().toISOString()};
+    rec.photos.push(p);
+    if(!g&&!geo&&navigator.geolocation){
+      geo=await new Promise(r=>navigator.geolocation.getCurrentPosition(
+        pos=>r({lat:+pos.coords.latitude.toFixed(6), lon:+pos.coords.longitude.toFixed(6)}),
+        ()=>r(null), {timeout:6000}));
+    }
+    if(!g&&geo){ p.lat=geo.lat; p.lon=geo.lon; }
+  }
+  saveINSP();
+}
+/* --- представление раздела осмотров --- */
+function inspView(o){
+  stopSR();
+  const el=document.getElementById('tgBody');
+  const u=tgUser();
+  const RO=!u||u.role!=='надзор';
+  const list=inspList(o);
+  if(INSP_CUR&&INSP_CUR.addr!==o.a) INSP_CUR=null;
+  if(!INSP_CUR){
+    el.innerHTML=`
+      <h2 style="font-size:16px">📋 Текущий осмотр — ${esc(o.a)}</h2>
+      <div class="normref">Исполнитель: <b>${esc(u.name)}</b> · ${esc(u.org)} · ${u.role==='надзор'?'надзорная организация':'УК (просмотр)'} · <a href="#" id="goTg" style="color:var(--c-centr)">📞 телефонограммы</a></div>
+      <div class="normref">Чек-лист текущего осмотра общего имущества МКД: ФЗ-384 (ст. 36); ЖК РФ (ст. 161); ПП РФ № 491; ПП РФ № 290; Правила № 170 (разд. 3); ГОСТ 31937-2024; СП 13-102-2003; СП 497.1325800.2020. Комментарии можно надиктовывать кнопкой 🎤 (русский язык), фото привязываются к координатам (EXIF или GPS устройства).</div>
+      ${RO?'<div class="note">УК доступен просмотр актов; проведение осмотра — организация мерзлотно-технического надзора.</div>':'<button class="addrow" id="inspNew" style="border-style:solid">+ Начать новый осмотр</button>'}
+      <div id="inspHist"></div>`;
+    document.getElementById('goTg').onclick=e=>{ e.preventDefault(); TG_VIEW='tg'; tgRender(o); };
+    if(!RO) document.getElementById('inspNew').onclick=()=>{ const cur=newInsp(o,u); inspList(o).push(cur); INSP_CUR=cur; saveINSP(); inspView(o); };
+    const h=document.getElementById('inspHist');
+    if(!list.length){ h.innerHTML='<div class="note" style="margin-top:10px">Осмотры по объекту ещё не проводились.</div>'; return; }
+    list.slice().reverse().forEach(cur=>{
+      const c=inspCounts(cur);
+      const div=document.createElement('div'); div.className='insp-hist';
+      div.innerHTML=`<b>Осмотр от ${esc(cur.head.date)} ${esc(cur.head.time||'')}</b> · ${cur.status==='завершён'?'<b style="color:var(--ok)">завершён</b>':'черновик'} · осмотрено ${c.done}/${c.tot}${c.viol?` · <b style="color:var(--crit)">нарушений: ${c.viol}</b>`:''}${c.warn?` · замечаний: ${c.warn}`:''}<br><span class="note">провёл: ${esc(cur.by)} (${esc(cur.byOrg)})</span>`;
+      const bb=document.createElement('div'); bb.style.cssText='margin-top:6px; display:flex; gap:6px; flex-wrap:wrap';
+      const open=document.createElement('button'); open.className='wbtn'; open.textContent=RO?'Открыть (просмотр)':'Открыть';
+      open.onclick=()=>{ INSP_CUR=cur; inspView(o); };
+      const act=document.createElement('button'); act.className='wbtn'; act.textContent='📄 Акт (.docx)';
+      act.onclick=()=>exportInspWord(o,cur);
+      bb.appendChild(open); bb.appendChild(act);
+      if(!RO){
+        const del=document.createElement('button'); del.className='wbtn'; del.textContent='🗑'; del.title='Удалить осмотр';
+        del.onclick=()=>{ if(!confirm('Удалить осмотр от '+cur.head.date+'?')) return; const i=list.indexOf(cur); if(i>=0) list.splice(i,1); saveINSP(); inspView(o); };
+        bb.appendChild(del);
+      }
+      div.appendChild(bb); h.appendChild(div);
+    });
+    return;
+  }
+  inspForm(o, INSP_CUR, RO);
+}
+/* --- форма чек-листа --- */
+function inspForm(o, cur, RO){
+  const el=document.getElementById('tgBody');
+  el.innerHTML=`
+    <h2 style="font-size:16px">📋 Текущий осмотр — ${esc(o.a)}</h2>
+    <div class="normref">${RO?'Просмотр (УК)':'Проводит'}: <b>${esc(cur.by)}</b> · ${esc(cur.byOrg)} · ${cur.status==='завершён'?'<b style="color:var(--ok)">завершён</b>':'черновик'} · <a href="#" id="inspBack" style="color:var(--c-centr)">← к списку осмотров</a></div>
+    <div class="insp-sec" style="padding:10px 12px">
+      <div class="sect" style="margin-top:0">Общие сведения (ГОСТ 31937-2024; Правила № 170, п. 3.1)</div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; font-size:12.5px">
+        <label>Дата <input type="date" id="ihDate" value="${cur.head.date}" ${RO?'disabled':''}></label>
+        <label>Время <input type="time" id="ihTime" value="${cur.head.time||''}" ${RO?'disabled':''}></label>
+        <label>t° наружного воздуха, °C <input id="ihTemp" style="width:70px" value="${esc(cur.head.tempAir||'')}" ${RO?'disabled':''}></label>
+        <label>t° в подполье, °C <input id="ihTempP" style="width:70px" value="${esc(cur.head.tempPodpol||'')}" ${RO?'disabled':''}></label>
+      </div>
+      <input id="ihWeather" style="width:100%; margin-top:6px" placeholder="Погодные условия (облачность, осадки, ветер)" value="${esc(cur.head.weather||'')}" ${RO?'disabled':''}>
+      <input id="ihComm" style="width:100%; margin-top:6px" placeholder="Состав комиссии (ФИО, должность, организация)" value="${esc(cur.head.commission||'')}" ${RO?'disabled':''}>
+    </div>
+    <div class="insp-prog"><div id="inspBar"></div></div>
+    <div class="note" id="inspStat" style="margin-bottom:6px"></div>
+    <div id="inspSecs"></div>
+    <div class="insp-sec" style="padding:10px 12px">
+      <div class="sect" style="margin-top:0">Итоги осмотра (ГОСТ 31937-2024)</div>
+      <div id="inspViolList" style="font-size:12.5px; margin-bottom:8px"></div>
+      <label style="font-size:12.5px">Категория технического состояния:
+        <select id="icCat" ${RO?'disabled':''}>
+          <option value="">— не установлена —</option>
+          <option ${cur.concl.cat==='работоспособное'?'selected':''}>работоспособное</option>
+          <option ${cur.concl.cat==='ограниченно работоспособное'?'selected':''}>ограниченно работоспособное</option>
+          <option ${cur.concl.cat==='недопустимое'?'selected':''}>недопустимое</option>
+        </select></label>
+      <div style="display:flex; gap:6px; margin-top:8px; align-items:flex-start">
+        <textarea id="icRec" rows="3" style="flex:1" placeholder="Рекомендации: мероприятия, сроки устранения (можно надиктовать 🎤)" ${RO?'disabled':''}>${esc(cur.concl.rec||'')}</textarea>
+        ${RO?'':'<button class="mic" id="icRecMic" title="Голосовой ввод (русский)">🎤</button>'}
+      </div>
+      <label style="font-size:12.5px; display:block; margin-top:6px"><input type="checkbox" id="icInstr" ${cur.concl.instr?'checked':''} ${RO?'disabled':''}> требуется инструментальное обследование (ГОСТ 31937-2024)</label>
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin:10px 0">
+      ${RO?'':'<button class="wbtn" id="inspDone">✅ Завершить осмотр</button>'}
+      <button class="wbtn" id="inspAct">📄 Сформировать акт (.docx)</button>
+      ${RO?'':'<button class="wbtn" id="inspDel" style="color:var(--crit)">🗑 Удалить</button>'}
+    </div>`;
+  const H=cur.head;
+  [['ihDate','date'],['ihTime','time'],['ihTemp','tempAir'],['ihTempP','tempPodpol'],['ihWeather','weather'],['ihComm','commission']].forEach(([id,k])=>{
+    const inp=document.getElementById(id);
+    if(inp) inp.oninput=()=>{ H[k]=inp.value; saveINSP(); };
+  });
+  function paintProg(){
+    const c=inspCounts(cur);
+    document.getElementById('inspBar').style.width=Math.round(100*c.done/c.tot)+'%';
+    document.getElementById('inspStat').innerHTML=`Осмотрено пунктов: <b>${c.done}/${c.tot}</b> · нарушений: <b style="color:var(--crit)">${c.viol}</b> · замечаний: <b style="color:#a86400">${c.warn}</b>`;
+    const rows=[];
+    INSP_SEC.forEach(s=>s.items.forEach((it,ix)=>{ const r=cur.items[s.id+ix];
+      if(r&&(r.st==='viol'||r.st==='warn')) rows.push(`<div>${r.st==='viol'?'⛔':'⚠️'} ${s.id}.${ix+1} ${esc(it[0])}${r.cm?(' — <i>'+esc(r.cm)+'</i>'):''}</div>`); }));
+    document.getElementById('inspViolList').innerHTML=rows.length?('<b>Выявленные нарушения и замечания:</b>'+rows.join('')):'<span class="note">Нарушения и замечания не отмечены.</span>';
+  }
+  const secs=document.getElementById('inspSecs');
+  INSP_SEC.forEach(sec=>{
+    const det=document.createElement('details'); det.className='insp-sec';
+    det.innerHTML=`<summary><span>${sec.id}. ${esc(sec.t)}</span><span class="note" data-cnt></span></summary><div class="normref">${esc(sec.norm)}</div>`;
+    sec.items.forEach((it,ix)=>{
+      const key=sec.id+ix;
+      const rec=cur.items[key]=cur.items[key]||{st:'',cm:'',photos:[]};
+      const div=document.createElement('div'); div.className='insp-item';
+      div.innerHTML=`
+        <div class="q">${sec.id}.${ix+1} ${esc(it[0])}</div>
+        <div class="nref">${esc(it[1])}</div>
+        <div class="acts">
+          <button class="stbtn" data-st="ok">✔ норма</button>
+          <button class="stbtn" data-st="warn">⚠ замечание</button>
+          <button class="stbtn" data-st="viol">⛔ нарушение</button>
+          <button class="stbtn" data-st="" title="сбросить отметку">✕</button>
+          ${RO?'':'<button class="mic" title="Голосовой ввод комментария (русский)">🎤</button>'}
+          <button class="stbtn" data-ph="1">📷 фото</button>
+          <input type="file" accept="image/*" multiple class="insp-file" style="display:none">
+          <span class="note" data-phn></span>
+        </div>
+        <textarea rows="1" style="width:100%; margin-top:5px" placeholder="Комментарий (что выявлено: марка/оси, характер, размеры)" ${RO?'disabled':''}>${esc(rec.cm||'')}</textarea>
+        <div class="insp-photos"></div>`;
+      const ta=div.querySelector('textarea');
+      ta.oninput=()=>{ rec.cm=ta.value; saveINSP(); };
+      function paintSt(){
+        div.querySelectorAll('.stbtn[data-st]').forEach(b=>{
+          b.className='stbtn'+(b.dataset.st&&b.dataset.st===rec.st?(' on-'+b.dataset.st):'');
+          if(RO) b.disabled=true;
+        });
+        const dn=sec.items.filter((x,i2)=>(cur.items[sec.id+i2]||{}).st).length;
+        det.querySelector('[data-cnt]').textContent=dn+'/'+sec.items.length;
+        paintProg();
+      }
+      div.querySelectorAll('.stbtn[data-st]').forEach(b=>{ b.onclick=()=>{ rec.st=b.dataset.st; saveINSP(); paintSt(); }; });
+      if(!RO) micAttach(div.querySelector('.mic'), ta);
+      const phBtn=div.querySelector('[data-ph]');
+      const strip=div.querySelector('.insp-photos');
+      function paintPhN(){ div.querySelector('[data-phn]').textContent=rec.photos.length?('фото: '+rec.photos.length):''; }
+      function paintPh(){
+        strip.innerHTML='';
+        rec.photos.forEach((p,pi)=>{
+          const d=document.createElement('div'); d.className='insp-ph';
+          d.innerHTML=`<img src="${p.d}" alt="">${RO?'':'<button class="del" title="Удалить фото">✕</button>'}<div>${p.lat!==null&&p.lat!==undefined?(`${p.lat}, ${p.lon}`):'без геометки'}</div><div>${esc(fmtPhTs(p.ts))}</div>`;
+          d.querySelector('img').onclick=()=>{ const w=window.open(); w.document.write('<img src="'+p.d+'" style="max-width:100%">'); };
+          if(!RO) d.querySelector('.del').onclick=()=>{ rec.photos.splice(pi,1); saveINSP(); paintPh(); paintPhN(); };
+          strip.appendChild(d);
+        });
+      }
+      if(RO) phBtn.disabled=true;
+      const fi=div.querySelector('.insp-file');
+      phBtn.onclick=()=>fi.click();
+      fi.onchange=async()=>{ if(fi.files.length){ await importPhotos(fi.files, rec); fi.value=''; paintPh(); paintPhN(); } };
+      paintSt(); paintPh(); paintPhN();
+      det.appendChild(div);
+    });
+    secs.appendChild(det);
+  });
+  document.getElementById('icCat').onchange=e=>{ cur.concl.cat=e.target.value; saveINSP(); };
+  document.getElementById('icRec').oninput=e=>{ cur.concl.rec=e.target.value; saveINSP(); };
+  document.getElementById('icInstr').onchange=e=>{ cur.concl.instr=e.target.checked; saveINSP(); };
+  if(!RO) micAttach(document.getElementById('icRecMic'), document.getElementById('icRec'));
+  document.getElementById('inspBack').onclick=e=>{ e.preventDefault(); stopSR(); INSP_CUR=null; inspView(o); };
+  document.getElementById('inspAct').onclick=()=>exportInspWord(o,cur);
+  if(!RO){
+    document.getElementById('inspDone').onclick=()=>{ cur.status='завершён'; cur.finished=new Date().toISOString(); saveINSP(); stopSR(); INSP_CUR=null; inspView(o); };
+    document.getElementById('inspDel').onclick=()=>{ if(!confirm('Удалить этот осмотр безвозвратно?')) return; const l=inspList(o); const i=l.indexOf(cur); if(i>=0) l.splice(i,1); saveINSP(); stopSR(); INSP_CUR=null; inspView(o); };
+  }
+  paintProg();
+}
+/* --- акт осмотра в Word --- */
+function durlToU8(d){ const b=atob(d.split(',')[1]); const a=new Uint8Array(b.length); for(let i=0;i<b.length;i++) a[i]=b.charCodeAt(i); return a; }
+async function exportInspWord(o, cur){
+  if(!window.docx){ alert('Библиотека Word не загрузилась (нужен интернет). Попробуйте ещё раз.'); return; }
+  const {Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,WidthType,AlignmentType,ImageRun,PageBreak}=window.docx;
+  const T=(t,opts)=>new Paragraph({children:[new TextRun(Object.assign({text:String(t??'—'),font:'Times New Roman',size:22},opts||{}))],spacing:{after:80}});
+  const Hh=(t)=>new Paragraph({children:[new TextRun({text:t,bold:true,font:'Times New Roman',size:26})],spacing:{before:220,after:120}});
+  const cell=(t,b)=>new TableCell({children:[new Paragraph({children:[new TextRun({text:String(t??'—'),bold:!!b,font:'Times New Roman',size:18})]})]});
+  const tbl=(head,rows)=>new Table({width:{size:100,type:WidthType.PERCENTAGE},
+    rows:[new TableRow({children:head.map(h=>cell(h,true)),tableHeader:true}),
+          ...rows.map(r=>new TableRow({children:r.map(x=>cell(x))}))]});
+  const c=inspCounts(cur);
+  const rows=[]; let n=0;
+  INSP_SEC.forEach(sec=>sec.items.forEach((it,ix)=>{
+    const r=(cur.items[sec.id+ix])||{}; n++;
+    rows.push([n, sec.t+': '+it[0]+' ('+it[1]+')', r.st?INSP_ST[r.st]:'не осмотрено',
+      (r.cm||'')+(r.photos&&r.photos.length?(' [фото: '+r.photos.length+']'):'')]);
+  }));
+  const viol=[];
+  INSP_SEC.forEach(sec=>sec.items.forEach((it,ix)=>{
+    const r=(cur.items[sec.id+ix])||{};
+    if(r.st==='viol'||r.st==='warn') viol.push([sec.id+'.'+(ix+1)+(r.st==='viol'?' · НАРУШЕНИЕ':' · замечание'), it[0]+(r.cm?(' — '+r.cm):'')]);
+  }));
+  const kids=[
+    new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'АНО «АНИИГБ» им. М.В. Кима — организация мерзлотно-технического надзора',font:'Times New Roman',size:22})]}),
+    new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'АКТ ТЕКУЩЕГО ОСМОТРА ОБЩЕГО ИМУЩЕСТВА МНОГОКВАРТИРНОГО ДОМА',bold:true,font:'Times New Roman',size:28})],spacing:{before:200,after:160}}),
+    T(`№ ${String(cur.id).slice(1)} · г. Норильск · ${cur.head.date}`),
+    T(`Объект: МКД по адресу: г. Норильск, ${o.a} (район ${o.d||'—'})`),
+    T(`Управляющая организация: ${effectiveUK(o)}`),
+    T(`Комиссия: ${cur.head.commission||(cur.by+' ('+cur.byOrg+')')}`),
+    T(`Условия осмотра: ${cur.head.weather||'—'}; t° наружного воздуха: ${cur.head.tempAir||'—'} °C; t° воздуха в подполье: ${cur.head.tempPodpol||'—'} °C`),
+    T('Основание: содержание общего имущества МКД (ПП РФ № 491; Правила и нормы технической эксплуатации жилищного фонда № 170, разд. 3); правила эксплуатации на многолетнемерзлых грунтах (СП 497.1325800.2020).'),
+    Hh('1. Результаты осмотра'),
+    tbl(['№','Элемент / содержание проверки (норматив)','Результат','Примечание'],rows),
+    Hh('2. Выявленные нарушения и замечания'),
+    viol.length?tbl(['Пункт','Нарушение / замечание'],viol):T('Нарушения и замечания не выявлены.'),
+    Hh('3. Оценка технического состояния и рекомендации'),
+    T(`Осмотрено пунктов чек-листа: ${c.done} из ${c.tot}. Нарушений: ${c.viol}; замечаний: ${c.warn}.`),
+    T(`Категория технического состояния: ${cur.concl.cat||'не установлена'} (ГОСТ 31937-2024).`),
+    T(`Рекомендации: ${cur.concl.rec||'—'}`),
+    T(`Инструментальное обследование: ${cur.concl.instr?'ТРЕБУЕТСЯ (ГОСТ 31937-2024)':'не требуется'}`),
+    Hh('Подписи'),
+    T(`От организации мерзлотно-технического надзора: ________________ / ${cur.by} /`),
+    T('От управляющей организации: ________________ /____________/'),
+    Hh('Нормативная база'),
+    T('ФЗ-384 «Технический регламент о безопасности зданий и сооружений» (ст. 36); ЖК РФ (ст. 161); ПП РФ № 491; ПП РФ № 290; Правила № 170 (разд. 3); ГОСТ 31937-2024; ГОСТ 25358-2020; ГОСТ 24846-2019; СП 13-102-2003; СП 25.13330.2020; СП 497.1325800.2020.')
+  ];
+  const photos=[];
+  INSP_SEC.forEach(sec=>sec.items.forEach((it,ix)=>{ const r=cur.items[sec.id+ix];
+    ((r&&r.photos)||[]).forEach(p=>photos.push({p:p, cap:sec.id+'.'+(ix+1)+' '+it[0]})); }));
+  if(photos.length){
+    kids.push(new Paragraph({children:[new PageBreak()]}));
+    kids.push(Hh(`Приложение. Фотоматериалы осмотра (${photos.length})`));
+    photos.forEach((x,i)=>{
+      kids.push(T(`Фото ${i+1}. ${x.cap}`));
+      const geo=(x.p.lat!==null&&x.p.lat!==undefined)?`координаты: ${x.p.lat}, ${x.p.lon} · `:'';
+      kids.push(T(geo+fmtPhTs(x.p.ts),{size:18,italics:true}));
+      try{
+        kids.push(new Paragraph({children:[new ImageRun({type:'jpg',data:durlToU8(x.p.d),transformation:{width:460,height:345}})],spacing:{after:160}}));
+      }catch(e){ kids.push(T('[фотографию вставить не удалось]',{size:18})); }
+    });
+  }
+  const doc=new Document({sections:[{children:kids}]});
+  const blob=await Packer.toBlob(doc);
+  const a2=document.createElement('a');
+  a2.href=URL.createObjectURL(blob);
+  a2.download='Акт_осмотра_'+o.a.replace(/[\s\/]+/g,'_')+'_'+(cur.head.date||'')+'.docx';
+  a2.click();
+}
 const PWH={view:'e25263815248915f93d27213a93195cf2b11e94e51171099fb6a5c6954cc040a',
            edit:'2fc5b5a616cdbc8e4081158340a5d424d05a2be0a4df7aa968c04868103f89cc'};
 async function sha256Hex(s){ const b=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
@@ -2431,7 +2861,7 @@ function enterApp(role){
 })();
 
 };
-const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",ivD:"d+qJ4ixLb9DKgUox"};
+const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",ivD:"LkbIwLqEj9bJKhoc"};
 function enterApp(role){ sessionStorage.setItem("ngk_role",role); document.body.classList.add("authed","role-"+role); document.getElementById("loginModal").style.display="none"; document.getElementById("roleBadge").textContent=role==="edit"?"оператор":"наблюдатель"; }
 const _b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 async function _unwrap(pw,saltB,ivB,wrapB){
