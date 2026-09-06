@@ -2830,8 +2830,10 @@ function inspForm(o, cur, RO){
           <button class="stbtn" data-st="viol">⛔ нарушение</button>
           <button class="stbtn" data-st="" title="сбросить отметку">✕</button>
           ${RO?'':'<button class="mic" title="Голосовой ввод комментария (русский)">🎤</button>'}
-          <button class="stbtn" data-ph="1">📷 фото</button>
+          <button class="stbtn" data-ph="1" title="Выбрать фото из галереи / файлов">🖼 фото</button>
+          <button class="stbtn" data-cam="1" title="Снять камерой (на смартфоне откроется камера)">📷 камера</button>
           <input type="file" accept="image/*" multiple class="insp-file" style="display:none">
+          <input type="file" accept="image/*" capture="environment" class="insp-cam" style="display:none">
           <span class="note" data-phn></span>
         </div>
         <textarea rows="1" style="width:100%; margin-top:5px" placeholder="Комментарий (что выявлено: марка/оси, характер, размеры)" ${RO?'disabled':''}>${esc(rec.cm||'')}</textarea>
@@ -2850,6 +2852,7 @@ function inspForm(o, cur, RO){
       div.querySelectorAll('.stbtn[data-st]').forEach(b=>{ b.onclick=()=>{ rec.st=b.dataset.st; saveINSP(); paintSt(); }; });
       if(!RO) micAttach(div.querySelector('.mic'), ta);
       const phBtn=div.querySelector('[data-ph]');
+      const camBtn=div.querySelector('[data-cam]');
       const strip=div.querySelector('.insp-photos');
       function paintPhN(){ div.querySelector('[data-phn]').textContent=rec.photos.length?('фото: '+rec.photos.length):''; }
       function paintPh(){
@@ -2862,10 +2865,13 @@ function inspForm(o, cur, RO){
           strip.appendChild(d);
         });
       }
-      if(RO) phBtn.disabled=true;
+      if(RO){ phBtn.disabled=true; camBtn.disabled=true; }
       const fi=div.querySelector('.insp-file');
+      const cam=div.querySelector('.insp-cam');
       phBtn.onclick=()=>fi.click();
+      camBtn.onclick=()=>cam.click();
       fi.onchange=async()=>{ if(fi.files.length){ await importPhotos(fi.files, rec); fi.value=''; paintPh(); paintPhN(); } };
+      cam.onchange=async()=>{ if(cam.files.length){ await importPhotos(cam.files, rec); cam.value=''; paintPh(); paintPhN(); } };
       paintSt(); paintPh(); paintPhN();
       det.appendChild(div);
     });
