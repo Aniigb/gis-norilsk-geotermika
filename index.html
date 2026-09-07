@@ -60,8 +60,14 @@
   .b-risk{background:#fbe8c8; color:var(--risk)}
   .b-crit{background:#f7dcd7; color:var(--crit)}
   .b-card{background:#e3e8ec; color:var(--mut)}
-  .legend{position:absolute; right:14px; bottom:14px; z-index:600; background:rgba(255,255,255,.92); border:1px solid var(--line); border-radius:6px; padding:8px 12px; font-size:12px}
+  .legend{position:absolute; right:14px; bottom:38px; z-index:600; background:rgba(255,255,255,.92); border:1px solid var(--line); border-radius:6px; padding:8px 12px; font-size:12px}
   .legend div{margin:2px 0}
+  /* ---------- бегущая строка статусов под картой ---------- */
+  #mapTicker{position:absolute; left:0; right:0; bottom:0; z-index:650; height:26px; overflow:hidden; display:flex; align-items:center; background:rgba(15,28,38,.92); color:#e8eef3; border-top:1px solid #3a4c5c}
+  #mapTicker .tk{display:flex; white-space:nowrap; animation:tkScroll 40s linear infinite; will-change:transform}
+  #mapTicker .tk span{padding-right:90px; font-size:12.3px; letter-spacing:.02em}
+  #mapTicker:hover .tk{animation-play-state:paused}
+  @keyframes tkScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
   .sw{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px}
   .wells{display:flex; flex-wrap:wrap; gap:5px; margin:6px 0 8px}
   .wbtn{border:1px solid var(--line); background:#fff; border-radius:4px; padding:3px 10px; font-size:12px; cursor:pointer}
@@ -154,7 +160,7 @@
     #side{order:2; border-right:none; border-top:1px solid var(--line); flex:none}
     #list{max-height:38vh}
     #detail{order:3; border-left:none; border-top:1px solid var(--line); overflow:visible; padding:12px}
-    .legend{font-size:10.5px; padding:5px 8px; right:8px; bottom:8px}
+    .legend{font-size:10.5px; padding:5px 8px; right:8px; bottom:32px}
     .tabs{flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:thin}
     .tabs button{flex:0 0 auto; padding:8px 10px; font-size:12px}
     table.kv{font-size:12px}
@@ -264,6 +270,7 @@
       <div><span class="sw" style="background:#8a97a3"></span>без замеров</div>
       <div><span class="sw" style="background:transparent; border:2px solid #2f6fb2; border-radius:2px"></span>границы районов</div>
     </div>
+    <div id="mapTicker" title="Бегущая строка: количество объектов по категориям состояния (пауза — навести курсор)"><div class="tk"><span id="tkA"></span><span id="tkB" aria-hidden="true"></span></div></div>
   </div>
   <div id="detail"><div class="empty">Выберите объект на карте или в списке слева</div></div>
 </div>
@@ -599,6 +606,11 @@ function renderStats(){
      <span><span class="dot" style="background:${SCOL.РИСК}"></span><b>${n.РИСК}</b> риск</span>
      <span><span class="dot" style="background:${SCOL.КРИТИЧНО}"></span><b>${n.КРИТИЧНО}</b> критично</span>
      <span><span class="dot" style="background:#8a97a3"></span><b>${DB.objects.length}</b> всего</span>`;
+  // бегущая строка под картой
+  const noData=DB.objects.length-n.НОРМА-n.РИСК-n.КРИТИЧНО;
+  const txt=`⛔ КРИТИЧНО: ${n.КРИТИЧНО}     ⚠️ РИСК: ${n.РИСК}     ✔ НОРМА: ${n.НОРМА}     ○ без замеров: ${noData}     ▦ всего объектов: ${DB.objects.length}     ·     ГИС-база геотехнического мониторинга зданий · г. Норильск · АНО «АНИИГБ» им. М.В. Кима     ·     `;
+  const a=document.getElementById('tkA'), b=document.getElementById('tkB');
+  if(a&&b){ a.textContent=txt; b.textContent=txt; }
 }
 renderStats();
 
@@ -2188,7 +2200,10 @@ function saveTG(){ try{ localStorage.setItem('ngk_tg_v1', JSON.stringify(TG)); }
 /* --- Supabase-режим: общий реестр для всех пользователей + настоящая email-верификация ---
    Подключение: на экране входа в раздел — «⚙ подключение общего реестра», ввести Project URL и anon key
    (сохраняется в localStorage ngk_tg_sb). Без конфигурации — локальный режим (данные только в этом браузере). */
-const TG_SB=JSON.parse(localStorage.getItem('ngk_tg_sb')||'null');
+/* Встроенный серверный контур общего реестра (Supabase): работает для всех пользователей сразу.
+   Переопределение/отключение — «⚙ подключение общего реестра» на экране входа в раздел. */
+const TG_SB_BUILTIN={url:'https://lxgipzdybigdpdcmcnez.supabase.co', key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4Z2lwemR5YmlnZHBkY21jbmV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3NDQ4MDEsImV4cCI6MjEwNDMyMDgwMX0.OCU6WfUkjHV0tswF07QfCYCVQOHLzpX6Vpo7_nqeV8c'};
+const TG_SB=JSON.parse(localStorage.getItem('ngk_tg_sb')||'null')||TG_SB_BUILTIN;
 let TG_SESS=JSON.parse(sessionStorage.getItem('ngk_tg_sess')||'null');
 function sbMode(){ return !!(TG_SB&&TG_SB.url&&TG_SB.key); }
 async function sbFetch(path,opts){
@@ -2251,12 +2266,13 @@ async function tgRender(o){
       e.preventDefault();
       document.getElementById('tgCfgArea').innerHTML=`
         <div style="margin-top:8px; padding:10px; background:#fff; border:1px dashed var(--c-centr); border-radius:6px; text-align:left; font-size:12px">
-          Общий реестр хранится в Supabase (таблица <code>telegrammy</code>, настройка — по файлу <code>supabase_setup.sql</code>). Введите параметры проекта:
+          Общий реестр хранится в Supabase (таблица <code>telegrammy</code>). По умолчанию подключён встроенный контур АНО «АНИИГБ». Свои параметры проекта:
           <input id="sbUrl" placeholder="Project URL, https://xxxx.supabase.co" style="width:100%; margin:6px 0" value="${TG_SB?esc(TG_SB.url||''):''}">
           <input id="sbKey" placeholder="anon public key" style="width:100%; margin-bottom:6px" value="${TG_SB?esc(TG_SB.key||''):''}">
-          <div style="display:flex; gap:6px">
+          <div style="display:flex; gap:6px; flex-wrap:wrap">
             <button id="sbCfgSave" style="padding:5px 10px; background:var(--c-centr); color:#fff; border:none; border-radius:6px; cursor:pointer">Сохранить</button>
-            <button id="sbCfgClear" style="padding:5px 10px; background:#fff; border:1px solid var(--line); border-radius:6px; cursor:pointer">Отключить</button>
+            <button id="sbCfgClear" style="padding:5px 10px; background:#fff; border:1px solid var(--line); border-radius:6px; cursor:pointer">Отключить (локальный режим)</button>
+            <button id="sbCfgReset" style="padding:5px 10px; background:#fff; border:1px solid var(--line); border-radius:6px; cursor:pointer">Вернуть встроенный</button>
           </div>
           <div class="note" style="margin-top:6px">После сохранения страница перезагрузится. Регистрация станет с настоящим подтверждением email, а предписания — общими для всех пользователей.</div>
         </div>`;
@@ -2266,7 +2282,8 @@ async function tgRender(o){
         localStorage.setItem('ngk_tg_sb', JSON.stringify({url:url.replace(/\/+$/,''),key:key}));
         location.reload();
       };
-      document.getElementById('sbCfgClear').onclick=()=>{ localStorage.removeItem('ngk_tg_sb'); sessionStorage.removeItem('ngk_tg_sess'); location.reload(); };
+      document.getElementById('sbCfgClear').onclick=()=>{ localStorage.setItem('ngk_tg_sb', JSON.stringify({url:'',key:''})); sessionStorage.removeItem('ngk_tg_sess'); location.reload(); };
+      document.getElementById('sbCfgReset').onclick=()=>{ localStorage.removeItem('ngk_tg_sb'); sessionStorage.removeItem('ngk_tg_sess'); location.reload(); };
     };
     return;
   }
