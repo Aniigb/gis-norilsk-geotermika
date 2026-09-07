@@ -2765,6 +2765,8 @@ const INSP_RECS={
 };
 function genConclusion(o, cur){
   const c=inspCounts(cur);
+  const gm2=geodMetrics(o);
+  const sd2=statusDetail(o);
   const viols=[], warns=[];
   INSP_SEC.forEach(s=>s.items.forEach((it,ix)=>{
     const r=cur.items[s.id+ix];
@@ -2775,6 +2777,16 @@ function genConclusion(o, cur){
   const pp=e=>e.key[0]+'.'+(+e.key.slice(1)+1);
   const L=[];
   L.push(`ИТОГИ ОСМОТРА (${cur.head.date}${cur.head.time?', '+cur.head.time:''}). Осмотрено ${c.done} из ${c.tot} пунктов чек-листа. Выявлено: нарушений — ${c.viol}${c.viol?(' (пп. '+viols.map(pp).join(', ')+')'):''}; замечаний — ${c.warn}${c.warn?(' (пп. '+warns.map(pp).join(', ')+')'):''}.`);
+  // исходное состояние и история объекта — только факты из карточки ГИС-базы
+  const hist=[];
+  if(o.d0&&o.d1) hist.push(`геотермические наблюдения ${o.d0.slice(0,4)}–${o.d1.slice(0,4)} гг. (${o.prof?Object.keys(o.prof).length:0} скв.)`);
+  if(o.ngc) hist.push(`глубина НГК ${o.ngc.h} м, T грунта на уровне НГК ${o.ngc.t} °C`+(TCALC[o.a]!==undefined?` (расчётная ${TCALC[o.a]} °C)`:' (расчётная температура не задана)'));
+  if(gm2) hist.push(`геодезия: марок ${Object.keys(o.geod).length}, макс. суммарная осадка ${gm2.maxOsad.toFixed(1)} мм, макс. скорость последнего цикла ${gm2.maxSpeed.toFixed(1)} мм/год`);
+  if(o.defects){ const nd=Object.values(o.defects).reduce((s,v)=>s+v.length,0); if(nd) hist.push(`дефектов по последнему отчёту надзора${o.report_year_full?(' ('+o.report_year_full+' г.)'):''}: ${nd}`); }
+  if(o.tg&&o.tg.length) hist.push(`предписаний мерзлотного надзора: ${o.tg.length}`);
+  const prevInsp=(INSP[o.a]||[]).filter(x=>x!==cur);
+  if(prevInsp.length) hist.push(`предыдущих осмотров в системе: ${prevInsp.length} (последний — ${prevInsp[prevInsp.length-1].head.date}, категория «${prevInsp[prevInsp.length-1].concl.cat||'—'}»)`);
+  if(hist.length) L.push('', 'ИСХОДНОЕ СОСТОЯНИЕ ОБЪЕКТА (по данным карточки ГИС-базы): '+hist.join('; ')+'.');
   if(viols.length){
     L.push('', 'НАРУШЕНИЯ И МЕРОПРИЯТИЯ ПО УСТРАНЕНИЮ:');
     viols.forEach((v,i)=>{
@@ -2792,10 +2804,70 @@ function genConclusion(o, cur){
   let cat=cur.concl.cat;
   if(!cat) cat=viols.some(v=>v.key[0]==='B')?'недопустимое':(viols.length?'ограниченно работоспособное':'работоспособное');
   const needInstr=viols.some(v=>v.key[0]==='B'||v.key==='E0'||v.key==='F0');
+  // прогноз — только по фактическим рядам наблюдений
+  const fc=[];
+  if(gm2&&gm2.maxSpeed>1) fc.push(`при сохранении скорости ${gm2.maxSpeed.toFixed(1)} мм/год дополнительная осадка за 5 лет составит ≈${(gm2.maxSpeed*5).toFixed(0)} мм (суммарная ≈${(gm2.maxOsad+gm2.maxSpeed*5).toFixed(0)} мм)`);
+  sd2.reasons.filter(r=>/тренд|температур/i.test(r.text)).forEach(r=>fc.push(r.text));
+  if(fc.length) L.push('', 'ПРОГНОЗ (по фактическим рядам наблюдений): '+fc.join('; ')+'.');
   L.push('', `Категория технического состояния — ${cat} (ГОСТ 31937-2024).`);
   if(needInstr) L.push('Требуется инструментальное обследование (ГОСТ 31937-2024): уточнение характера, причин и опасности деформаций; при необходимости — проект усиления/восстановления основания и фундаментов (СП 25.13330.2020; СП 497.1325800.2020).');
   L.push('Контроль: режимные геотермические наблюдения — по ГОСТ 25358-2020 (ежеквартально); геодезические наблюдения за осадками — по ГОСТ 24846-2019; повторный осмотр — после устранения нарушений, не позднее установленных сроков.');
   return {text:L.join('\n'), cat:cat, instr:needInstr};
+}
+/* --- экспертный писатель: привязка к объекту, аналитика, прогноз, самообучение --- */
+let LEX_LEARN=JSON.parse(localStorage.getItem('ngk_lex')||'[]');
+function learnLex(raw, final){
+  raw=(raw||'').trim(); final=(final||'').trim();
+  if(raw.length<8||final.length<8||raw===final) return;
+  const ex=LEX_LEARN.findIndex(p=>p[0].toLowerCase()===raw.toLowerCase());
+  if(ex>=0) LEX_LEARN[ex]=[raw,final]; else LEX_LEARN.push([raw,final]);
+  if(LEX_LEARN.length>200) LEX_LEARN.shift();
+  try{ localStorage.setItem('ngk_lex', JSON.stringify(LEX_LEARN)); }catch(e){}
+}
+function expertComment(o, it, key, raw){
+  const t0=(raw||'').trim();
+  if(!t0) return polishComment('');
+  // самообучение: если этот текст уже правил пользователь — вернуть его редакцию
+  const lr=LEX_LEARN.find(p=>p[0].trim().toLowerCase()===t0.toLowerCase());
+  const parts=[lr?lr[1]:polishComment(t0)];
+  const sec=key.charAt(0);
+  // оценка дефекта по терминологии ГОСТ 31937-2024
+  const base=parts[0];
+  const severe=/разрушени|крен\b|выпучиван|прогрессирующ|обрушени|обнажени[ея] арматур|утрат[аы] несущей|недопустим/i.test(base);
+  parts.push(severe
+    ?'Оценка: повреждение значительное — влияет на несущую способность и устойчивость конструкций (ГОСТ 31937-2024).'
+    :'Оценка: повреждение местного характера, эксплуатационное (ГОСТ 31937-2024).');
+  // привязка к объекту — только факты из карточки ГИС-базы
+  const ctx=[];
+  const gm=geodMetrics(o);
+  if(gm&&gm.maxSpeed>0&&(sec==='B'||sec==='E'||sec==='F'||sec==='H'))
+    ctx.push(`по данным базы фиксируется осадка: макс. скорость последнего цикла ${gm.maxSpeed.toFixed(1)} мм/год (марка ${gm.speedMark}), суммарная до ${gm.maxOsad.toFixed(1)} мм (марка ${gm.osadMark})`);
+  if(o.ngc&&(sec==='B'||sec==='C'||sec==='D')){
+    const tc=TCALC[o.a];
+    ctx.push(`T грунта на уровне НГК (${o.ngc.h} м) — ${o.ngc.t} °C`+(tc!==undefined&&tc!==null?` при расчётной ${tc} °C`:''));
+  }
+  if(o.defects){
+    const secDef={B:['fund_piles','fund_rostverk','fund_ogolovki'],C:['podpol'],D:['cok_ograd'],E:['cok_perekrytie']}[sec]||[];
+    if(secDef.some(cd=>(o.defects[cd]||[]).length))
+      ctx.push(`аналогичные повреждения зафиксированы в последнем отчёте мерзлотного надзора${o.report_year_full?(' ('+o.report_year_full+' г.)'):''} — процесс развивается`);
+  }
+  const prev=(INSP[o.a]||[]).filter(x=>!INSP_CUR||x.id!==INSP_CUR.id);
+  if(prev.length){
+    const last=prev[prev.length-1];
+    ctx.push(`предыдущий осмотр ${last.head.date}: категория «${last.concl.cat||'—'}»`);
+  }
+  if(ctx.length) parts.push('Привязка к объекту ('+o.a+'): '+ctx.join('; ')+'.');
+  // прогноз — только по фактическим рядам наблюдений
+  const fc=[];
+  if(gm&&gm.maxSpeed>1)
+    fc.push(`при сохранении скорости осадки ${gm.maxSpeed.toFixed(1)} мм/год дополнительная осадка за 5 лет ≈${(gm.maxSpeed*5).toFixed(0)} мм`);
+  const sd=statusDetail(o);
+  const tr=sd.reasons.find(r=>/тренд/i.test(r.text));
+  if(tr&&(sec==='B'||sec==='C'||sec==='D')) fc.push('подтверждён тренд потепления грунтов основания ('+tr.text+')');
+  if(fc.length) parts.push('Прогноз (по фактическим рядам наблюдений): '+fc.join('; ')+'.');
+  // мероприятие по нормам
+  if(INSP_RECS[key]) parts.push('Рекомендуется: '+INSP_RECS[key]);
+  return parts.join('\n');
 }
 /* --- погодные данные: Open-Meteo (текущие / архив на дату осмотра) --- */
 const WX_CODE={0:'ясно',1:'преимущественно ясно',2:'переменная облачность',3:'пасмурно',45:'туман',48:'изморозь/туман',51:'морось слабая',53:'морось',55:'морось сильная',56:'ледяная морось',57:'ледяная морось сильная',61:'дождь слабый',63:'дождь',65:'дождь сильный',66:'ледяной дождь',67:'ледяной дождь сильный',71:'снег слабый',73:'снег',75:'снег сильный',77:'снежные зёрна',80:'ливневый дождь слабый',81:'ливневый дождь',82:'ливневый дождь сильный',85:'снегопад слабый',86:'снегопад сильный',95:'гроза',96:'гроза с градом',99:'гроза с сильным градом'};
@@ -2957,7 +3029,13 @@ function inspForm(o, cur, RO){
         <textarea rows="1" style="width:100%; margin-top:5px" placeholder="Комментарий (что выявлено: марка/оси, характер, размеры)" ${RO?'disabled':''}>${esc(rec.cm||'')}</textarea>
         <div class="insp-photos"></div>`;
       const ta=div.querySelector('textarea');
-      ta.oninput=()=>{ rec.cm=ta.value; saveINSP(); };
+      ta.oninput=()=>{ rec.cm=ta.value; saveINSP();
+        // самообучение: ручная правка результата ✍ запоминается как предпочтительная редакция
+        if(ta.dataset.polished && ta.value!==ta.dataset.polished && ta.value.trim().length>10){
+          learnLex(ta.dataset.raw0||'', ta.value);
+          delete ta.dataset.polished; delete ta.dataset.raw0;
+        }
+      };
       function paintSt(){
         div.querySelectorAll('.stbtn[data-st]').forEach(b=>{
           b.className='stbtn'+(b.dataset.st&&b.dataset.st===rec.st?(' on-'+b.dataset.st):'');
@@ -2970,7 +3048,16 @@ function inspForm(o, cur, RO){
       div.querySelectorAll('.stbtn[data-st]').forEach(b=>{ b.onclick=()=>{ rec.st=b.dataset.st; saveINSP(); paintSt(); }; });
       if(!RO) micAttach(div.querySelector('.mic'), ta);
       const wt=div.querySelector('[data-wt]');
-      if(wt) wt.onclick=()=>{ ta.value=polishComment(ta.value); ta.dispatchEvent(new Event('input',{bubbles:true})); };
+      if(wt){
+        wt.title='Переписать как технический эксперт: терминология норм + данные карточки объекта, история наблюдений, прогноз (обучен правок: '+LEX_LEARN.length+')';
+        wt.onclick=()=>{
+          const raw0=ta.value;
+          ta.value=expertComment(o, it, key, raw0);
+          ta.dataset.polished=ta.value; ta.dataset.raw0=raw0;
+          ta.dispatchEvent(new Event('input',{bubbles:true}));
+          ta.rows=Math.min(10, ta.value.split('\n').length+1);
+        };
+      }
       const phBtn=div.querySelector('[data-ph]');
       const camBtn=div.querySelector('[data-cam]');
       const strip=div.querySelector('.insp-photos');
