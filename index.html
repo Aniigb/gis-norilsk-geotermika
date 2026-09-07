@@ -28,6 +28,8 @@
 
   #side{background:var(--panel); border-right:1px solid var(--line); display:flex; flex-direction:column; min-height:0}
   .chips{display:flex; flex-wrap:wrap; gap:6px; padding:12px 12px 8px}
+  .brbtn{flex:1; border:1px solid var(--line); background:#fff; border-radius:6px; padding:6px 4px; font-size:11.8px; cursor:pointer; color:var(--mut); font-weight:600}
+  .brbtn.on{background:var(--bg); color:#fff; border-color:var(--bg)}
   .chip{border:1px solid var(--line); background:#fff; border-radius:16px; padding:4px 12px; font-size:12.5px; cursor:pointer; user-select:none}
   .chip.on{background:var(--bg); color:#fff; border-color:var(--bg)}
   .chip .n{color:var(--mut); margin-left:4px}
@@ -257,6 +259,10 @@
     <button id="logoutBtn" title="Выйти / сменить пользователя">⎋ Выход</button>
   </header>
   <div id="side">
+    <div style="display:flex; gap:6px; padding:10px 12px 4px">
+      <button class="brbtn on" id="brMkd">🏢 МКД</button>
+      <button class="brbtn" id="brSkb" title="Объекты соцкультбыта Администрации г. Норильска">🏛 Соцкультбыт Адм.</button>
+    </div>
     <div class="chips" id="chips"></div>
     <select id="ukFilter" style="margin:0 12px 6px; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; width:calc(100% - 24px)"></select>
     <label style="margin:0 12px 8px; font-size:11.8px; color:var(--mut); display:flex; gap:6px; align-items:center; cursor:pointer"><input type="checkbox" id="ukGroup"> группировать список по УК</label>
@@ -378,14 +384,14 @@
   </div>
 </div>
 
-<script src="db_p1.js?v=36c79324"></script>
-<script src="db_p2.js?v=36c79324"></script>
-<script src="db_p3.js?v=36c79324"></script>
-<script src="db_p4.js?v=36c79324"></script>
-<script src="db_p5.js?v=36c79324"></script>
-<script src="db_p6.js?v=36c79324"></script>
-<script src="db_p7.js?v=36c79324"></script>
-<script src="db_p8.js?v=36c79324"></script>
+<script src="db_p1.js?v=d86d448a"></script>
+<script src="db_p2.js?v=d86d448a"></script>
+<script src="db_p3.js?v=d86d448a"></script>
+<script src="db_p4.js?v=d86d448a"></script>
+<script src="db_p5.js?v=d86d448a"></script>
+<script src="db_p6.js?v=d86d448a"></script>
+<script src="db_p7.js?v=d86d448a"></script>
+<script src="db_p8.js?v=d86d448a"></script>
 
 <div id="loginModal">
   <form class="lbox" id="loginForm">
@@ -422,7 +428,8 @@ function saveUSERDATA(){ localStorage.setItem('ngk_userdata', JSON.stringify(USE
 
 /* ---------- управляющие компании ---------- */
 const UK_LIST = ['УК «ЖКС-Норильск»','УК «Город»','ООО «Нордсервис»','ООО «СеверныйБыт»','ООО «СеверныйУправдом»','ООО «Заполярный жилищный трест»','ООО «Будущее»'];
-function effectiveUK(o){ const c=CARD[o.a]; return (c&&c.uk!==undefined&&c.uk!=='')?c.uk:(o.uk||'Не определена'); }
+function effectiveUK(o){ if(o.br==='skb') return o.podr||'Администрация г. Норильска';
+  const c=CARD[o.a]; return (c&&c.uk!==undefined&&c.uk!=='')?c.uk:(o.uk||'Не определена'); }
 function normAddrKey(s){
   s=(s||'').toLowerCase().replace(/ё/g,'е');
   s=s.replace(/\([^)]*\)/g,' ');
@@ -538,7 +545,7 @@ for(const [name, rings] of Object.entries(DB.districts)){
   L.polygon(rings.map(r=>r.map(p=>[p[0],p[1]])),{color:DCOL[name],weight:2.5,fillColor:DCOL[name],fillOpacity:.06,dashArray:'6 4'}).addTo(map);
   L.marker(labelPos[name],{interactive:false,icon:L.divIcon({className:'district-label',html:name.toUpperCase(),iconSize:null})}).addTo(map);
 }
-let curD='Все', curQ='', curUK='Все', groupUK=false;
+let curD='Все', curQ='', curUK='Все', groupUK=false, curBranch='mkd';
 const markers = {};
 function markerColor(o){ const st=statusOf(o); return st?SCOL[st]:'#8a97a3'; }
 function drawMarkers(){
@@ -626,16 +633,20 @@ setTimeout(()=>loadOsmotry(), 0); // после полной инициализ�
 /* ---------- фильтры/список ---------- */
 const districts=['Все','Центральный','Талнах','Кайеркан'];
 const chipsEl=document.getElementById('chips');
-districts.forEach(d=>{
-  const n=d==='Все'?DB.objects.length:DB.objects.filter(o=>o.d===d).length;
-  const el=document.createElement('span');
-  el.className='chip'+(d==='Все'?' on':'');
-  el.innerHTML=d+`<span class="n">${n}</span>`;
-  el.onclick=()=>{curD=d;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');renderList();
-    if(d!=='Все'&&DB.districts[d]){const pts=DB.districts[d].flat();map.flyToBounds(L.latLngBounds(pts.map(p=>[p[0],p[1]])),{padding:[30,30]});}
-    if(d==='Все'){map.flyTo([69.355,88.20],12);}};
-  chipsEl.appendChild(el);
-});
+function renderChips(){
+  chipsEl.innerHTML='';
+  districts.forEach(d=>{
+    const n=DB.objects.filter(o=>branchOf(o)===curBranch&&(d==='Все'||o.d===d)).length;
+    const el=document.createElement('span');
+    el.className='chip'+(d===curD?' on':'');
+    el.innerHTML=d+`<span class="n">${n}</span>`;
+    el.onclick=()=>{curD=d;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');renderList();
+      if(d!=='Все'&&DB.districts[d]){const pts=DB.districts[d].flat();map.flyToBounds(L.latLngBounds(pts.map(p=>[p[0],p[1]])),{padding:[30,30]});}
+      if(d==='Все'){map.flyTo([69.355,88.20],12);}};
+    chipsEl.appendChild(el);
+  });
+}
+renderChips();
 document.getElementById('search').addEventListener('input',e=>{curQ=e.target.value.toLowerCase();renderList();});
 /* --- фильтр и группировка по УК --- */
 const ukSel=document.getElementById('ukFilter');
@@ -648,7 +659,25 @@ const ukSel=document.getElementById('ukFilter');
   ukSel.onchange=()=>{curUK=ukSel.value; renderList();};
   document.getElementById('ukGroup').onchange=e=>{groupUK=e.target.checked; renderList();};
 }
-function passF(o){ return (curD==='Все'||o.d===curD)&&(curUK==='Все'||effectiveUK(o)===curUK)&&(!curQ||o.a.toLowerCase().includes(curQ)); }
+function passF(o){ const inBr=curBranch==='mkd'?(o.br||'mkd')==='mkd':o.br==='skb';
+  return inBr&&(curD==='Все'||o.d===curD)&&(curUK==='Все'||effectiveUK(o)===curUK)&&(!curQ||o.a.toLowerCase().includes(curQ)); }
+/* --- переключатель веток: МКД / объекты соцкультбыта Администрации --- */
+function branchOf(o){ return o.br||'mkd'; }
+function podrList(){ const s=new Set(); DB.objects.forEach(o=>{ if(o.br==='skb') s.add(o.podr||'Администрация г. Норильска'); }); return [...s].sort(); }
+function setBranch(b){
+  curBranch=b;
+  document.getElementById('brMkd').className='brbtn'+(b==='mkd'?' on':'');
+  document.getElementById('brSkb').className='brbtn'+(b==='skb'?' on':'');
+  // фильтр УК → подразделения для ветки соцкультбыта
+  const ukSel=document.getElementById('ukFilter');
+  const opts=b==='mkd'?UK_LIST.concat(['Не определена']):podrList();
+  ukSel.innerHTML='<option value="Все">'+(b==='mkd'?'УК: Все':'Подразделение: Все')+' ('+DB.objects.filter(o=>branchOf(o)===b).length+')</option>'+
+    opts.map(u=>{ const n=DB.objects.filter(o=>branchOf(o)===b&&effectiveUK(o)===u).length; return `<option value="${esc(u)}">${esc(u)} (${n})</option>`; }).join('');
+  curUK='Все';
+  renderChips(); renderList();
+}
+document.getElementById('brMkd').onclick=()=>setBranch('mkd');
+document.getElementById('brSkb').onclick=()=>setBranch('skb');
 function renderList(){
   const list=document.getElementById('list'); list.innerHTML='';
   let idx=DB.objects.map((o,i)=>[o,i]).filter(([o])=>passF(o));
@@ -986,8 +1015,8 @@ function renderDetail(o){
     ? `<div class="reasons">${sd.reasons.map(r=>`<div class="rsn r-${r.level}">${r.level==='crit'?'⛔':'⚠️'} ${esc(r.text)}</div>`).join('')}</div>`
     : (st?'<div class="reasons"><div class="rsn r-ok">✔ все показатели в пределах превентивных порогов</div></div>':'');
   d.innerHTML=`
-    <h2>${esc(o.a)}<span class="badge ${st?('b-'+{НОРМА:'ok',РИСК:'risk',КРИТИЧНО:'crit'}[st]):'b-card'}">${st||'карточка'}</span><button class="tglock" id="tgLock" title="Телефонограммы (доступ для УК и надзорной организации)">🔒</button><button class="tglock" id="inspLock" title="Текущий осмотр — чек-лист (доступ для надзорной организации)">📋</button></h2>
-    <div class="rayon">Район: <b style="color:${DCOL[o.d]||'#666'}">${esc(o.d||'не определён')}</b> · УК: <b>${esc(effectiveUK(o))}</b> · г. Норильск</div>
+    <h2>${esc(o.a)}<span class="badge ${st?('b-'+{НОРМА:'ok',РИСК:'risk',КРИТИЧНО:'crit'}[st]):'b-card'}">${st||'карточка'}</span>${o.br==='skb'?'':`<button class="tglock" id="tgLock" title="Телефонограммы (доступ для УК и надзорной организации)">🔒</button>`}<button class="tglock" id="inspLock" title="Текущий осмотр — чек-лист (доступ для надзорной организации)">📋</button></h2>
+    <div class="rayon">Район: <b style="color:${DCOL[o.d]||'#666'}">${esc(o.d||'не определён')}</b> · ${o.br==='skb'?'Подразделение':'УК'}: <b>${esc(effectiveUK(o))}</b> · г. Норильск</div>
     ${osmLine(o)}
     ${reasonsHtml}
     <div class="tabs" id="cardTabs"></div>
@@ -1003,7 +1032,8 @@ function renderDetail(o){
   // шапка разделов: активная вкладка всегда по центру полосы; при выборе раздела полоса поднимается к верху окна
   const act=tb.querySelector('button.on');
   if(act) setTimeout(()=>{ try{ act.scrollIntoView({block:'nearest', inline:'center'}); }catch(e){} },60);
-  document.getElementById('tgLock').onclick=()=>openTg(o);
+  const tgL=document.getElementById('tgLock');
+  if(tgL) tgL.onclick=()=>openTg(o);
   document.getElementById('inspLock').onclick=()=>openTg(o,'insp');
   renderTab(o);
 }
@@ -1196,7 +1226,7 @@ function tabPassport(o, el){
   <table class="kv">
     <tr><td>Адрес</td><td>г. Норильск, ${esc(o.a)}</td></tr>
     <tr><td>Район</td><td>${esc(o.d||'—')}</td></tr>
-    <tr><td>Управляющая компания</td><td>${sel(o,'pf','uk', o.uk||'Не определена', UK_LIST.concat(['Не определена']))}</td></tr>
+    <tr><td>${o.br==='skb'?'Подразделение Администрации':'Управляющая компания'}</td><td>${o.br==='skb'?sel(o,'pf','uk', o.podr||'', podrList()):sel(o,'pf','uk', o.uk||'Не определена', UK_LIST.concat(['Не определена']))}</td></tr>
     <tr><td>Координаты (WGS-84)</td><td>${fmt(o.lat)}, ${fmt(o.lon)} <span style="color:var(--mut)">(${prec})</span></td></tr>
     <tr><td>Год постройки</td><td>${inp(o,'pf','year', o.y??(o.pf2&&((o.pf2.year_in||'').match(/\d{4}/)||[])[0])??(o.pf2&&o.pf2.arc_year)??'')}</td></tr>
     <tr><td>Серия / тип проекта</td><td>${inp(o,'pf','series', o.s??(o.pf2&&(o.pf2.project||o.pf2.arc_series))??'')}</td></tr>
@@ -3700,7 +3730,7 @@ function enterApp(role){
 })();
 
 };
-const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",ivD:"idJWLAvH03FFiUiV"};
+const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",ivD:"FEvAhEDVU++XJiWI"};
 function enterApp(role){ sessionStorage.setItem("ngk_role",role); document.body.classList.add("authed","role-"+role); document.getElementById("loginModal").style.display="none"; document.getElementById("roleBadge").textContent=role==="edit"?"оператор":"наблюдатель"; }
 const _b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 async function _unwrap(pw,saltB,ivB,wrapB){
