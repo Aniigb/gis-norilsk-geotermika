@@ -1219,7 +1219,8 @@ function passportBlock(o){
 
 function tabPassport(o, el){
   const wells=o.prof?Object.keys(o.prof):[];
-  const prec={'точный':'точный адрес (OSM)','по улице':'центроид улицы','nominatim':'Nominatim/OSM','уточнено вручную':'уточнено по спутниковому снимку'}[o.p]||'—';
+  const ro0=!document.body.classList.contains('role-edit');
+  const prec={'точный':'точный адрес (OSM)','по улице':'центроид улицы','nominatim':'Nominatim/OSM','уточнено вручную':'уточнено по спутниковому снимку','приблизительная (по улице)':'приблизительная (по улице)'}[o.p]||'—';
   el.innerHTML=`
   <div class="normref">Состав сведений: ГОСТ 31937-2024 «Здания и сооружения. Правила обследования и мониторинга технического состояния» (паспорт объекта мониторинга); СП 25.13330.2020 (разд. 5 — принципы использования вечномерзлых грунтов); ПП РФ № 491 (п. 24–26, состав технической документации на МКД). Поля редактируются и сохраняются локально в браузере.</div>
   ${passportBlock(o)}
@@ -1227,7 +1228,11 @@ function tabPassport(o, el){
     <tr><td>Адрес</td><td>г. Норильск, ${esc(o.a)}</td></tr>
     <tr><td>Район</td><td>${esc(o.d||'—')}</td></tr>
     <tr><td>${o.br==='skb'?'Подразделение Администрации':'Управляющая компания'}</td><td>${o.br==='skb'?sel(o,'pf','uk', o.podr||'', podrList()):sel(o,'pf','uk', o.uk||'Не определена', UK_LIST.concat(['Не определена']))}</td></tr>
-    <tr><td>Координаты (WGS-84)</td><td>${fmt(o.lat)}, ${fmt(o.lon)} <span style="color:var(--mut)">(${prec})</span></td></tr>
+    <tr><td>Координаты (WGS-84)</td><td>${ro0?`${fmt(o.lat)}, ${fmt(o.lon)} <span style="color:var(--mut)">(${prec})</span>`:`
+      <input id="geoLat" type="number" step="0.000001" style="width:100px" value="${o.lat??''}"> , <input id="geoLon" type="number" step="0.000001" style="width:100px" value="${o.lon??''}">
+      <button class="wbtn" id="geoApply" style="padding:2px 8px">💾 Применить</button>
+      <button class="wbtn" id="geoPosOpen" style="padding:2px 8px" title="Клик по зданию на спутниковом снимке → перенос координаты">📍 Позиционировать на карте</button>
+      <br><span class="note">точность: ${prec}${GEOVR[o.a]?' · координата уточнена по спутнику':''} · правки сохраняются локально</span>`}</td></tr>
     <tr><td>Год постройки</td><td>${inp(o,'pf','year', o.y??(o.pf2&&((o.pf2.year_in||'').match(/\d{4}/)||[])[0])??(o.pf2&&o.pf2.arc_year)??'')}</td></tr>
     <tr><td>Серия / тип проекта</td><td>${inp(o,'pf','series', o.s??(o.pf2&&(o.pf2.project||o.pf2.arc_series))??'')}</td></tr>
     <tr><td>Этажность</td><td>${inp(o,'pf','floors', (o.pf2&&(o.pf2.arc_floors||o.pf2.floors_txt))??'')}</td></tr>
@@ -1249,6 +1254,26 @@ function tabPassport(o, el){
     if(isNaN(v)) delete TCALC[o.a]; else TCALC[o.a]=v;
     saveTCALC(); drawMarkers(); renderStats();
   });
+  // корректировка координат (оператор) — то же хранилище, что у «📍 Позиционирования»
+  const gA=el.querySelector('#geoApply');
+  if(gA){
+    gA.onclick=()=>{
+      const la=parseFloat(el.querySelector('#geoLat').value), lo=parseFloat(el.querySelector('#geoLon').value);
+      if(!(la>68.8&&la<69.7&&lo>87.5&&lo<89.2)){ alert('Координаты вне окрестности Норильска — проверьте ввод (WGS-84).'); return; }
+      GEOVR[o.a]=[+la.toFixed(6), +lo.toFixed(6)];
+      localStorage.setItem('ngk_geo', JSON.stringify(GEOVR));
+      o.lat=GEOVR[o.a][0]; o.lon=GEOVR[o.a][1]; o.p='уточнено вручную';
+      const i=DB.objects.indexOf(o);
+      if(markers[i]) markers[i].setLatLng([o.lat,o.lon]);
+      renderDetail(o);
+    };
+    el.querySelector('#geoPosOpen').onclick=()=>{
+      if(o.lat==null) return;
+      if(!geoMode) toggleGeoMode();
+      map.flyTo([o.lat,o.lon], 19);
+      if(window.matchMedia('(max-width:900px)').matches) document.getElementById('map').scrollIntoView({behavior:'smooth'});
+    };
+  }
 }
 
 function tabProject(o, el){
