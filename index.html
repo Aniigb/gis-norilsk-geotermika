@@ -613,7 +613,7 @@ function renderStats(){
   if(a&&b){ a.textContent=txt; b.textContent=txt; }
 }
 renderStats();
-loadOsmotry();
+setTimeout(()=>loadOsmotry(), 0); // после полной инициализации скрипта (TG_SB и пр.)
 
 /* ---------- фильтры/список ---------- */
 const districts=['Все','Центральный','Талнах','Кайеркан'];
