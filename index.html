@@ -2029,6 +2029,91 @@ const NORMS_KB=[
      'Техническая документация на МКД (п. 24–26): документы технического учёта, акты осмотров и проверок конструктивных частей, журнал осмотра, сметы и описи работ по текущему ремонту, кадастровый план участка',
      'Ответственные лица обязаны принимать, хранить, вести и передавать техдокументацию (п. 27) — основание для ведения паспорта объекта и раздела «Проектная документация» в данной ГИС-базе']}];
 
+/* --- нормативные таблицы (загружены и хранятся в системе; проверены по опубликованному тексту норм) ---
+   Источники: СП 25.13330.2020 (прил. В — актуализация СНиП 2.02.04-88, прил. 2); СП 22.13330.2011 (прил. Д и Ж); СНиП 2.02.04-88 (табл. 9). */
+const TB_T=[-0.3,-0.5,-1,-1.5,-2,-2.5,-3,-3.5,-4,-6,-8,-10]; // шкала температур таблиц, °C
+const TB_RAF={ // СП 25.13330.2020, прил. В, табл. В.3 — Raf (сдвиг по поверхности смерзания), кПа
+  'глинистые':[40,60,100,130,150,180,200,230,250,300,340,380],
+  'песчаные':[50,80,130,160,200,230,260,290,330,380,440,500],
+  'известково-песчаный раствор':[60,90,160,200,230,260,280,300,350,400,460,520]};
+const TB_R={ // СП 25.13330.2020, прил. В, табл. В.1 — R под нижним концом сваи, кПа (по глубине погружения)
+  'крупнообломочные':{'—':[2500,3000,3500,4000,4300,4500,4800,5300,5800,6300,6800,7300]},
+  'пески крупной и средней крупности':{'—':[1500,1800,2100,2400,2500,2700,2800,3100,3400,3700,4600,5500]},
+  'пески мелкие и пылеватые':{'3–5 м':[850,1300,1400,1500,1700,1900,1900,2000,2100,2600,3000,3500],'10 м':[1000,1550,1650,1750,2000,2100,2200,2300,2500,3000,3500,4000],'15 м и более':[1100,1700,1800,1900,2200,2300,2400,2500,2700,3300,3800,4300]},
+  'супеси':{'3–5 м':[750,850,1100,1200,1300,1400,1500,1700,1800,2300,2700,3000],'10 м':[850,950,1250,1350,1450,1600,1700,1900,2000,2600,3000,3500],'15 м и более':[950,1050,1400,1500,1600,1800,1900,2100,2200,2900,3400,3900]},
+  'суглинки и глины':{'3–5 м':[650,750,850,950,1100,1200,1300,1400,1500,1800,2300,2800],'10 м':[800,850,950,1100,1250,1350,1450,1600,1700,2000,2600,3000],'15 м и более':[900,950,1100,1250,1400,1500,1600,1800,1900,2200,2900,3500]}};
+const TB_TFH={ // СНиП 2.02.04-88, табл. 9 — касательная сила морозного пучения τ_fh, кПа (по глубине сезонного промерзания-оттаивания 1/2/3 м)
+  'пылевато-глинистые (IL>0,5); пески мелкие/пылеватые (Sr>0,95)':[130,110,90],
+  'пылевато-глинистые (0,25<IL≤0,5); пески (0,8<Sr≤0,95); крупнообломочные с заполнителем >30%':[100,90,70],
+  'пылевато-глинистые (IL≤0,25); пески (0,6<Sr≤0,8); крупнообломочные с заполнителем 10–30%':[80,70,50]};
+const TB_TM={'пески':-0.10,'супеси и пылеватые пески':-0.15,'суглинок':-0.20,'глины':-0.25}; // СП 25.13330.2020, прил. Б, табл. Б.1 — температура начала замерзания незасоленного грунта, °C
+const TB_DEF=[ // СП 22.13330.2011, прил. Д, табл. Д.1 — предельные деформации: (Δs/L)u и предельная осадка, см
+  ['МКД бескаркасные, стены из крупных панелей',0.0016,12],
+  ['МКД бескаркасные, крупные блоки / кирпич без армирования',0.0020,12],
+  ['МКД с армированием / ж/б поясами, монолитные',0.0024,18],
+  ['МКД с полным ж/б каркасом',0.002,10],
+  ['МКД с полным ж/б каркасом + ж/б пояса / монолитные перекрытия',0.003,15]];
+const TB_DEF_EX=[ // СП 22.13330.2011, прил. Ж — предельные ДОПОЛНИТЕЛЬНЫЕ деформации существующих зданий по категории техсостояния
+  ['панельные / ж/б каркас','I',0.0020,4.0],['панельные / ж/б каркас','II',0.0010,3.0],['панельные / ж/б каркас','III',0.0007,2.0],
+  ['блоки / кирпич без армирования','I',0.003,4.0],['блоки / кирпич без армирования','II',0.0015,3.0],['блоки / кирпич без армирования','III',0.001,2.0]];
+function tbInterp(xs, ys, x){ // линейная интерполяция по шкале убывающих температур
+  if(x>=xs[0]) return ys[0];
+  const n=xs.length;
+  if(x<=xs[n-1]) return ys[n-1];
+  for(let i=0;i<n-1;i++) if(x<=xs[i]&&x>=xs[i+1]){ const k=(x-xs[i])/(xs[i+1]-xs[i]); return ys[i]+k*(ys[i+1]-ys[i]); }
+  return ys[n-1];
+}
+/* --- извлечение данных из карточки объекта --- */
+function parseDims(o){ const t=((o.pf2||{}).dims||'');
+  const m=t.match(/(\d+[,.]?\d*)\s*[×xх*]\s*(\d+[,.]?\d*)/);
+  if(!m) return null;
+  const a=parseFloat(m[1].replace(',','.')), b=parseFloat(m[2].replace(',','.'));
+  return {a:a,b:b,P:+(2*(a+b)).toFixed(1), A:+(a*b).toFixed(0)};
+}
+function parseVent(o){ const t=((o.pf2||{}).vent||'');
+  let F0=null, n=null;
+  const m=t.match(/(\d+)\s*(?:воздухозаборн\w*\s+)?продух/i); if(m) n=+m[1];
+  const ms=t.match(/сечени\w*\s*([\d,]+)\s*[×xх*]\s*([\d,]+)/i);
+  if(n&&ms) F0=+(n*parseFloat(ms[1].replace(',','.'))*parseFloat(ms[2].replace(',','.'))).toFixed(2);
+  const m2=t.match(/общей площадью[^\d]*([\d,]+)/i);
+  if(m2) F0=parseFloat(m2[1].replace(',','.'));
+  return {n:n, F0:F0};
+}
+function parsePile(o){ const t=((o.pf2||{}).fund||'');
+  let U=null, Ap=null, L=null, note='';
+  let m=t.match(/[Øø⌀]\s*(\d{3,4})/);
+  if(m){ const d=+m[1]/1000; U=+(Math.PI*d).toFixed(2); Ap=+(Math.PI*d*d/4).toFixed(4); note='Ø'+m[1]+' мм (паспорт)'; }
+  else { m=t.match(/СФ\s*(\d{2})/i)||t.match(/С\s*[-–]?\s*(\d{2})\b/);
+    if(m){ const a=+m[1]/100; U=+(4*a).toFixed(2); Ap=+(a*a).toFixed(4); note='сечение '+(+m[1])+' см (паспорт)'; } }
+  const lm=t.match(/длиной\s+([\d,\s]+)\s*м/i);
+  if(lm){ const lens=lm[1].split(',').map(x=>parseFloat(x)).filter(x=>x>3&&x<40); if(lens.length) L=Math.max.apply(null,lens); }
+  return {U:U,Ap:Ap,L:L,note:note};
+}
+function gruntGuess(o){
+  const t=(((o.pf2||{}).grunts)||'')+' '+(o.igi_grunts||'');
+  if(/суглин|глин/i.test(t)) return 'суглинки и глины';
+  if(/супес/i.test(t)) return 'супеси';
+  if(/пылеват/i.test(t)) return 'пески мелкие и пылеватые';
+  if(/песк|песчан/i.test(t)) return 'пески крупной и средней крупности';
+  if(/крупнооблом|скал|щебн|грав|валун/i.test(t)) return 'крупнообломочные';
+  return null;
+}
+function renderNormTables(){
+  const miniTab=(head, rows)=>`<table class="rows static" style="font-size:10.8px"><thead><tr>${head.map(h=>'<th>'+esc(h)+'</th>').join('')}</tr></thead><tbody>${rows.map(r=>'<tr>'+r.map(c=>'<td>'+esc(c)+'</td>').join('')+'</tr>').join('')}</tbody></table>`;
+  const tHead=['T грунта, °C'].concat(TB_T.map(String));
+  const rafRows=Object.entries(TB_RAF).map(([g,v])=>[g].concat(v.map(x=>String(x))));
+  const rRows=[];
+  Object.entries(TB_R).forEach(([g,rows])=>Object.entries(rows).forEach(([d,v])=>rRows.push([g,d].concat(v.map(x=>String(x))))));
+  const tfhRows=Object.entries(TB_TFH).map(([g,v])=>[g].concat(v.map(String)));
+  return `
+  <details style="margin:3px 0; font-size:12.2px"><summary style="cursor:pointer; font-weight:600">СП 25.13330.2020, прил. В, табл. В.3 — Raf, кПа (сдвиг по поверхности смерзания)</summary>${miniTab(tHead, rafRows)}<div class="note">Для бетонной поверхности γ_af = 1,0; для металлической (горячекатаный прокат) γ_af = 0,7. Промежуточные температуры — линейная интерполяция.</div></details>
+  <details style="margin:3px 0; font-size:12.2px"><summary style="cursor:pointer; font-weight:600">СП 25.13330.2020, прил. В, табл. В.1 — R под нижним концом сваи, кПа</summary>${miniTab(['Вид грунта','Заглубление'].concat(TB_T.map(String)), rRows)}</details>
+  <details style="margin:3px 0; font-size:12.2px"><summary style="cursor:pointer; font-weight:600">СНиП 2.02.04-88, табл. 9 — касательная сила морозного пучения τ_fh, кПа</summary>${miniTab(['Грунт / состояние','d_th = 1 м','2 м','3 м'], tfhRows)}</details>
+  <details style="margin:3px 0; font-size:12.2px"><summary style="cursor:pointer; font-weight:600">СП 25.13330.2020, прил. Б — температура начала замерзания грунта T_M</summary>${miniTab(['Грунт','T_M, °C'], Object.entries(TB_TM).map(([g,v])=>[g,String(v)]))}</details>
+  <details style="margin:3px 0; font-size:12.2px"><summary style="cursor:pointer; font-weight:600">СП 22.13330.2011, прил. Д — предельные деформации основания</summary>${miniTab(['Тип здания','(Δs/L)u','Предельная осадка, см'], TB_DEF.map(r=>[r[0],String(r[1]),String(r[2])]))}</details>
+  <details style="margin:3px 0; font-size:12.2px"><summary style="cursor:pointer; font-weight:600">СП 22.13330.2011, прил. Ж — предельные дополнительные деформации существующих зданий</summary>${miniTab(['Тип','Категория техсостояния','(Δs/L)u','s_ad,max, см'], TB_DEF_EX.map(r=>r.map(String)))}</details>`;
+}
+
 const CALCS=[
  {id:'pile', name:'Несущая способность вмороженной сваи — Q = q_s·U·L + q_p·A (СП 25.13330)'},
  {id:'vent', name:'Модуль вентилирования подполья — тепловой баланс (СП 25.13330, разд. 13)'},
@@ -2037,6 +2122,22 @@ const CALCS=[
  {id:'osad', name:'Оценка осадки и скорости против допустимых (СП 22.13330, табл. Б.1)'}];
 
 let curCalc='pile';
+function calcAutoFill(o){
+  const ci=calcInputs(o), dm=parseDims(o), pv=parseVent(o), pl=parsePile(o);
+  const set=(id,v)=>{ const e=document.getElementById(id); if(e&&v!==null&&v!==undefined&&v!=='') e.value=v; };
+  if(curCalc==='pile'){
+    set('ci_t', ci.tNgc); set('ci_U', pl.U||1.4);
+    if(ci.ngcH) set('ci_L', Math.max(0,(pl.L||o.md||20)-ci.ngcH).toFixed(1));
+    set('ci_Ap', pl.Ap||0.1225); set('ci_Lpile', pl.L||o.md||'');
+    const qs=document.getElementById('ci_qs'), qp=document.getElementById('ci_qp');
+    if(qs) qs.value=''; if(qp) qp.value=''; // очистка — сработают нормативные таблицы
+  }
+  if(curCalc==='vent'){
+    set('ci_A', ci.areaPod||(dm&&dm.A)); set('ci_P', dm&&dm.P); set('ci_F0', pv.F0);
+  }
+  if(curCalc==='osad'){ set('ci_lim', TB_DEF[0][2]*10); }
+  if(curCalc==='ngc'){ set('ci_tc', ci.tcalc); }
+}
 function calcInputs(o){
   const p=o.pf2||{};
   return {
@@ -2059,10 +2160,18 @@ function tabCalc(o, el){
       ${CALCS.map(c=>`<option value="${c.id}" ${c.id===curCalc?'selected':''}>${esc(c.name)}</option>`).join('')}
     </select>
   </div>
+  ${ro?'':'<button class="addrow" id="calcAuto" style="border-style:solid; border-color:var(--ok); color:var(--ok); margin-bottom:8px">⚡ Автозаполнить из карточки объекта и нормативных таблиц</button>'}
   <div id="calcBody"></div>
   ${appN?`<div class="note">В приложении «Расчёты» отчёта этого объекта: ${appN} поз. · <a href="#" id="calcAppClear" style="color:var(--crit)">очистить</a></div>`:''}
   <div class="sect">Нормативная база агента (сохранена в системе)</div>
-  ${NORMS_KB.map(n=>`<details style="margin:3px 0; font-size:12.2px"><summary style="cursor:pointer; font-weight:600">${esc(n.n)}</summary><ul style="margin:4px 0 6px 18px">${n.p.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`).join('')}`;
+  ${NORMS_KB.map(n=>`<details style="margin:3px 0; font-size:12.2px"><summary style="cursor:pointer; font-weight:600">${esc(n.n)}</summary><ul style="margin:4px 0 6px 18px">${n.p.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`).join('')}
+  <div class="sect">Нормативные таблицы (загружены и хранятся в системе — используются автозаполнением)</div>
+  ${renderNormTables()}`;
+  const autoBtn=document.getElementById('calcAuto');
+  if(autoBtn) autoBtn.onclick=()=>{
+    calcAutoFill(o);
+    const go=document.getElementById('calcGo'); if(go) go.click();
+  };
   document.getElementById('calcSel').onchange=e=>{ curCalc=e.target.value; tabCalc(o, el); };
   const clr=document.getElementById('calcAppClear');
   if(clr) clr.onclick=e=>{ e.preventDefault(); sessionStorage.setItem('ngk_calcapp', JSON.stringify(JSON.parse(sessionStorage.getItem('ngk_calcapp')||'[]').filter(x=>x.addr!==o.a))); tabCalc(o, el); };
@@ -2083,36 +2192,57 @@ function tabCalc(o, el){
   };
 
   if(curCalc==='pile'){
+    const pl=parsePile(o), gg=gruntGuess(o);
+    const gkDef=gg?(/глин|суглин/.test(gg)?'глинистые':(/пес|крупнооблом|супес/.test(gg)?'песчаные':'глинистые')):'известково-песчаный раствор';
     body.innerHTML=`<div class="sect">Несущая способность вмороженной сваи</div>
     <table class="kv">
-      ${F('qs','q_s — сила смерзания грунта со сваей','МПа', '', 'по табл. СП 25.13330 (вид грунта, T)')}
+      <tr><td>Поверхность смерзания (вид)</td><td><select id="ci_gk" ${ro?'disabled':''}>
+        ${['глинистые','песчаные','известково-песчаный раствор'].map(g=>'<option'+(g===gkDef?' selected':'')+'>'+g+'</option>').join('')}
+      </select> <span class="note">${gg?('по ИГИ/паспорту: '+esc(gg)+'; для буроопускных — обычно раствор'):'вид не распознан — выберите (буроопускные: раствор)'}</span></td></tr>
       ${F('t','T грунта в зоне смерзания','°C', ci.tNgc, 'подставлена T на НГК')}
-      ${F('U','периметр сваи U','м','1.4','0,35×0,35 м → 1,4 м')}
-      ${F('L','длина смерзания L (ниже глубины сезонного оттаивания)','м', ci.ngcH?Math.max(0,20-ci.ngcH).toFixed(1):'', 'глубина скважины минус НГК')}
-      ${F('qp','q_p — сопротивление торца','МПа','', 'по табл. СП 25.13330')}
-      ${F('Ap','площадь торца A_p','м²','0.1225','0,35×0,35 м')}
+      ${F('qs','q_s = Raf — сила смерзания','МПа', '', 'пусто → авто по табл. В.3 СП 25.13330')}
+      ${F('U','периметр сваи U','м', pl.U||'1.4', pl.note||'0,35×0,35 м → 1,4 м')}
+      ${F('L','длина смерзания L (ниже НГК)','м', ci.ngcH?Math.max(0,(pl.L||o.md||20)-ci.ngcH).toFixed(1):'', (pl.L?('длина сваи '+pl.L+' м (паспорт)'):('глубина скв. '+(o.md||20)+' м'))+' минус НГК')}
+      ${F('qp','q_p = R — сопротивление торца','МПа','', 'пусто → авто по табл. В.1 СП 25.13330')}
+      ${F('Ap','площадь торца A_p','м²', pl.Ap||'0.1225', pl.note||'0,35×0,35 м')}
+      ${F('Lpile','глубина погружения сваи','м', pl.L||o.md||'', 'для выбора строки табл. В.1')}
     </table>
     <button class="addrow" id="calcGo" style="border-style:solid">Вычислить</button>
     <div id="calcOut"></div>`;
     document.getElementById('calcGo').onclick=()=>{
       const g=id=>parseFloat(document.getElementById('ci_'+id).value);
-      const qs=g('qs'), U=g('U'), L=g('L'), qp=g('qp')||0, Ap=g('Ap');
-      if(!(qs>0&&U>0&&L>0)){ out('<div class="note">Введите q_s, U, L (q_s — по таблице СП для данного грунта и температуры).</div>'); return; }
+      const T=g('t'), gk=(document.getElementById('ci_gk')||{}).value||'глинистые', Lp=g('Lpile')||10;
+      let qs=g('qs'), qp=g('qp');
+      const srcs=[];
+      if(!isNaN(T)){
+        if(!(qs>0)){ qs=tbInterp(TB_T, TB_RAF[gk], T)/1000; srcs.push(`q_s = Raf = ${(qs*1000).toFixed(0)} кПа — табл. В.3 (${gk}, T=${T} °C)`); }
+        if(!(qp>0)){
+          const rk=gk==='глинистые'?'суглинки и глины':gk==='песчаные'?(gruntGuess(o)||'пески мелкие и пылеватые'):'суглинки и глины';
+          const rows=TB_R[rk]||TB_R['суглинки и глины'];
+          const dr=rows['—']?'—':(Lp<7.5?'3–5 м':(Lp<12.5?'10 м':'15 м и более'));
+          const row=rows[dr]||rows['10 м']||Object.values(rows)[0];
+          qp=tbInterp(TB_T, row, T)/1000; srcs.push(`q_p = R = ${(qp*1000).toFixed(0)} кПа — табл. В.1 (${rk}, заглубление ${dr}, T=${T} °C)`);
+        }
+      }
+      const U=g('U'), L=g('L'), Ap=g('Ap');
+      if(!(qs>0&&U>0&&L>0)){ out('<div class="note">Введите T грунта (для автоподстановки по таблицам СП) или q_s, U, L вручную.</div>'); return; }
       const Qb=qs*U*L*1000, Qe=(qp||0)*(Ap||0)*1000, Q=Qb+Qe, Qd=Q/2;
       out(`<table class="kv" style="background:#fff">
-        <tr><td>Боковое смерзание q_s·U·L</td><td>${qs} × ${U} × ${L} = <b>${Qb.toFixed(1)} кН</b></td></tr>
-        <tr><td>Торец q_p·A_p</td><td>${qp||0} × ${Ap||0} = <b>${Qe.toFixed(1)} кН</b></td></tr>
+        <tr><td>Боковое смерзание q_s·U·L</td><td>${qs.toFixed(3)} × ${U} × ${L} = <b>${Qb.toFixed(1)} кН</b></td></tr>
+        <tr><td>Торец q_p·A_p</td><td>${(qp||0).toFixed(3)} × ${Ap||0} = <b>${Qe.toFixed(1)} кН</b></td></tr>
         <tr><td>Q = Q_бок + Q_торец</td><td><b>${Q.toFixed(1)} кН</b></td></tr>
         <tr><td>Допускаемая (коэфф. запаса 2)</td><td><b>${Qd.toFixed(1)} кН</b> ≈ ${(Qd/9.81).toFixed(1)} тс</td></tr>
-        <tr><td>Примечание</td><td>q_s и q_p — по таблицам СП 25.13330 для T=${document.getElementById('ci_t').value||'—'} °C; коэффициент запаса 2 — рабочее значение, уточняется проектом.</td></tr></table>`);
+        ${srcs.length?'<tr><td>Автоподстановка</td><td>'+srcs.join('<br>')+'</td></tr>':''}
+        <tr><td>Примечание</td><td>Raf — для бетонной поверхности (γ_af=1,0; для металла 0,7); коэффициент запаса 2 — рабочее значение, уточняется проектом.</td></tr></table>`);
     };
   }
   if(curCalc==='vent'){
+    const dm=parseDims(o), pv=parseVent(o);
     body.innerHTML=`<div class="sect">Модуль вентилирования подполья (тепловой баланс)</div>
     <table class="kv">
-      ${F('A','площадь подполья','м²', ci.areaPod, 'из архива ЖКС')}
-      ${F('P','периметр здания','м','', '')}
-      ${F('F0','существующая площадь продухов','м²','', 'число продухов × сечение')}
+      ${F('A','площадь подполья','м²', ci.areaPod||(dm&&dm.A), dm?'по габаритам в осях (паспорт)':'из архива ЖКС')}
+      ${F('P','периметр здания','м', dm?dm.P:'', dm?'2×(a+b) по габаритам (паспорт)':'')}
+      ${F('F0','существующая площадь продухов','м²', pv.F0!==null?pv.F0:'', pv.F0!==null?('паспорт: '+(pv.n?pv.n+' продуха, ':'')+'сечение/площадь'):'число продухов × сечение')}
       ${F('qin','поступление тепла в подполье (пол+трубы)','Вт/м²','3.5','типовое для проветриваемого подполья')}
       ${F('dT','допускаемая разность T подполья − T наружного','°C','4','зимний режим')}
       ${F('v','скорость ветра у продухов','м/с','1.0','оценочно')}
@@ -2180,25 +2310,37 @@ function tabCalc(o, el){
     };
   }
   if(curCalc==='osad'){
+    let dMin=null, dMinMark='';
+    if(o.geod){ Object.entries(o.geod).forEach(([mk,s])=>{ if(s.length){ const v=Math.abs(s[s.length-1][1]); if(dMin===null||v<dMin){ dMin=v; dMinMark=mk; } } }); }
     body.innerHTML=`<div class="sect">Оценка осадки против допустимой</div>
     <table class="kv">
       <tr><td>Макс. суммарная осадка (по маркам)</td><td>${gm?gm.maxOsad.toFixed(1)+' мм (марка '+esc(gm.osadMark)+')':'нет геодезии'}</td></tr>
       <tr><td>Макс. скорость последнего цикла</td><td>${gm?gm.maxSpeed.toFixed(1)+' мм/год (марка '+esc(gm.speedMark)+')':'—'}</td></tr>
-      ${F('lim','предельная средняя осадка','мм','100','СП 22.13330, табл. Б.1 — уточнить по типу здания')}
+      <tr><td>Тип конструкции здания</td><td><select id="ci_btype" ${ro?'disabled':''}>${TB_DEF.map((b,i)=>'<option value="'+i+'">'+esc(b[0])+'</option>').join('')}</select> <span class="note">СП 22.13330.2011, прил. Д</span></td></tr>
+      ${F('lim','предельная средняя осадка','мм', TB_DEF[0][2]*10, 'авто по типу здания — табл. Д.1')}
       ${F('vlim','предельная скорость','мм/год', TH.geodRiskSpeed, 'рабочий порог')}
+      ${F('Lk','пролёт между крайними марками','м','', 'для крена: Δs/L по маркам')}
     </table>
     <button class="addrow" id="calcGo" style="border-style:solid">Вычислить</button>
     <div id="calcOut"></div>`;
     document.getElementById('calcGo').onclick=()=>{
-      const lim=parseFloat(document.getElementById('ci_lim').value), vlim=parseFloat(document.getElementById('ci_vlim').value);
+      const bt=TB_DEF[+(document.getElementById('ci_btype').value||0)];
+      const lim=parseFloat(document.getElementById('ci_lim').value)||bt[2]*10, vlim=parseFloat(document.getElementById('ci_vlim').value);
+      const Lk=parseFloat(document.getElementById('ci_Lk').value);
       if(!gm){ out('<div class="note">Нет геодезических рядов по объекту.</div>'); return; }
       const rest=lim-gm.maxOsad;
       const yrs=gm.maxSpeed>0?rest/gm.maxSpeed:null;
+      let krenRow='';
+      if(Lk>0&&dMin!==null){
+        const dsl=(gm.maxOsad-dMin)/1000/Lk;
+        krenRow=`<tr><td>Относительная разность осадок Δs/L</td><td>(${gm.maxOsad.toFixed(1)} − ${dMin.toFixed(1)}) мм / ${Lk} м = <b>${dsl.toExponential(2)}</b> против допуска ${bt[1]} — ${dsl<=bt[1]?'<b style="color:var(--ok)">в пределах</b>':'<b style="color:var(--crit)">ПРЕВЫШЕНИЕ</b>'} (табл. Д.1: ${esc(bt[0])})</td></tr>`;
+      }
       out(`<table class="kv" style="background:#fff">
         <tr><td>Использование предела</td><td>${gm.maxOsad.toFixed(1)} / ${lim} мм = <b>${(gm.maxOsad/lim*100).toFixed(0)}%</b></td></tr>
         <tr><td>Остаточный запас</td><td><b>${rest.toFixed(1)} мм</b>${yrs?` ≈ ${yrs.toFixed(1)} лет при текущей скорости ${gm.maxSpeed.toFixed(1)} мм/год`:''}</td></tr>
+        ${krenRow}
         <tr><td>Оценка</td><td>${gm.maxOsad>=lim||gm.maxSpeed>=TH.geodCritSpeed?'<b style="color:var(--crit)">ПРЕВЫШЕНИЕ — противоаварийные мероприятия</b>':gm.maxSpeed>=vlim?'<b style="color:#a86400">скорость выше рабочего порога — усилить контроль</b>':'в пределах допуска'}</td></tr>
-        <tr><td>Примечание</td><td>Пределы — по СП 22.13330 (табл. Б.1) для типа здания; крен оценивается по разности осадок марок.</td></tr></table>`);
+        <tr><td>Примечание</td><td>Пределы — СП 22.13330.2011, прил. Д (табл. Д.1) для «${esc(bt[0])}»; для существующих зданий с повреждениями — прил. Ж (предельные дополнительные деформации).</td></tr></table>`);
     };
   }
 }
