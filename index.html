@@ -2869,6 +2869,30 @@ function expertComment(o, it, key, raw){
   if(INSP_RECS[key]) parts.push('Рекомендуется: '+INSP_RECS[key]);
   return parts.join('\n');
 }
+/* --- LLM-режим ✍ через Supabase Edge Function expert-writer (опционально) --- */
+async function llmComment(o, it, key, raw){
+  if(!sbMode()||!TG_SESS||!TG_SESS.access_token) return null;
+  try{
+    const gm=geodMetrics(o), sd=statusDetail(o);
+    const ctx={ address:o.a, district:o.d, uk:effectiveUK(o), status:sd.status,
+      status_reasons:sd.reasons.map(r=>r.text),
+      ngc:o.ngc||null, tcalc:TCALC[o.a]!==undefined?TCALC[o.a]:null,
+      geod: gm?{max_speed_mm_year:+gm.maxSpeed.toFixed(1), max_total_mm:+gm.maxOsad.toFixed(1), marks:Object.keys(o.geod||{}).length}:null,
+      observation_period:[o.d0||null,o.d1||null], wells:o.prof?Object.keys(o.prof).length:0,
+      report_year:o.report_year_full||null,
+      defects_last_report:o.defects?Object.fromEntries(Object.entries(o.defects).map(([k,v])=>[k,v.length])):null,
+      previous_inspections:(INSP[o.a]||[]).filter(x=>!INSP_CUR||x.id!==INSP_CUR.id).map(x=>({date:x.head.date,category:x.concl.cat,violations:inspCounts(x).viol})),
+      telegrams:(o.tg||[]).length };
+    const r=await fetch(TG_SB.url.replace(/\/+$/,'')+'/functions/v1/expert-writer',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':TG_SB.key,'Authorization':'Bearer '+TG_SESS.access_token},
+      body:JSON.stringify({mode:'comment', item:{key:key, check:it[0], norm:it[1]}, raw:raw, object:ctx})
+    });
+    if(!r.ok) return null;
+    const j=await r.json();
+    return (j&&j.text&&String(j.text).trim())||null;
+  }catch(e){ return null; }
+}
 /* --- погодные данные: Open-Meteo (текущие / архив на дату осмотра) --- */
 const WX_CODE={0:'ясно',1:'преимущественно ясно',2:'переменная облачность',3:'пасмурно',45:'туман',48:'изморозь/туман',51:'морось слабая',53:'морось',55:'морось сильная',56:'ледяная морось',57:'ледяная морось сильная',61:'дождь слабый',63:'дождь',65:'дождь сильный',66:'ледяной дождь',67:'ледяной дождь сильный',71:'снег слабый',73:'снег',75:'снег сильный',77:'снежные зёрна',80:'ливневый дождь слабый',81:'ливневый дождь',82:'ливневый дождь сильный',85:'снегопад слабый',86:'снегопад сильный',95:'гроза',96:'гроза с градом',99:'гроза с сильным градом'};
 function wxDescr(c){ return WX_CODE[c]||('код погоды '+c); }
@@ -3049,13 +3073,19 @@ function inspForm(o, cur, RO){
       if(!RO) micAttach(div.querySelector('.mic'), ta);
       const wt=div.querySelector('[data-wt]');
       if(wt){
-        wt.title='Переписать как технический эксперт: терминология норм + данные карточки объекта, история наблюдений, прогноз (обучен правок: '+LEX_LEARN.length+')';
-        wt.onclick=()=>{
+        wt.title='Переписать как технический эксперт: терминология норм + данные карточки объекта, история наблюдений, прогноз (обучен правок: '+LEX_LEARN.length+')'+(sbMode()?'; при подключённом контуре — LLM-редактура':'');
+        wt.onclick=async()=>{
+          if(wt.disabled) return;
           const raw0=ta.value;
-          ta.value=expertComment(o, it, key, raw0);
-          ta.dataset.polished=ta.value; ta.dataset.raw0=raw0;
+          wt.disabled=true; const t0=wt.textContent; wt.textContent='…';
+          let out=null;
+          try{ out=await llmComment(o, it, key, raw0); }catch(e){}
+          if(!out) out=expertComment(o, it, key, raw0);
+          wt.disabled=false; wt.textContent=t0;
+          ta.value=out;
+          ta.dataset.polished=out; ta.dataset.raw0=raw0;
           ta.dispatchEvent(new Event('input',{bubbles:true}));
-          ta.rows=Math.min(10, ta.value.split('\n').length+1);
+          ta.rows=Math.min(12, out.split('\n').length+1);
         };
       }
       const phBtn=div.querySelector('[data-ph]');
