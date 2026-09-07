@@ -339,6 +339,7 @@
       <button id="regExport" style="border:1px solid var(--c-centr); background:var(--c-centr); color:#fff; border-radius:6px; padding:6px 14px; font-size:12.5px; cursor:pointer">⬇ Выгрузить в Excel</button>
       <button id="regExportUK" title="Один файл, отдельный лист на каждую управляющую компанию" style="border:1px solid var(--c-centr); background:#fff; color:var(--c-centr); border-radius:6px; padding:6px 14px; font-size:12.5px; cursor:pointer">⬇ Ведомости по УК (листы)</button>
       <button id="regPlansUK" title="Один файл на УК: все планы мероприятий её домов (ремонт + противоаварийные). УК выбирается в фильтре слева; без фильтра — файлы по всем УК" style="border:1px solid var(--ok); background:#fff; color:var(--ok); border-radius:6px; padding:6px 14px; font-size:12.5px; cursor:pointer">📦 Планы УК (Excel)</button>
+      <button id="regCoverageUK" title="Ведомость охвата осмотрами: по каждой УК дома, осмотрено за квартал/6/12 мес., % охвата, список неосмотренных адресов" style="border:1px solid var(--ok); background:#fff; color:var(--ok); border-radius:6px; padding:6px 14px; font-size:12.5px; cursor:pointer">📊 Охват осмотрами по УК</button>
       <span class="note">Клик по строке открывает карточку объекта.</span>
     </div>
     <div id="regWrap"><table class="reg" id="regTable"></table></div>
@@ -1989,6 +1990,39 @@ document.getElementById('regExportUK').onclick=()=>{
   XLSX.writeFile(wb, 'Ведомости_РИСК_КРИТИЧНО_по_УК'+(fd?'_'+fd:'')+'_'+new Date().toISOString().slice(0,10)+'.xlsx');
 };
 document.getElementById('regPlansUK').onclick=exportPlansUK;
+/* ---------- ведомость охвата осмотрами по УК ---------- */
+document.getElementById('regCoverageUK').onclick=()=>{
+  const now=new Date();
+  const cut=m=>{ const d=new Date(now); d.setMonth(d.getMonth()-m); return d.toISOString().slice(0,10); };
+  const c3=cut(3), c6=cut(6), c12=cut(12);
+  const wb=XLSX.utils.book_new();
+  const sumRows=[['УК','Домов в базе','Осмотрено за 3 мес.','% за 3 мес.','За 6 мес.','% за 6 мес.','За 12 мес.','% за 12 мес.','Без осмотра за 12 мес.']];
+  const notRows=[['УК','Район','Адрес','Статус объекта','Последний осмотр']];
+  UK_LIST.concat(['Не определена']).forEach(u=>{
+    const objs=DB.objects.filter(o=>effectiveUK(o)===u);
+    if(!objs.length) return;
+    let n3=0, n6=0, n12=0;
+    objs.forEach(o=>{
+      const s=osmLatest(o.a);
+      const d=s&&s.date;
+      if(d&&d>=c3) n3++;
+      if(d&&d>=c6) n6++;
+      if(d&&d>=c12) n12++;
+      else notRows.push([u, o.d||'', o.a, statusOf(o)||'без замеров', s&&s.date?s.date:'ни разу']);
+    });
+    sumRows.push([u, objs.length, n3, Math.round(100*n3/objs.length), n6, Math.round(100*n6/objs.length), n12, Math.round(100*n12/objs.length), objs.length-n12]);
+  });
+  const dt=new Date().toISOString().slice(0,10);
+  const ws0=XLSX.utils.aoa_to_sheet([['Охват текущими осмотрами по управляющим компаниям — г. Норильск'],
+    ['Сформирован: '+new Date().toLocaleDateString('ru-RU')+' · ГИС-база геотехнического мониторинга зданий · АНО «АНИИГБ» им. М.В. Кима'],
+    ['Осмотры засчитываются по сводкам завершённых осмотров (раздел 📋 карточки объекта, общий контур).'],[]].concat(sumRows));
+  ws0['!cols']=[{wch:34},{wch:11},{wch:15},{wch:10},{wch:10},{wch:10},{wch:10},{wch:11},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, ws0, 'Охват по УК');
+  const ws1=XLSX.utils.aoa_to_sheet([['Объекты без завершённого осмотра за последние 12 месяцев — для планирования'],[]].concat(notRows));
+  ws1['!cols']=[{wch:30},{wch:12},{wch:26},{wch:13},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, ws1, 'Неосмотренные 12 мес');
+  XLSX.writeFile(wb, 'Охват_осмотрами_по_УК_'+dt+'.xlsx');
+};
 
 /* ---------- настройки порогов ---------- */
 const setEl=document.getElementById('settings');
