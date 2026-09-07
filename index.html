@@ -1632,6 +1632,28 @@ uplModal.addEventListener('click',e=>{ if(e.target===uplModal) uplModal.style.di
 document.getElementById('uplPick').onclick=()=>document.getElementById('uplFile').click();
 document.getElementById('uplFile').addEventListener('change',e=>{ if(e.target.files[0]) handleUpload(e.target.files[0]); e.target.value=''; });
 /* --- загрузчик объектной ведомости геотермики (шаблон ООО «НПО «Фундамент») --- */
+function resolveObjAddr(fa){
+  if(!addrIndex) buildAddrIndex();
+  const tries=[fa,
+    fa.replace(/(\d+)\s*[кK]\.?\s*(\d+)/g,'$1-$2'),
+    fa.replace(/^ленинский\s+/i,'Ленинский проспект '),
+    fa.replace(/^ленинский\s+/i,'Ленинский проспект ').replace(/(\d+)\s*[кK]\.?\s*(\d+)/g,'$1-$2'),
+    fa.replace(/^б\.?\s*хмельницкого/i,'Богдана Хмельницкого')];
+  for(const t of tries){
+    const k=normAddrKey(t);
+    if(addrIndex[k]!==undefined) return DB.objects[addrIndex[k]];
+  }
+  // префиксный поиск (файл с суффиксами вида «…Кинозал Ретро»)
+  const k0=normAddrKey(tries[0]);
+  let best=null;
+  Object.keys(addrIndex).forEach(k=>{
+    if(k0.startsWith(k)&&k.length>=6){
+      const rem=k0.slice(k.length);
+      if(rem&&!/^\d/.test(rem)&&(!best||k.length>best.length)) best=k;
+    }
+  });
+  return best!==null?DB.objects[addrIndex[best]]:null;
+}
 async function handleObjUpload(file){
   if(!document.body.classList.contains('role-edit')){ alert('Загрузка данных доступна только уровню «оператор».'); return; }
   const log=document.getElementById('uplLog'); log.style.display='block';
@@ -1640,12 +1662,30 @@ async function handleObjUpload(file){
   let wb;
   try{ wb=XLSX.read(await file.arrayBuffer(), {cellDates:true}); }
   catch(e){ log.textContent=L.join('\n')+'\nОшибка чтения файла: '+e; return; }
-  // адрес из имени файла
+  // адрес: сначала из имени файла; если не совпал — из содержимого (строка «…объекта: р-н Норильск, ул. …»)
   let fa=file.name.replace(/\.(xlsx|xls)$/i,'').replace(/^(геотермика|geotermika)\s*/i,'').trim();
-  if(!addrIndex) buildAddrIndex();
-  const key=normAddrKey(fa);
-  const obj=addrIndex[key]!==undefined?DB.objects[addrIndex[key]]:null;
-  L.push('Адрес из имени файла: «'+fa+'» → '+(obj?('в базе: '+obj.a+' ✓'):'НЕ НАЙДЕН в базе — загрузка отклонена'));
+  let obj=resolveObjAddr(fa);
+  let addrSrc='из имени файла';
+  if(!obj){
+    let found='';
+    outer:
+    for(const sn2 of wb.SheetNames){
+      const rr=XLSX.utils.sheet_to_json(wb.Sheets[sn2], {header:1, raw:true, defval:''});
+      for(const row of rr.slice(0,15)){
+        for(const v of row){
+          if(typeof v!=='string') continue;
+          let m=v.match(/объекта[:\s]+(.+)/i)||v.match(/(р-н\s*Норильск[,\s].*)/i);
+          if(m){ found=m[1].trim(); break outer; }
+        }
+      }
+    }
+    if(found){
+      fa=found.replace(/^ул\.\s*/i,'').replace(/[.;]\s*$/,'').trim();
+      obj=resolveObjAddr(fa);
+      addrSrc='из содержимого файла';
+    }
+  }
+  L.push('Адрес: «'+fa+'» ('+addrSrc+') → '+(obj?('в базе: '+obj.a+' ✓'):'НЕ НАЙДЕН в базе — загрузка отклонена'));
   if(!obj){ log.textContent=L.join('\n'); return; }
   const sn=wb.SheetNames.includes('Замеры')?'Замеры':wb.SheetNames[0];
   const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn], {header:1, raw:true, defval:''});
