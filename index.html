@@ -613,6 +613,7 @@ function renderStats(){
   if(a&&b){ a.textContent=txt; b.textContent=txt; }
 }
 renderStats();
+loadOsmotry();
 
 /* ---------- фильтры/список ---------- */
 const districts=['Все','Центральный','Талнах','Кайеркан'];
@@ -954,6 +955,7 @@ function renderDetail(o){
   d.innerHTML=`
     <h2>${esc(o.a)}<span class="badge ${st?('b-'+{НОРМА:'ok',РИСК:'risk',КРИТИЧНО:'crit'}[st]):'b-card'}">${st||'карточка'}</span><button class="tglock" id="tgLock" title="Телефонограммы (доступ для УК и надзорной организации)">🔒</button><button class="tglock" id="inspLock" title="Текущий осмотр — чек-лист (доступ для надзорной организации)">📋</button></h2>
     <div class="rayon">Район: <b style="color:${DCOL[o.d]||'#666'}">${esc(o.d||'не определён')}</b> · УК: <b>${esc(effectiveUK(o))}</b> · г. Норильск</div>
+    ${osmLine(o)}
     ${reasonsHtml}
     <div class="tabs" id="cardTabs"></div>
     <div id="tabBody"></div>`;
@@ -1907,38 +1909,45 @@ function registryRows(){
   return rows;
 }
 function regSheetAoa(rows){
-  const head=['№','Адрес','Район','Управляющая компания','Статус','Причины (сработавшие правила)','Скважин','Начало наблюдений','Последний замер','Макс. суммарная осадка, мм','Макс. скорость осадки, мм/год','Глубина НГК, м','T на НГК, °C'];
+  const head=['№','Адрес','Район','Управляющая компания','Статус','Причины (сработавшие правила)','Скважин','Начало наблюдений','Последний замер','Макс. суммарная осадка, мм','Макс. скорость осадки, мм/год','Глубина НГК, м','T на НГК, °C','Последний осмотр','Категория по осмотру'];
   return [head].concat(rows.map((r,n)=>{
     const gm=r.gm;
+    const os=osmLatest(r.o.a);
     return [n+1, r.o.a, r.o.d||'', effectiveUK(r.o), r.sd.status,
       r.sd.reasons.map(x=>x.text).join('; '),
       r.o.prof?Object.keys(r.o.prof).length:'', (r.o.d0||''), (r.o.d1||''),
       gm?+gm.maxOsad.toFixed(1):'', gm?+gm.maxSpeed.toFixed(1):'',
-      r.o.ngc?r.o.ngc.h:'', r.o.ngc?r.o.ngc.t:''];
+      r.o.ngc?r.o.ngc.h:'', r.o.ngc?r.o.ngc.t:'',
+      os?os.date:'', os?(os.cat||''):''];
   }));
 }
 function regSheet(rows){
   const ws=XLSX.utils.aoa_to_sheet(regSheetAoa(rows));
-  ws['!cols']=[{wch:4},{wch:26},{wch:12},{wch:26},{wch:11},{wch:70},{wch:6},{wch:11},{wch:11},{wch:12},{wch:12},{wch:9},{wch:9}];
+  ws['!cols']=[{wch:4},{wch:26},{wch:12},{wch:26},{wch:11},{wch:70},{wch:6},{wch:11},{wch:11},{wch:12},{wch:12},{wch:9},{wch:9},{wch:12},{wch:22}];
   return ws;
 }
 function renderRegTable(){
   const rows=registryRows();
   const nc=rows.filter(r=>r.sd.status==='КРИТИЧНО').length;
   const fd=document.getElementById('regD').value, fuk=document.getElementById('regUK').value;
+  const covN=osmCoverage12m();
   document.getElementById('regSummary').textContent=
     `Сформирован ${new Date().toLocaleDateString('ru-RU')} · КРИТИЧНО: ${nc} · РИСК: ${rows.length-nc}`+
-    (fd?` · район: ${fd}`:'')+(fuk?` · УК: ${fuk}`:'')+` · всего объектов в базе: ${DB.objects.length}. Пороги — текущие настройки «⚙ Пороги».`;
+    (fd?` · район: ${fd}`:'')+(fuk?` · УК: ${fuk}`:'')+` · всего объектов в базе: ${DB.objects.length}`+
+    ` · охват осмотрами за 12 мес.: ${covN} из ${DB.objects.length} (${Math.round(100*covN/DB.objects.length)}%). Пороги — текущие настройки «⚙ Пороги».`;
   const t=document.getElementById('regTable');
-  t.innerHTML=`<thead><tr><th>№</th><th>Адрес</th><th>Район</th><th>УК</th><th>Статус</th><th>Причины (сработавшие правила)</th><th>Скв.</th><th>Период набл.</th><th>Осадка макс., мм</th><th>Скорость, мм/год</th></tr></thead><tbody>`+
-    rows.map((r,n)=>`<tr class="${r.sd.status==='КРИТИЧНО'?'crit':'risk'}" data-i="${r.i}">
+  t.innerHTML=`<thead><tr><th>№</th><th>Адрес</th><th>Район</th><th>УК</th><th>Статус</th><th>Причины (сработавшие правила)</th><th>Скв.</th><th>Период набл.</th><th>Осадка макс., мм</th><th>Скорость, мм/год</th><th>Последний осмотр</th></tr></thead><tbody>`+
+    rows.map((r,n)=>{
+      const os=osmLatest(r.o.a);
+      return `<tr class="${r.sd.status==='КРИТИЧНО'?'crit':'risk'}" data-i="${r.i}">
       <td>${n+1}</td><td><b>${esc(r.o.a)}</b></td><td>${esc(r.o.d||'—')}</td><td>${esc(effectiveUK(r.o))}</td>
       <td><b style="color:${SCOL[r.sd.status]}">${r.sd.status}</b></td>
       <td>${r.sd.reasons.map(x=>esc(x.text)).join('; ')}</td>
       <td>${r.o.prof?Object.keys(r.o.prof).length:'—'}</td>
       <td>${(r.o.d0||'').slice(0,4)}–${(r.o.d1||'').slice(0,4)}</td>
       <td>${r.gm?r.gm.maxOsad.toFixed(1):'—'}</td><td>${r.gm?r.gm.maxSpeed.toFixed(1):'—'}</td>
-    </tr>`).join('')+'</tbody>';
+      <td>${os?('<b>'+esc(os.date)+'</b><br><span class="note">'+esc(os.cat||'—')+'</span>'):'<span class="note">—</span>'}</td>
+    </tr>`;}).join('')+'</tbody>';
   t.querySelectorAll('tbody tr').forEach(tr=>{
     tr.onclick=()=>{ regModal.style.display='none'; select(+tr.dataset.i, true); };
   });
@@ -2575,6 +2584,53 @@ function inspCounts(cur){ let tot=0, done=0, viol=0, warn=0;
   INSP_SEC.forEach(s=>s.items.forEach((it,ix)=>{ tot++; const v=(cur.items[s.id+ix]||{}).st;
     if(v){ done++; if(v==='viol') viol++; if(v==='warn') warn++; } }));
   return {tot,done,viol,warn}; }
+/* --- сводка осмотров: общий контур (Supabase osmotry) + локальные завершённые --- */
+let OSM={}; // addr -> [summary]
+function osmAll(a){
+  const rem=OSM[a]||[];
+  const loc=(INSP[a]||[]).filter(x=>x.status==='завершён').map(x=>Object.assign({id:x.id, date:x.head.date, time:x.head.time,
+    cat:x.concl.cat, by:x.by, byOrg:x.byOrg, instr:!!x.concl.instr, local:true}, inspCounts(x)));
+  return rem.concat(loc).sort((p,q)=>String(q.date).localeCompare(String(p.date)));
+}
+function osmLatest(a){ const l=osmAll(a); return l[0]||null; }
+function osmLine(o){
+  const s=osmLatest(o.a);
+  if(!s) return '';
+  const col=s.cat==='недопустимое'?'var(--crit)':(s.cat==='ограниченно работоспособное'?'#a86400':'var(--ok)');
+  return `<div class="rayon">📋 Последний осмотр: <b>${esc(s.date)}</b> · категория: <b style="color:${col}">${esc(s.cat||'—')}</b>${s.viol?` · нарушений: <b>${s.viol}</b>`:''} · провёл: ${esc(s.by||'—')} (${esc(s.byOrg||'')})</div>`;
+}
+function osmCoverage12m(){ // охват осмотрами за последние 12 месяцев, вся база
+  const since=new Date(); since.setFullYear(since.getFullYear()-1);
+  const iso=since.toISOString().slice(0,10);
+  let n=0;
+  DB.objects.forEach(o=>{ const s=osmLatest(o.a); if(s&&s.date>=iso) n++; });
+  return n;
+}
+async function loadOsmotry(){
+  if(!sbMode()) return;
+  try{
+    const rows=await sbFetch('/rest/v1/osmotry?select=addr,data');
+    OSM={};
+    (rows||[]).forEach(r=>{ (OSM[r.addr]=OSM[r.addr]||[]).push(Object.assign({}, r.data)); });
+    if(typeof curObj!=='undefined'&&curObj) renderDetail(curObj);
+    const rm=document.getElementById('regModal');
+    if(rm&&rm.style.display==='block') renderRegTable();
+  }catch(e){ /* таблица может отсутствовать — работаем локально */ }
+}
+async function osmSync(o, cur){
+  if(!sbMode()||!TG_SESS||!TG_SESS.access_token) return;
+  const c=inspCounts(cur);
+  const data={id:cur.id, date:cur.head.date, time:cur.head.time, cat:cur.concl.cat,
+    viol:c.viol, warn:c.warn, done:c.done, tot:c.tot, instr:!!cur.concl.instr,
+    by:cur.by, byOrg:cur.byOrg, status:cur.status};
+  try{
+    await sbFetch('/rest/v1/osmotry',{method:'POST', token:TG_SESS.access_token,
+      headers:{'Prefer':'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify({addr:o.a, insp_id:String(cur.id), data:data, updated_at:new Date().toISOString()})});
+    OSM[o.a]=(OSM[o.a]||[]).filter(x=>x.id!==cur.id);
+    OSM[o.a].push(data);
+  }catch(e){}
+}
 function fmtPhTs(ts){
   if(!ts) return '';
   ts=String(ts);
@@ -3147,7 +3203,7 @@ function inspForm(o, cur, RO){
       saveINSP();
       inspForm(o,cur,RO);
     };
-    document.getElementById('inspDone').onclick=()=>{ cur.status='завершён'; cur.finished=new Date().toISOString(); saveINSP(); stopSR(); INSP_CUR=null; inspView(o); };
+    document.getElementById('inspDone').onclick=()=>{ cur.status='завершён'; cur.finished=new Date().toISOString(); saveINSP(); osmSync(o,cur); stopSR(); INSP_CUR=null; inspView(o); };
     document.getElementById('inspDel').onclick=()=>{ if(!confirm('Удалить этот осмотр безвозвратно?')) return; const l=inspList(o); const i=l.indexOf(cur); if(i>=0) l.splice(i,1); saveINSP(); stopSR(); INSP_CUR=null; inspView(o); };
   }
   paintProg();
