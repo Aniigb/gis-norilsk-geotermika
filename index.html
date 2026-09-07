@@ -366,6 +366,12 @@
       <button class="ghost" id="uplExport">Экспорт моих загрузок (JSON)</button>
       <button class="ghost" id="uplClear" style="border-color:var(--crit); color:var(--crit)">Очистить мои загрузки</button>
     </div>
+    <div style="margin-top:12px; border-top:1px dashed var(--line); padding-top:10px">
+      <b>Объектная ведомость геотермики — шаблон ООО «НПО «Фундамент»</b> <span class="note">(файл вида «Геотермика &lt;адрес&gt;.xlsx»: лист «Замеры», глубины по столбцам, строка = скважина × дата)</span><br>
+      <button id="uplObjPick" style="margin-top:6px">Выбрать объектную ведомость (xlsx)…</button>
+      <input type="file" id="uplObjFile" accept=".xlsx,.xls" style="display:none">
+      <span class="note"> Адрес берётся из имени файла. Расшифровка извлечения показывается полностью (скважины, даты, точки, дубли).</span>
+    </div>
     <div id="uplLog"></div>
     <div class="note">Загруженные замеры сохраняются в браузере (localStorage) и сразу участвуют в графиках и статусах.
     Для включения в центральную базу передайте файл в АНО «АНИИГБ» им. М.В. Кима.</div>
@@ -1020,9 +1026,42 @@ function defectBlock(o, codes){
 function pfRow(o,k,label){ const v=o.pf2&&o.pf2[k]; return v?`<tr><td>${label}</td><td>${escT(v)}</td></tr>`:''; }
 function reportSrc(o){ return o.report_year_full?`<div class="note">Источник: информационный отчёт ООО «НПО «Фундамент», ${o.report_year_full} г. (последний из имеющихся).</div>`:''; }
 
+function fundSummary(o){
+  const p=o.pf2||{};
+  const pl=parsePile(o);
+  const fund=p.fund||'';
+  let typ='';
+  if(/буроопуск/i.test(fund)) typ='буроопускные';
+  else if(/буронабив/i.test(fund)) typ='буронабивные';
+  else if(/бурозабив/i.test(fund)) typ='бурозабивные';
+  else if(/бурообсадн/i.test(fund)) typ='бурообсадные';
+  else if(/опуск/i.test(fund)) typ='опускные';
+  else if(/забив/i.test(fund)) typ='забивные';
+  if(/столбчат/i.test(fund)) typ='столбчатые';
+  if(/ленточн/i.test(fund)) typ='ленточные';
+  if(/свай|сваи/i.test(fund)||pl.U) typ=typ?('свайные, '+typ):'свайные (тип погружения — по паспорту)';
+  if(/сва[яи][-–]стойк/i.test(fund)) typ+='; сваи-стойки';
+  const nPiles=p.arc_piles?String(p.arc_piles):'';
+  let gab=pl.note||'';
+  if(pl.U) gab+=` — периметр ${pl.U} м, сечение торца ${pl.Ap} м²`;
+  let depth=pl.L?(`сваи длиной до ${pl.L} м (паспорт)`):'';
+  const rostM=(p.rostverk||'').match(/\(?h\)?\s*\d[,.]\d+\s*[×xх]\s*\d[,.]\d+\s*м/g);
+  const rostTxt=rostM?rostM.map(s=>s.replace(/[()]/g,m=>m)).join('; '):'';
+  const rows=[
+    ['Количество свай', nPiles?nPiles+' (архив ЖКС)':'—'],
+    ['Тип фундаментов', typ||'—'],
+    ['Габаритные размеры свай', gab||'—'],
+    ['Глубина залегания', depth||'—'],
+    ['Размеры балок ростверка', rostTxt||'—'],
+  ];
+  if(!nPiles&&!typ&&!gab&&!depth&&!rostTxt) return '';
+  return `<div class="sect">Сводка по фундаментам (извлечено из карточки)</div>
+  <table class="kv">${rows.map(r=>`<tr><td>${r[0]}</td><td>${escT(r[1])}</td></tr>`).join('')}</table>`;
+}
 function tabFund(o, el){
   el.innerHTML=`
   <div class="normref">СП 497.1325800.2020 «Основания и фундаменты зданий и сооружений на многолетнемерзлых грунтах. Правила эксплуатации»; СП 25.13330.2020; ГОСТ 31937-2024 (классификация повреждений).</div>
+  ${fundSummary(o)}
   <div class="sect">Конструкция и сведения</div>
   <table class="kv">
     ${pfRow(o,'fund','Фундаменты')}
@@ -1559,6 +1598,92 @@ document.getElementById('uplClose').onclick=()=>uplModal.style.display='none';
 uplModal.addEventListener('click',e=>{ if(e.target===uplModal) uplModal.style.display='none'; });
 document.getElementById('uplPick').onclick=()=>document.getElementById('uplFile').click();
 document.getElementById('uplFile').addEventListener('change',e=>{ if(e.target.files[0]) handleUpload(e.target.files[0]); e.target.value=''; });
+/* --- загрузчик объектной ведомости геотермики (шаблон ООО «НПО «Фундамент») --- */
+async function handleObjUpload(file){
+  if(!document.body.classList.contains('role-edit')){ alert('Загрузка данных доступна только уровню «оператор».'); return; }
+  const log=document.getElementById('uplLog'); log.style.display='block';
+  const L=[];
+  L.push('Файл: '+file.name);
+  let wb;
+  try{ wb=XLSX.read(await file.arrayBuffer(), {cellDates:true}); }
+  catch(e){ log.textContent=L.join('\n')+'\nОшибка чтения файла: '+e; return; }
+  // адрес из имени файла
+  let fa=file.name.replace(/\.(xlsx|xls)$/i,'').replace(/^(геотермика|geotermika)\s*/i,'').trim();
+  if(!addrIndex) buildAddrIndex();
+  const key=normAddrKey(fa);
+  const obj=addrIndex[key]!==undefined?DB.objects[addrIndex[key]]:null;
+  L.push('Адрес из имени файла: «'+fa+'» → '+(obj?('в базе: '+obj.a+' ✓'):'НЕ НАЙДЕН в базе — загрузка отклонена'));
+  if(!obj){ log.textContent=L.join('\n'); return; }
+  const sn=wb.SheetNames.includes('Замеры')?'Замеры':wb.SheetNames[0];
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn], {header:1, raw:true, defval:''});
+  L.push('Лист: «'+sn+'» · строк: '+rows.length);
+  // шапка: строка с «скважин» в колонке K (индекс 10)
+  let hdr=-1, depths={};
+  rows.forEach((r,i)=>{
+    if(hdr<0 && String(r[10]||'').trim()==='скважин'){
+      hdr=i;
+      for(let j=14;j<r.length;j++){
+        const v=parseNum(r[j]);
+        if(v!==null&&v>=0&&v<=60) depths[j]=v;
+        else if(Object.keys(depths).length) break;
+      }
+    }
+  });
+  if(hdr<0){ L.push('ОШИБКА: не найдена строка шапки («скважин» в колонке K) — формат не распознан.'); log.textContent=L.join('\n'); return; }
+  L.push('Шапка: строка '+(hdr+1)+' · глубинных столбцов: '+Object.keys(depths).length+' ('+Math.min(...Object.values(depths))+'…'+Math.max(...Object.values(depths))+' м)');
+  // данные
+  const today=new Date().toISOString().slice(0,10);
+  const wells={}; let rowsSeen=0, rowsBadDate=0, rowsFew=0;
+  for(let i=hdr+1;i<rows.length;i++){
+    const r=rows[i];
+    const w=String(r[10]||'').trim();
+    if(!w||w==='литер'||w==='скважин'||w.length>22||/\s/.test(w)||!/\d/.test(w)) continue;
+    const dv=r[11];
+    let iso=null;
+    if(dv instanceof Date) iso=dv.toISOString().slice(0,10);
+    else iso=parseDateCell(dv);
+    if(!iso) continue;
+    if(iso<'1980-01-01'||iso>today){ rowsBadDate++; continue; }
+    const pts={};
+    Object.entries(depths).forEach(([j,dep])=>{
+      const t=parseNum(r[j]);
+      if(t!==null&&t>-60&&t<60) pts[dep]=t;
+    });
+    if(Object.keys(pts).length<2){ rowsFew++; continue; }
+    rowsSeen++;
+    const wd=(wells[w]=wells[w]||{dates:{}, dep:parseNum(r[9])});
+    const dd=(wd.dates[iso]=wd.dates[iso]||{});
+    Object.assign(dd, pts);
+    if(wd.dep===null) wd.dep=parseNum(r[9]);
+  }
+  L.push('Строк-замеров принято: '+rowsSeen+(rowsBadDate?(' · отклонено по дате (проектные/расчётные): '+rowsBadDate):'')+(rowsFew?(' · пропущено (<2 температур): '+rowsFew):''));
+  L.push('Скважин распознано: '+Object.keys(wells).length);
+  let totPts=0;
+  Object.entries(wells).forEach(([w,wd])=>{
+    const ds=Object.keys(wd.dates).sort();
+    const np=ds.reduce((s,d)=>s+Object.keys(wd.dates[d]).length,0);
+    totPts+=np;
+    L.push('  · '+w+': дат '+ds.length+' ('+ds[0]+' … '+ds[ds.length-1]+'), точек '+np+(wd.dep?(', глубина '+wd.dep+' м'):''));
+  });
+  L.push('Всего точек измерения: '+totPts);
+  // запись через тот же конвейер USERDATA
+  let n=0;
+  Object.entries(wells).forEach(([w,wd])=>{
+    Object.entries(wd.dates).forEach(([iso,pts])=>{
+      USERDATA.push({a:obj.a, w, date:iso, dep:wd.dep, pts:Object.entries(pts).map(([d,t])=>[+d,t])});
+      n++;
+    });
+  });
+  USERDATA.forEach(rec=>mergeUserRec(rec));
+  refreshObjStats(obj);
+  saveUSERDATA();
+  drawMarkers(); renderStats(); renderList();
+  if(curObj) renderDetail(curObj);
+  L.push('— Записано рядов (скважина×дата): '+n+'. Данные сохранены в браузере и учтены в графиках и статусах.');
+  log.textContent=L.join('\n');
+}
+document.getElementById('uplObjPick').onclick=()=>document.getElementById('uplObjFile').click();
+document.getElementById('uplObjFile').addEventListener('change',e=>{ if(e.target.files[0]) handleObjUpload(e.target.files[0]); e.target.value=''; });
 document.getElementById('uplCsvTpl').onclick=()=>{
   const rows=[['Адрес объекта','Район','Скважина (литера)','Дата замера','Глубина скважины, м','Глубина точки, м','Температура, °C','Источник'],
     ['50 лет Октября 13','Центральный','Б/В/16','15.03.2026','20','0','7.85','Журнал мерзлотного надзора, 1 кв. 2026'],
