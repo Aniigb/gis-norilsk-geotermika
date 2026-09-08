@@ -633,11 +633,12 @@ function gtmCovDraw(){
   const objs=DB.objects.filter(o=>branchOf(o)===curBranch);
   const since=new Date(); since.setFullYear(since.getFullYear()-1);
   const iso=since.toISOString().slice(0,10);
+  let osmRef={}; try{ osmRef=OSM; }catch(e){}  // OSM объявлен ниже (let) — защита от TDZ при первой отрисовке
   let tw=0, gd=0, os=0, full=0;
   objs.forEach(o=>{
     const t=(o.prof&&Object.keys(o.prof).length>0)||!!o.nw;
     const g=!!(o.geod&&Object.keys(o.geod).length);
-    const m=typeof OSM!=='undefined'&&OSM[o.a]&&OSM[o.a].some(x=>x.date&&x.date>=iso);
+    const m=osmRef[o.a]&&osmRef[o.a].some(x=>x.date&&x.date>=iso);
     if(t)tw++; if(g)gd++; if(m)os++; if(t&&g&&m)full++;
   });
   const n=objs.length||1;
