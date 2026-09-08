@@ -1385,7 +1385,8 @@ function gtmCalc(o){
   // --- фактические средства наблюдений (синхронизация с разделами) ---
   const wellsFact=o.prof?Object.keys(o.prof).length:(o.nw||0);
   const marksFact=o.geod?Object.keys(o.geod).length:0;
-  const hgwFact=parseInt(edVal(o,'gtm','hgw_fact',''));
+  const hgwRaw=parseInt(edVal(o,'gtm','hgw_fact',''));
+  const hgwFact=isNaN(hgwRaw)?null:hgwRaw;
   // --- требуемая сеть: СП 25.13330.2020, прил. М, табл. М.1 ---
   const nPiles=parseFloat(edVal(o,'gtm','n_piles',''));
   const wellsReq=(nPiles>0)?Math.max(2,Math.ceil(nPiles*0.02)):null; // не менее 2% числа фундаментов (свай)
@@ -1416,7 +1417,7 @@ function gtmCalc(o){
     return {s:'НЕ ПРОВОДЯТСЯ', d:'за последние 12 мес. циклов нет'};
   }
   return {princip, age, y:isNaN(y)?null:y,
-    wellsFact, wellsReq, marksFact, marksReq, hgwFact:isNaN(hgwFact)?null:hgwFact, hgwReq,
+    wellsFact, wellsReq, marksFact, marksReq, hgwFact, hgwReq,
     nPiles:(nPiles>0)?nPiles:null, nSeams,
     tempFact:tempDates.size, tempReq, geodFact:geodDates.size, geodReq, osmN, osmReq,
     eqWells:eq(wellsFact,wellsReq), eqMarks:eq(marksFact,marksReq),
