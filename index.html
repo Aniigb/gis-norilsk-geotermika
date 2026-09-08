@@ -279,6 +279,7 @@
     <div class="chips" id="chips"></div>
     <select id="ukFilter" style="margin:0 12px 6px; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; width:calc(100% - 24px)"></select>
     <label style="margin:0 12px 8px; font-size:11.8px; color:var(--mut); display:flex; gap:6px; align-items:center; cursor:pointer"><input type="checkbox" id="ukGroup"> группировать список по УК</label>
+    <label style="margin:0 12px 8px; font-size:11.8px; color:#5b4a7a; display:flex; gap:6px; align-items:center; cursor:pointer" title="Фиолетовые маркеры на карте — дома в краткосрочном плане ремонтов текущего года (Power BI регоператора)"><input type="checkbox" id="kpYr"> 🔧 КП <span id="kpYrNum"></span> на карте</label>
     <input id="search" placeholder="Поиск по адресу…">
     <div id="list"></div>
   </div>
@@ -399,14 +400,14 @@
   </div>
 </div>
 
-<script src="db_p1.js?v=ce989aa0"></script>
-<script src="db_p2.js?v=ce989aa0"></script>
-<script src="db_p3.js?v=ce989aa0"></script>
-<script src="db_p4.js?v=ce989aa0"></script>
-<script src="db_p5.js?v=ce989aa0"></script>
-<script src="db_p6.js?v=ce989aa0"></script>
-<script src="db_p7.js?v=ce989aa0"></script>
-<script src="db_p8.js?v=ce989aa0"></script>
+<script src="db_p1.js?v=ddb876ca"></script>
+<script src="db_p2.js?v=ddb876ca"></script>
+<script src="db_p3.js?v=ddb876ca"></script>
+<script src="db_p4.js?v=ddb876ca"></script>
+<script src="db_p5.js?v=ddb876ca"></script>
+<script src="db_p6.js?v=ddb876ca"></script>
+<script src="db_p7.js?v=ddb876ca"></script>
+<script src="db_p8.js?v=ddb876ca"></script>
 
 <div id="loginModal">
   <form class="lbox" id="loginForm">
@@ -427,6 +428,34 @@ const DB = window.DB;
 const DEF_TH = {tcrit:-0.5, depth:3, trend:0.10, trendDepth:10, above:0.5, geodRiskSpeed:10, geodCritSpeed:20, geodCritTotal:100};
 let TH = Object.assign({}, DEF_TH, JSON.parse(localStorage.getItem('ngk_th')||'{}'));
 function saveTH(){ localStorage.setItem('ngk_th', JSON.stringify(TH)); }
+
+/* ---------- миграция ключей localStorage по карте переименований адресов (канонизация) ---------- */
+(function(){
+  const R=(window.DB&&DB.renames)||{}; if(!Object.keys(R).length) return;
+  const mig=(k)=>{
+    try{
+      const d=JSON.parse(localStorage.getItem(k)||'null');
+      if(!d||typeof d!=='object') return;
+      let ch=false;
+      for(const a of Object.keys(d)){
+        if(R[a]){ const na=R[a];
+          if(d[na]===undefined) d[na]=d[a];
+          else if(typeof d[na]==='object'&&typeof d[a]==='object') Object.assign(d[na], d[a]);
+          delete d[a]; ch=true; }
+      }
+      if(ch) localStorage.setItem(k, JSON.stringify(d));
+    }catch(e){}
+  };
+  mig('ngk_tcalc'); mig('ngk_card_v1'); mig('ngk_geo');
+  try{
+    const u=JSON.parse(localStorage.getItem('ngk_userdata')||'null');
+    if(Array.isArray(u)){ let ch=false; u.forEach(x=>{ if(x&&R[x.a]){ x.a=R[x.a]; ch=true; } }); if(ch) localStorage.setItem('ngk_userdata', JSON.stringify(u)); }
+  }catch(e){}
+  try{
+    const l=JSON.parse(localStorage.getItem('ngk_krp')||'null');
+    if(l&&l.data){ const nd={}; for(const a in l.data) nd[R[a]||a]=l.data[a]; l.data=nd; localStorage.setItem('ngk_krp', JSON.stringify(l)); }
+  }catch(e){}
+})();
 
 /* ---------- расчётные температуры (ввод пользователя, по адресу) ---------- */
 let TCALC = JSON.parse(localStorage.getItem('ngk_tcalc')||'{}');
@@ -564,12 +593,17 @@ let curD='Все', curQ='', curUK='Все', groupUK=false, curBranch='mkd';
 const markers = {};
 function markerColor(o){ const st=statusOf(o); return st?SCOL[st]:'#8a97a3'; }
 function drawMarkers(){
+  const kpYear=String(new Date().getFullYear());
   DB.objects.forEach((o,i)=>{
     if(o.lat===null||o.lat===undefined) return;   // без координат — только в списке
     const has=!!o.prof;
+    const kp=window.kpOn&&(o.krp||[]).some(k=>String(k.year||'').includes(kpYear));
     if(markers[i]) map.removeLayer(markers[i]);
-    const m=L.circleMarker([o.lat,o.lon],{radius:has?7:5,color:'#fff',weight:1.2,fillColor:markerColor(o),fillOpacity:.92});
-    m.bindTooltip(o.a+(statusOf(o)?' · '+statusOf(o):''),{direction:'top',offset:[0,-6]});
+    const m=L.circleMarker([o.lat,o.lon],{radius:has?7:5,
+      color:kp?'#4a2f6b':'#fff', weight:kp?2.2:1.2,
+      fillColor:kp?'#7b5ea7':markerColor(o),
+      fillOpacity:window.kpOn?(kp?.95:.22):.92});
+    m.bindTooltip(o.a+(statusOf(o)?' · '+statusOf(o):'')+(kp?' · КП '+kpYear:''),{direction:'top',offset:[0,-6]});
     m.on('click',()=>select(i));
     markers[i]=m;
   });
@@ -707,6 +741,11 @@ const ukSel=document.getElementById('ukFilter');
   }).join('');
   ukSel.onchange=()=>{curUK=ukSel.value; renderList();};
   document.getElementById('ukGroup').onchange=e=>{groupUK=e.target.checked; renderList();};
+  /* --- подсветка КП текущего года на карте --- */
+  const kpY=String(new Date().getFullYear());
+  document.getElementById('kpYrNum').textContent=kpY;
+  window.kpOn=false;
+  document.getElementById('kpYr').onchange=e=>{ window.kpOn=e.target.checked; drawMarkers(); };
 }
 function passF(o){ const inBr=curBranch==='mkd'?(o.br||'mkd')==='mkd':o.br==='skb';
   return inBr&&(curD==='Все'||o.d===curD)&&(curUK==='Все'||effectiveUK(o)===curUK)&&(!curQ||o.a.toLowerCase().includes(curQ)); }
@@ -728,9 +767,13 @@ function setBranch(b){
 document.getElementById('brMkd').onclick=()=>setBranch('mkd');
 document.getElementById('brSkb').onclick=()=>setBranch('skb');
 const openStreets=new Set();
-function streetOf(o){ const m=o.a.match(/^(.*?)\s+\d/); let s=(m?m[1]:o.a).toLowerCase().replace(/ё/g,'е');
-  s=s.replace(/[.\s]+/g,'');
-  const fix={'бхмельницкого':'богданахмельницкого','бхмельницкого,':'богданахмельницкого','мкравца':'михаилакравца','лауретов':'лауреатов','комсомольсая':'комсомольская','московскаяд':'московская'};
+function streetOf(o){ let s=o.a;
+  const mc=s.match(/^(.*?),\s*д\.\s*/);              // канонический шаблон «ул. …, д. …»
+  if(mc) s=mc[1]; else { const m=s.match(/^(.*?)\s+\d/); s=m?m[1]:s; }
+  s=s.toLowerCase().replace(/ё/g,'е');
+  s=s.replace(/^(ул\.|пр-т|пр-кт|пл\.|наб\.|пр-д|ш\.|пер\.|улица|проспект|площадь|набережная|проезд|шоссе)\s*/,'');
+  s=s.replace(/[.\s,]+/g,'');
+  const fix={'бхмельницкого':'богданахмельницкого','мкравца':'михаилакравца','лауретов':'лауреатов','комсомольсая':'комсомольская','московскаяд':'московская'};
   return fix[s]||s; }
 function stubUK(s){ return s.uk||'Не определена'; }
 function stubPass(s){ return curBranch==='mkd'&&(curD==='Все'||s.d===curD)&&(curUK==='Все'||stubUK(s)===curUK)&&(!curQ||s.a.toLowerCase().includes(curQ)); }
@@ -761,7 +804,7 @@ function renderList(){
     items.sort((a,b)=>{ const ha=(a.t==='o'?a.o.a:a.s.a), hb=(b.t==='o'?b.o.a:b.s.a);
       const na=parseInt((ha.match(/\d+/)||[999])[0]), nb=parseInt((hb.match(/\d+/)||[999])[0]);
       return (na-nb)||ha.localeCompare(hb,'ru'); });
-    const disp=((items[0].t==='o'?items[0].o.a:items[0].s.a).replace(/\s+\d[^\s]*$/,''))||items[0].t;
+    const disp=((items[0].t==='o'?items[0].o.a:items[0].s.a).replace(/,\s*д\..*$/,'').replace(/\s+\d[^\s]*$/,''))||items[0].t;
     const nMon=items.filter(x=>x.t==='o').length;
     const acc=document.createElement('div');
     acc.className='acc'+((openStreets.has(st)||curQ)?' open':'');
@@ -4219,7 +4262,7 @@ function enterApp(role){
 })();
 
 };
-const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",ivD:"hxPGTcXCftjxrTUN"};
+const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",ivD:"seIi7fxiL1VhvMIm"};
 function enterApp(role){ sessionStorage.setItem("ngk_role",role); document.body.classList.add("authed","role-"+role); document.getElementById("loginModal").style.display="none"; document.getElementById("roleBadge").textContent=role==="edit"?"оператор":"наблюдатель"; }
 const _b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 async function _unwrap(pw,saltB,ivB,wrapB){
