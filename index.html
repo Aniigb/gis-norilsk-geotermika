@@ -384,14 +384,14 @@
   </div>
 </div>
 
-<script src="db_p1.js?v=e806bf00"></script>
-<script src="db_p2.js?v=e806bf00"></script>
-<script src="db_p3.js?v=e806bf00"></script>
-<script src="db_p4.js?v=e806bf00"></script>
-<script src="db_p5.js?v=e806bf00"></script>
-<script src="db_p6.js?v=e806bf00"></script>
-<script src="db_p7.js?v=e806bf00"></script>
-<script src="db_p8.js?v=e806bf00"></script>
+<script src="db_p1.js?v=513d6f4b"></script>
+<script src="db_p2.js?v=513d6f4b"></script>
+<script src="db_p3.js?v=513d6f4b"></script>
+<script src="db_p4.js?v=513d6f4b"></script>
+<script src="db_p5.js?v=513d6f4b"></script>
+<script src="db_p6.js?v=513d6f4b"></script>
+<script src="db_p7.js?v=513d6f4b"></script>
+<script src="db_p8.js?v=513d6f4b"></script>
 
 <div id="loginModal">
   <form class="lbox" id="loginForm">
@@ -1220,12 +1220,16 @@ function passportBlock(o){
 function tabPassport(o, el){
   const wells=o.prof?Object.keys(o.prof):[];
   const ro0=!document.body.classList.contains('role-edit');
-  const prec={'точный':'точный адрес (OSM)','по улице':'центроид улицы','nominatim':'Nominatim/OSM','уточнено вручную':'уточнено по спутниковому снимку','приблизительная (по улице)':'приблизительная (по улице)'}[o.p]||'—';
+  const prec={'точный':'точный адрес (OSM)','по улице':'центроид улицы','nominatim':'Nominatim/OSM','уточнено вручную':'уточнено по спутниковому снимку','приблизительная (по улице)':'приблизительная (по улице)','точный (офиц. данные)':'точный (официальные данные)','справочник ginfo.ru':'адресный справочник ginfo.ru'}[o.p]||'—';
   el.innerHTML=`
   <div class="normref">Состав сведений: ГОСТ 31937-2024 «Здания и сооружения. Правила обследования и мониторинга технического состояния» (паспорт объекта мониторинга); СП 25.13330.2020 (разд. 5 — принципы использования вечномерзлых грунтов); ПП РФ № 491 (п. 24–26, состав технической документации на МКД). Поля редактируются и сохраняются локально в браузере.</div>
   ${passportBlock(o)}
   <table class="kv">
     <tr><td>Адрес</td><td>г. Норильск, ${esc(o.a)}</td></tr>
+    ${o.ao?`<tr><td>Официальный адрес (ГИС ЖКХ / ginfo.ru)</td><td><b>${esc(o.ao)}</b></td></tr>`:''}
+    ${o.cad?`<tr><td>Кадастровый номер</td><td><b>${esc(o.cad)}</b></td></tr>`:''}
+    ${o.pc?`<tr><td>Почтовый индекс</td><td>${esc(o.pc)}</td></tr>`:''}
+    ${o.gkh?`<tr><td>ГИС ЖКХ</td><td>${[o.gkh.condition?('состояние: '+esc(o.gkh.condition)):'' , o.gkh.wear?('износ: '+esc(o.gkh.wear)+'%'):'', o.gkh.area?('общая площадь: '+esc(o.gkh.area)+' м²'):'', o.gkh.mgmt?('способ управления: '+esc(o.gkh.mgmt)):''].filter(Boolean).join('; ')||'—'}</td></tr>`:''}
     <tr><td>Район</td><td>${esc(o.d||'—')}</td></tr>
     <tr><td>${o.br==='skb'?'Подразделение Администрации':'Управляющая компания'}</td><td>${o.br==='skb'?sel(o,'pf','uk', o.podr||'', podrList()):sel(o,'pf','uk', o.uk||'Не определена', UK_LIST.concat(['Не определена']))}</td></tr>
     <tr><td>Координаты (WGS-84)</td><td>${ro0?`${fmt(o.lat)}, ${fmt(o.lon)} <span style="color:var(--mut)">(${prec})</span>`:`
@@ -3795,7 +3799,7 @@ function enterApp(role){
 })();
 
 };
-const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",ivD:"rzGDvWjCjsT6gUyX"};
+const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",ivD:"4xwB6kYX38q5WOGW"};
 function enterApp(role){ sessionStorage.setItem("ngk_role",role); document.body.classList.add("authed","role-"+role); document.getElementById("loginModal").style.display="none"; document.getElementById("roleBadge").textContent=role==="edit"?"оператор":"наблюдатель"; }
 const _b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 async function _unwrap(pw,saltB,ivB,wrapB){
