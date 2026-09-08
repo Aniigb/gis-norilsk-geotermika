@@ -399,6 +399,27 @@
       <input type="file" id="uplObjFile" accept=".xlsx,.xls" style="display:none">
       <span class="note"> Адрес берётся из имени файла. Расшифровка извлечения показывается полностью (скважины, даты, точки, дубли).</span>
     </div>
+    <div style="margin-top:12px; border-top:1px dashed var(--line); padding-top:10px">
+      <b>📄 Отчёты обследований (Word .docx / PDF)</b> <span class="note">— интеллектуальное распознавание: адрес, фундаменты, сваи/ростверк/оголовки, дефекты, подполье, продухи, условия эксплуатации, ремонты → предпросмотр → перенос в разделы карточки</span><br>
+      <button id="uplRepPick" style="margin-top:6px">Выбрать отчёт (docx / pdf)…</button>
+      <input type="file" id="uplRepFile" accept=".docx,.pdf" multiple style="display:none">
+    </div>
+    <div style="margin-top:12px; border-top:1px dashed var(--line); padding-top:10px">
+      <b>📐 Ведомости геодезии (Excel / CSV / PDF)</b> <span class="note">— распознавание строк «дата · марка · отметка/осадка», автоперенос во вкладку «Геодезия» карточки</span><br>
+      <button id="uplGeodPick" style="margin-top:6px">Выбрать файл геодезии…</button>
+      <input type="file" id="uplGeodFile" accept=".xlsx,.xls,.csv,.pdf" style="display:none">
+    </div>
+    <div style="margin-top:12px; border-top:1px dashed var(--line); padding-top:10px">
+      <b>🧠 Ведомость геотермики нестандартного шаблона (xlsx)</b> <span class="note">— универсальный распознаватель структуры + запоминание шаблона за организацией</span><br>
+      <button id="uplUniPick" style="margin-top:6px">Выбрать ведомость (xlsx)…</button>
+      <input type="file" id="uplUniFile" accept=".xlsx,.xls" style="display:none">
+      <div id="tplMemLine" class="note" style="margin-top:4px"></div>
+    </div>
+    <div style="margin-top:12px; border-top:2px solid var(--c-centr); padding-top:10px">
+      <b>📥 Приёмка в центральную базу</b> <span class="note">— каждая загрузка автоматически уходит в центральную БД (Supabase) со статусом «ожидает приёмки»; принятые вливаются в основную базу еженедельной задачей</span>
+      <div id="stgList" style="margin-top:6px"></div>
+    </div>
+    <div id="upPreview"></div>
     <div id="uplLog"></div>
     <div class="note">Загруженные замеры сохраняются в браузере (localStorage) и сразу участвуют в графиках и статусах.
     Для включения в центральную базу передайте файл в АНО «АНИИГБ» им. М.В. Кима.</div>
@@ -1319,12 +1340,16 @@ const DEF_TITLES={fund_piles:'Сваи', fund_rostverk:'Ростверк / пр�
   cok_perekrytie:'Плиты цокольного перекрытия', cok_ograd:'Цокольное ограждение / продухи', podpol:'Подполье'};
 function defectBlock(o, codes){
   const d=o.defects||{};
-  const present=codes.filter(c=>d[c]&&d[c].length);
+  const cx=(CARD[o.a]&&CARD[o.a].defx)||{};
+  const present=codes.filter(c=>(d[c]&&d[c].length)||(cx[c]&&cx[c].length));
   if(!present.length) return '<div class="note">Дефекты и повреждения по этому разделу в свежем отчёте не зарегистрированы (или отчёт отсутствует).</div>';
-  return present.map(c=>`
-    <div class="sect">${DEF_TITLES[c]} · выявлено: ${d[c].length}</div>
+  return present.map(c=>{
+    const rows=(d[c]||[]).map(r=>`<tr><td>${escT(r[0])}</td><td>${escT(r[1])}</td></tr>`);
+    const xr=(cx[c]||[]).map(t=>`<tr><td colspan="2" style="background:#f4f0e4">${escT(t)} <span class="note">(из отчёта, загруженного оператором)</span></td></tr>`);
+    return `<div class="sect">${DEF_TITLES[c]} · выявлено: ${(d[c]||[]).length+(cx[c]||[]).length}</div>
     <table class="rows static"><thead><tr><th style="width:24%">Марка / оси</th><th>Дефект / повреждение (состояние конструкции)</th></tr></thead>
-    <tbody>${d[c].map(r=>`<tr><td>${escT(r[0])}</td><td>${escT(r[1])}</td></tr>`).join('')}</tbody></table>`).join('');
+    <tbody>${rows.concat(xr).join('')}</tbody></table>`;
+  }).join('');
 }
 function pfRow(o,k,label){ const v=o.pf2&&o.pf2[k]; return v?`<tr><td>${label}</td><td>${escT(v)}</td></tr>`:''; }
 function reportSrc(o){ return o.report_year_full?`<div class="note">Источник: информационный отчёт ООО «НПО «Фундамент», ${o.report_year_full} г. (последний из имеющихся).</div>`:''; }
@@ -2014,9 +2039,15 @@ function tabExpl(o, el){
   <div class="sect">Выявленные нарушения в эксплуатации (отчёт ${o.report_year_full||''} г.)</div>
   <table class="kv">${rep.map(t=>`<tr><td colspan="2">${escT(t)}</td></tr>`).join('')}</table>
   ${reportSrc(o)}`:'';
+  const dx=(CARD[o.a]&&CARD[o.a].defx)||{};
+  const autoLines=(dx.expl||[]).concat(dx.repairs||[]);
+  const autoBlock=autoLines.length?`
+  <div class="sect">Из отчётов, загруженных оператором (нарушения/ремонты)</div>
+  <table class="kv">${autoLines.map(t=>`<tr><td colspan="2">${escT(t)}</td></tr>`).join('')}</table>`:'';
   el.innerHTML=`
   <div class="normref">СП 497.1325800.2020 «…Правила эксплуатации»; ГОСТ 31937-2024 (обследование и мониторинг); СП 25.13330.2020 (разд. 13); ВСН 01-89.</div>
   ${repBlock}
+  ${autoBlock}
   <div class="sect">Текущие условия (редактируемые поля)</div>
   <table class="kv">
     <tr><td>Температура воздуха в подполе, °C</td><td>${inp(o,'ex','tpodpol','')}</td></tr>
@@ -2235,6 +2266,12 @@ async function handleUpload(file){
     });
   });
   USERDATA.forEach(rec=>mergeUserRec(rec));
+  Object.keys(grouped).forEach(key=>{
+    const o=DB.objects[addrIndex[key]];
+    const entries=[];
+    Object.entries(grouped[key]).forEach(([w,dates])=>Object.entries(dates).forEach(([date,rec])=>entries.push({w,date,dep:rec.dep,pts:rec.pts})));
+    stgPush('geotherm', o.a, {entries}, file.name, null);
+  });
   Object.keys(grouped).forEach(key=>refreshObjStats(DB.objects[addrIndex[key]]));
   saveUSERDATA();
   drawMarkers(); renderStats(); renderList();
@@ -2366,6 +2403,9 @@ async function handleObjUpload(file){
     });
   });
   USERDATA.forEach(rec=>mergeUserRec(rec));
+  { const entries=[];
+    Object.entries(wells).forEach(([w,wd])=>Object.entries(wd.dates).forEach(([iso,pts])=>entries.push({w,date:iso,dep:wd.dep,pts})));
+    stgPush('geotherm_obj', obj.a, {entries}, file.name, 'ООО «НПО «Фундамент»'); }
   refreshObjStats(obj);
   saveUSERDATA();
   drawMarkers(); renderStats(); renderList();
@@ -2375,6 +2415,319 @@ async function handleObjUpload(file){
 }
 document.getElementById('uplObjPick').onclick=()=>document.getElementById('uplObjFile').click();
 document.getElementById('uplObjFile').addEventListener('change',e=>{ if(e.target.files[0]) handleObjUpload(e.target.files[0]); e.target.value=''; });
+
+/* ================= ИНТЕЛЛЕКТУАЛЬНАЯ ЗАГРУЗКА + ШЛЮЗ В ЦЕНТРАЛЬНУЮ БАЗУ ================= */
+function upLog(m){ const l=document.getElementById('uplLog'); l.style.display='block'; l.textContent+=m+'\n'; l.scrollTop=l.scrollHeight; }
+function loadLib(src,gname){ return new Promise((res,rej)=>{ if(window[gname]) return res(); const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error('CDN недоступен (нужен интернет)')); document.head.appendChild(s); }); }
+const libMammoth=()=>loadLib('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js','mammoth');
+const libPdf=()=>loadLib('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js','pdfjsLib').then(()=>{ pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; });
+
+/* --- память шаблонов по организациям --- */
+let TPLMEM=JSON.parse(localStorage.getItem('ngk_tplmem')||'{}');
+function tplMemLine(){ const el=document.getElementById('tplMemLine'); if(!el) return;
+  const orgs=Object.keys(TPLMEM);
+  let h='';
+  if(orgs.length) h='🧠 запомнены шаблоны: '+orgs.map(esc).join(', ')+' — <a href="#" id="tplMemClear" style="color:var(--crit)">забыть все</a>';
+  el.innerHTML=h;
+  const c=document.getElementById('tplMemClear'); if(c) c.onclick=e=>{e.preventDefault(); TPLMEM={}; localStorage.setItem('ngk_tplmem','{}'); tplMemLine();};
+}
+tplMemLine();
+function detectOrg(text){
+  const m=(text||'').match(/(ООО|АО|ПАО|АНО|МКУ|МБУ|ТСЖ|ГБУ|УК)\s*[«"]([^»"]{2,45})[»"]/);
+  return m?(m[1]+' «'+m[2].trim()+'»'):null;
+}
+function orgOf(text, fname){ return detectOrg(text)||TPLMEM['_file:'+fname]&&TPLMEM['_file:'+fname].org||null; }
+
+/* --- шлюз в центральную базу (Supabase staging) --- */
+async function stgPush(kind, addr, payload, filename, org){
+  if(!sbMode()) return false;
+  try{
+    await sbFetch('/rest/v1/uploads_staging',{method:'POST', headers:{'Prefer':'return=minimal'},
+      body:JSON.stringify({addr, kind, payload, filename, org:org||null, by_user:'оператор (браузер)'})});
+    upLog('→ отправлено в центральную базу: ожидает приёмки');
+    stgRefresh();
+    return true;
+  }catch(e){ upLog('⚠ не удалось отправить в центральную базу: '+e.message); return false; }
+}
+async function stgRefresh(){
+  const el=document.getElementById('stgList'); if(!el||!sbMode()){ if(el) el.innerHTML='<span class="note">контур центральной БД недоступен</span>'; return; }
+  try{
+    const rows=await sbFetch('/rest/v1/uploads_staging?status=eq.pending&order=created_at.desc&select=id,addr,kind,filename,created_at,org')||[];
+    if(!rows.length){ el.innerHTML='<span class="note">Ожидающих приёмки загрузок нет.</span>'; return; }
+    el.innerHTML='<table class="rows static" style="font-size:11.5px"><thead><tr><th>Дата</th><th>Адрес</th><th>Тип</th><th>Файл</th><th>Организация</th><th></th></tr></thead><tbody>'+
+      rows.map(r=>`<tr><td>${String(r.created_at).slice(0,16).replace('T',' ')}</td><td>${esc(r.addr)}</td><td>${esc(r.kind)}</td><td>${esc(r.filename||'')}</td><td>${esc(r.org||'—')}</td>
+      <td><button class="wbtn" data-stg-ok="${r.id}" style="padding:1px 8px">Принять</button> <button class="wbtn" data-stg-no="${r.id}" style="padding:1px 8px; border-color:var(--crit); color:var(--crit)">Отклонить</button></td></tr>`).join('')+'</tbody></table>';
+    el.querySelectorAll('[data-stg-ok]').forEach(b=>b.onclick=async()=>{ await stgSet(b.dataset.stgOk,'approved'); });
+    el.querySelectorAll('[data-stg-no]').forEach(b=>b.onclick=async()=>{ await stgSet(b.dataset.stgNo,'rejected'); });
+  }catch(e){ el.innerHTML='<span class="note">приёмка недоступна: '+esc(e.message)+'</span>'; }
+}
+async function stgSet(id, status){
+  try{
+    await sbFetch('/rest/v1/uploads_staging?id=eq.'+id,{method:'PATCH', headers:{'Prefer':'return=minimal'},
+      body:JSON.stringify({status, moderated_at:new Date().toISOString()})});
+    stgRefresh();
+  }catch(e){ alert('Не удалось обновить статус: '+e.message); }
+}
+document.getElementById('uploadBtn').addEventListener('click', ()=>setTimeout(stgRefresh,300));
+
+/* --- чтение текста из docx/pdf --- */
+async function fileToText(f){
+  const ext=f.name.split('.').pop().toLowerCase();
+  if(ext==='docx'){ await libMammoth(); const ab=await f.arrayBuffer(); return (await mammoth.extractRawText({arrayBuffer:ab})).value; }
+  if(ext==='pdf'){
+    await libPdf();
+    const ab=await f.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:ab}).promise;
+    let t='';
+    for(let p=1;p<=Math.min(pdf.numPages,80);p++){
+      const pg=await pdf.getPage(p);
+      const tc=await pg.getTextContent();
+      let line='', lastY=null;
+      tc.items.forEach(i=>{ if(lastY!==null&&Math.abs(i.transform[5]-lastY)>3) t+='\n'; t+=i.str+(i.str.endsWith(' ')?'':' '); lastY=i.transform[5]; });
+      t+='\n';
+    }
+    return t;
+  }
+  throw new Error('формат .'+ext+' не поддерживается (сохраните Word как .docx)');
+}
+
+/* --- распознавание адреса из текста --- */
+function addrFromText(text, fname){
+  let m=text.match(/(?:адрес\s+объекта|объект[а]?\s*(?:по\s+адресу)?)\s*[:;]?\s*((?:ул\.?|улица|пр-т\.?|проспект|пл\.?|площадь|наб\.?|набережная|пр-д\.?|проезд)[^\n,;.]{2,60})/i)
+        || text.match(/(?:р-н|город)\s+Норильск[,\s]+([^\n;.]{3,60})/i);
+  let a=m?m[1].trim():null;
+  if(!a){ a=fname.replace(/\.(docx|pdf|xlsx|xls|csv)$/i,'').replace(/отч[её]т|годовой|информационн\w*/gi,' ').replace(/\s+/g,' ').trim(); }
+  if(!a||a.length<4) return null;
+  if(!addrIndex) buildAddrIndex();
+  return resolveObjAddr(a);
+}
+
+/* ---------- РАСПОЗНАВАТЕЛЬ ОТЧЁТОВ (docx/pdf) ---------- */
+function extractReport(text){
+  const grab=(re,limit)=>{ const out=[]; for(const ln of text.split(/\n+/)){ const s=ln.trim(); if(s.length>6&&s.length<600&&re.test(s)) out.push(s); if(out.length>=limit) break; } return out; };
+  const R={sections:{
+    fund_piles:grab(/сва[йяи](?!лест)|свайный/i,10),
+    fund_rostverk:grab(/ростверк|балк[аи]\s+ростверк/i,8),
+    fund_ogolovki:grab(/оголовок|оголовк[аи]/i,8),
+    podpol:grab(/подполь/i,8),
+    cok_ograd:grab(/продух|цоколь|отмостк/i,10),
+    expl:grab(/нарушени[яе]|затоплен|самовольн|не\s+производи/i,10),
+    repairs:grab(/ремонт|восстановлен/i,10)}};
+  let m=text.match(/(\d{2,4})\s*(?:шт\.?|штук)?\s*сва[йи]/i); if(m) R.piles=+m[1];
+  m=text.match(/этажн\w*[^\d]{0,10}(\d{1,2})/i); if(m) R.floors=+m[1];
+  m=text.match(/(?:19|20)\d{2}/); if(m) R.year=m[0];
+  R.org=detectOrg(text);
+  return R;
+}
+async function handleReport(f){
+  if(!document.body.classList.contains('role-edit')){ alert('Загрузка доступна уровню «оператор».'); return; }
+  upLog('Отчёт: '+f.name+' — чтение…');
+  let text;
+  try{ text=await fileToText(f); }catch(e){ upLog('✕ '+e.message); return; }
+  upLog('  прочитано символов: '+text.length);
+  const obj=addrFromText(text, f.name);
+  if(!obj){ upLog('✕ адрес объекта не распознан (ни в тексте, ни в имени файла). Переименуйте файл по адресу.'); return; }
+  const R=extractReport(text);
+  const totalLines=Object.values(R.sections).reduce((a,b)=>a+b.length,0);
+  upLog('  объект: '+obj.a+' · организация: '+(R.org||'—')+' · год: '+(R.year||'—')+' · свай: '+(R.piles||'—')+' · этажей: '+(R.floors||'—')+' · строк по разделам: '+totalLines);
+  showReportPreview(obj, R, f.name, text);
+}
+function showReportPreview(o, R, fname, text){
+  const el=document.getElementById('upPreview');
+  const secs=Object.entries(R.sections).filter(([,v])=>v.length);
+  el.innerHTML=`<div style="border:2px solid var(--c-centr); border-radius:8px; padding:12px; margin-top:10px">
+    <b>Предпросмотр распознавания:</b> ${esc(fname)} → <b>${esc(o.a)}</b>
+    <table class="kv" style="margin-top:6px">
+      <tr><td>Организация</td><td>${esc(R.org||'не определена')}</td></tr>
+      <tr><td>Год отчёта</td><td>${esc(R.year||'—')}</td></tr>
+      ${R.piles?`<tr><td>Число свай (по тексту)</td><td>${R.piles}</td></tr>`:''}
+      ${R.floors?`<tr><td>Этажность (по тексту)</td><td>${R.floors}</td></tr>`:''}
+    </table>
+    ${secs.map(([k,v])=>`<div class="sect" style="font-size:11px">${esc(({fund_piles:'Сваи',fund_rostverk:'Ростверк',fund_ogolovki:'Оголовки свай',podpol:'Подполье',cok_ograd:'Цоколь/продухи',expl:'Условия эксплуатации',repairs:'Ремонты'})[k])} · строк: ${v.length}</div>
+      <div style="font-size:11px; max-height:110px; overflow:auto; background:#fff; border:1px solid var(--line); padding:4px 8px">${v.map(t=>esc(t)).join('<br>')}</div>`).join('')}
+    <div style="margin-top:8px; display:flex; gap:8px">
+      <button class="wbtn" id="repApply" style="background:#2e7d32; color:#fff; border-color:#2e7d32">✔ Перенести в карточку</button>
+      <button class="wbtn" id="repCancel">Отмена</button>
+    </div></div>`;
+  el.querySelector('#repCancel').onclick=()=>{ el.innerHTML=''; };
+  el.querySelector('#repApply').onclick=async()=>{
+    const c=cardOf(o.a);
+    c.defx=c.defx||{};
+    Object.entries(R.sections).forEach(([k,v])=>{ if(v.length){ c.defx[k]=[...(c.defx[k]||[])]; v.forEach(t=>{ if(!c.defx[k].includes(t)) c.defx[k].push(t); }); } });
+    if(R.piles){ c.gtm=c.gtm||{}; if(!c.gtm.n_piles) c.gtm.n_piles=String(R.piles); }
+    if(R.floors){ c.pf=c.pf||{}; if(!c.pf.floors) c.pf.floors=String(R.floors); }
+    if(R.year){ c.pf=c.pf||{}; if(!c.pf.obsled) c.pf.obsled=R.year; }
+    saveCARD();
+    await stgPush('report', o.a, {sections:R.sections, piles:R.piles||null, floors:R.floors||null, year:R.year||null, org:R.org}, fname, R.org);
+    if(R.org){ TPLMEM[R.org]=Object.assign(TPLMEM[R.org]||{},{report:true, ts:Date.now()}); localStorage.setItem('ngk_tplmem',JSON.stringify(TPLMEM)); tplMemLine(); }
+    el.innerHTML='';
+    upLog('✔ Отчёт перенесён в карточку «'+o.a+'» (разделы: фундаменты, подполье, цокольное ограждение, условия эксплуатации).');
+    if(curObj===o) renderDetail(o);
+  };
+}
+document.getElementById('uplRepPick').onclick=()=>document.getElementById('uplRepFile').click();
+document.getElementById('uplRepFile').addEventListener('change',async e=>{ for(const f of e.target.files) await handleReport(f); e.target.value=''; });
+
+/* ---------- РАСПОЗНАВАТЕЛЬ ГЕОДЕЗИИ (xlsx/csv/pdf) ---------- */
+function geodFromRows(rows){
+  const out=[];
+  rows.forEach(r=>{
+    if(!Array.isArray(r)) return;
+    let date=null, marka='', nums=[];
+    r.forEach(v=>{
+      if(v===null||v===undefined||v==='') return;
+      const s=String(v).trim();
+      const d=parseDateCell(v);
+      if(d&&!date){ date=d; return; }
+      const n=parseNum(v);
+      if(n!==null) nums.push(n);
+      else if(!marka&&/^[А-ЯA-Zа-я0-9\-\/()]{1,12}$/.test(s)&&/\d/.test(s)) marka=s;
+    });
+    if(date&&nums.length){
+      // отметка 60-110 м (норильские высоты) — большое число; осадка — малое (мм)
+      const otm=nums.find(n=>n>40&&n<200), osad=nums.filter(n=>n<=40&&n>=-40).pop();
+      out.push({date, marka, otm:otm??'', osad:osad??''});
+    }
+  });
+  return out;
+}
+function geodFromText(text){
+  const rows=[];
+  text.split(/\n+/).forEach(ln=>{
+    const m=ln.match(/(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{2,4})\D+([А-ЯA-Zа-яa-z]?[\-/]?\d{1,3}(?:\(\d+\))?)\D+(-?\d+[.,]\d+)/);
+    if(m) rows.push({date:m[1]+'.'+m[2]+'.'+m[3], marka:m[2], otm:'', osad:m[5]});
+  });
+  return rows;
+}
+async function handleGeod(f){
+  if(!document.body.classList.contains('role-edit')){ alert('Загрузка доступна уровню «оператор».'); return; }
+  upLog('Геодезия: '+f.name+' — распознавание…');
+  let rows=[], text='';
+  try{
+    if(/\.pdf$/i.test(f.name)){ text=await fileToText(f); rows=geodFromText(text); }
+    else{
+      if(/\.csv$/i.test(f.name)){ text=await f.text(); const sep=(text.split('\n')[0].match(/;/g)||[]).length>=2?';':',';
+        rows=geodFromRows(text.split(/\r?\n/).map(l=>l.split(sep))); }
+      else{ const wb=XLSX.read(await f.arrayBuffer()); rows=geodFromRows(wb.SheetNames.flatMap(sn=>XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:true,defval:''}))); text=JSON.stringify(rows).slice(0,4000); }
+    }
+  }catch(e){ upLog('✕ '+e.message); return; }
+  if(!rows.length){ upLog('✕ строк «дата · марка · осадка» не распознано'); return; }
+  const obj=addrFromText(text, f.name.replace(/^(геодезия|геод)\s*/i,''));
+  if(!obj){ upLog('✕ адрес не распознан — переименуйте файл по адресу объекта.'); return; }
+  upLog('  объект: '+obj.a+' · строк: '+rows.length);
+  showGeodPreview(obj, rows, f.name, detectOrg(text)||null);
+}
+function showGeodPreview(o, rows, fname, org){
+  const el=document.getElementById('upPreview');
+  const key=org?org+'|geod':null;
+  el.innerHTML=`<div style="border:2px solid var(--c-centr); border-radius:8px; padding:12px; margin-top:10px">
+    <b>Геодезия:</b> ${esc(fname)} → <b>${esc(o.a)}</b> · строк: ${rows.length}${org?' · '+esc(org):''}
+    <table class="rows static" style="margin-top:6px; font-size:11.5px"><thead><tr><th>Дата</th><th>Марка</th><th>Отметка, м</th><th>Осадка, мм</th></tr></thead>
+    <tbody>${rows.slice(0,8).map(r=>`<tr><td>${esc(r.date)}</td><td>${esc(r.marka||'—')}</td><td>${r.otm}</td><td>${r.osad}</td></tr>`).join('')}${rows.length>8?`<tr><td colspan="4" class="note">…и ещё ${rows.length-8}</td></tr>`:''}</tbody></table>
+    <div style="margin-top:8px; display:flex; gap:8px">
+      <button class="wbtn" id="gdApply" style="background:#2e7d32; color:#fff; border-color:#2e7d32">✔ Перенести во вкладку «Геодезия»</button>
+      <button class="wbtn" id="gdCancel">Отмена</button>
+    </div></div>`;
+  el.querySelector('#gdCancel').onclick=()=>{ el.innerHTML=''; };
+  el.querySelector('#gdApply').onclick=async()=>{
+    const c=cardOf(o.a); c.geod=c.geod||[];
+    const have=new Set(c.geod.map(r=>r.date+'|'+r.marka));
+    let n=0;
+    rows.forEach(r=>{ const k=r.date+'|'+r.marka; if(!have.has(k)){ c.geod.push({date:r.date, marka:r.marka, otm:String(r.otm), osad:String(r.osad), speed:'', note:'из файла '+fname}); have.add(k); n++; } });
+    saveCARD();
+    await stgPush('geodesy', o.a, {rows}, fname, org);
+    if(org){ TPLMEM[org]=Object.assign(TPLMEM[org]||{},{geod:true, ts:Date.now()}); localStorage.setItem('ngk_tplmem',JSON.stringify(TPLMEM)); tplMemLine(); }
+    el.innerHTML='';
+    upLog('✔ Геодезия: добавлено '+n+' измерений в «'+o.a+'» (вкладка «Геодезия»).');
+    if(curObj===o){ curTab='geod'; renderDetail(o); }
+  };
+}
+document.getElementById('uplGeodPick').onclick=()=>document.getElementById('uplGeodFile').click();
+document.getElementById('uplGeodFile').addEventListener('change',async e=>{ if(e.target.files[0]) await handleGeod(e.target.files[0]); e.target.value=''; });
+
+/* ---------- УНИВЕРСАЛЬНАЯ ВЕДОМОСТЬ ГЕОТЕРМИКИ (нестандартный xlsx) ---------- */
+function uniThermParse(rows){
+  // режим «long»: строки вида […, скважина, дата, глубина, температура, …]
+  const long=[];
+  rows.forEach(r=>{
+    if(!Array.isArray(r)) return;
+    let well='', date=null, dep=null, t=null;
+    r.forEach((v,i)=>{
+      const s=String(v).trim(); if(!s) return;
+      const d=parseDateCell(v); if(d&&!date){ date=d; return; }
+      const n=parseNum(v);
+      if(n!==null){
+        if(n>=0&&n<=30&&(dep===null||i>0)) { if(dep===null) dep=n; else if(t===null&&n>=-35&&n<=25) t=n; }
+      }
+      else if(!well&&/\d/.test(s)&&s.length<=12) well=s;
+    });
+    if(date&&dep!==null&&t!==null) long.push({well:well||'б/л', date, dep, t});
+  });
+  if(long.length>=4) return {mode:'long', pts:long};
+  // режим «wide» (НПО-подобный): строка заголовка глубин + строки [скважина, дата, t...]
+  for(let hi=0; hi<Math.min(rows.length,40); hi++){
+    const hr=rows[hi]||[];
+    const dcols=[]; hr.forEach((v,j)=>{ const n=parseNum(v); if(n!==null&&n>=0&&n<=30) dcols.push([j,n]); });
+    if(dcols.length<4) continue;
+    const out=[];
+    for(let i=hi+1;i<rows.length;i++){
+      const r=rows[i]; if(!Array.isArray(r)) continue;
+      let well='', date=null;
+      r.forEach((v,j)=>{ if(j>=dcols[0][0]) return; const s=String(v).trim(); if(!s) return;
+        const d=parseDateCell(v); if(d&&!date) date=d; else if(!well&&/\d/.test(s)&&s.length<=12) well=s; });
+      if(!date) continue;
+      dcols.forEach(([j,dep])=>{ const t=parseNum(r[j]); if(t!==null) out.push({well:well||'б/л', date, dep, t}); });
+    }
+    if(out.length>=8) return {mode:'wide', pts:out};
+  }
+  return null;
+}
+async function handleUni(f){
+  if(!document.body.classList.contains('role-edit')){ alert('Загрузка доступна уровню «оператор».'); return; }
+  upLog('Универсальный распознаватель: '+f.name);
+  let wb;
+  try{ wb=XLSX.read(await f.arrayBuffer()); }catch(e){ upLog('✕ '+e.message); return; }
+  const org=detectOrg(JSON.stringify(wb.SheetNames))||null;
+  // память шаблона организации: (пока по структуре листов)
+  const memKey=(org||'_file:'+f.name.replace(/[^а-яa-z0-9]/gi,'').slice(0,24));
+  if(TPLMEM[memKey]&&TPLMEM[memKey].therm){ upLog('  применён запомненный шаблон: '+memKey); }
+  let best=null, bestSn='';
+  wb.SheetNames.forEach(sn=>{
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:true,defval:''});
+    const r=uniThermParse(rows);
+    if(r&&(!best||r.pts.length>best.pts.length)){ best=r; bestSn=sn; }
+  });
+  if(!best){ upLog('✕ структура ведомости не распознана (ни «длинный» формат точек, ни «широкий» с глубинами по столбцам). Используйте шаблон НПО «Фундамент» или простую ведомость.'); return; }
+  const obj=addrFromText(wb.SheetNames.join(' '), f.name.replace(/^(геотермика|геот)\s*/i,''));
+  if(!obj){ upLog('✕ адрес не распознан — переименуйте файл по адресу объекта.'); return; }
+  upLog('  лист «'+bestSn+'», формат «'+best.mode+'», точек: '+best.pts.length+' → '+obj.a);
+  const el=document.getElementById('upPreview');
+  el.innerHTML=`<div style="border:2px solid var(--c-centr); border-radius:8px; padding:12px; margin-top:10px">
+    <b>Геотермика (универсальный):</b> ${esc(f.name)} → <b>${esc(obj.a)}</b> · формат «${best.mode}» · точек: ${best.pts.length}
+    <table class="rows static" style="margin-top:6px; font-size:11.5px"><thead><tr><th>Скважина</th><th>Дата</th><th>Глубина, м</th><th>t, °C</th></tr></thead>
+    <tbody>${best.pts.slice(0,8).map(p=>`<tr><td>${esc(p.well)}</td><td>${p.date}</td><td>${p.dep}</td><td>${p.t}</td></tr>`).join('')}${best.pts.length>8?`<tr><td colspan="4" class="note">…и ещё ${best.pts.length-8}</td></tr>`:''}</tbody></table>
+    <div style="margin-top:8px; display:flex; gap:8px">
+      <button class="wbtn" id="uniApply" style="background:#2e7d32; color:#fff; border-color:#2e7d32">✔ Принять в базу</button>
+      <button class="wbtn" id="uniCancel">Отмена</button></div></div>`;
+  el.querySelector('#uniCancel').onclick=()=>{ el.innerHTML=''; };
+  el.querySelector('#uniApply').onclick=async()=>{
+    const g={};
+    best.pts.forEach(p=>{ const gw=(g[p.well]=g[p.well]||{}); const gd=(gw[p.date]=gw[p.date]||{dep:null,pts:{}}); gd.pts[p.dep]=p.t; });
+    Object.entries(g).forEach(([w,dates])=>Object.entries(dates).forEach(([date,rec])=>
+      USERDATA.push({a:obj.a, w, date, dep:rec.dep, pts:Object.entries(rec.pts).map(([d,t])=>[+d,t])})));
+    USERDATA.forEach(rec=>mergeUserRec(rec));
+    refreshObjStats(obj); saveUSERDATA();
+    drawMarkers(); renderStats(); renderList();
+    await stgPush('geotherm_uni', obj.a, {points:best.pts, mode:best.mode, sheet:bestSn}, f.name, org);
+    TPLMEM[memKey]=Object.assign(TPLMEM[memKey]||{},{therm:{mode:best.mode, sheet:bestSn}, org:org||null, ts:Date.now()});
+    localStorage.setItem('ngk_tplmem',JSON.stringify(TPLMEM)); tplMemLine();
+    el.innerHTML='';
+    upLog('✔ Принято точек: '+best.pts.length+' («'+obj.a+'»). Шаблон запомнен'+(org?(' за '+org):'')+'.');
+    if(curObj===obj){ curTab='geoterm'; renderDetail(obj); }
+  };
+}
+document.getElementById('uplUniPick').onclick=()=>document.getElementById('uplUniFile').click();
+document.getElementById('uplUniFile').addEventListener('change',async e=>{ if(e.target.files[0]) await handleUni(e.target.files[0]); e.target.value=''; });
 document.getElementById('uplCsvTpl').onclick=()=>{
   const rows=[['Адрес объекта','Район','Скважина (литера)','Дата замера','Глубина скважины, м','Глубина точки, м','Температура, °C','Источник'],
     ['50 лет Октября 13','Центральный','Б/В/16','15.03.2026','20','0','7.85','Журнал мерзлотного надзора, 1 кв. 2026'],
