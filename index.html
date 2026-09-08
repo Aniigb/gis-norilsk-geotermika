@@ -385,14 +385,14 @@
   </div>
 </div>
 
-<script src="db_p1.js?v=9e61264f"></script>
-<script src="db_p2.js?v=9e61264f"></script>
-<script src="db_p3.js?v=9e61264f"></script>
-<script src="db_p4.js?v=9e61264f"></script>
-<script src="db_p5.js?v=9e61264f"></script>
-<script src="db_p6.js?v=9e61264f"></script>
-<script src="db_p7.js?v=9e61264f"></script>
-<script src="db_p8.js?v=9e61264f"></script>
+<script src="db_p1.js?v=8f73d876"></script>
+<script src="db_p2.js?v=8f73d876"></script>
+<script src="db_p3.js?v=8f73d876"></script>
+<script src="db_p4.js?v=8f73d876"></script>
+<script src="db_p5.js?v=8f73d876"></script>
+<script src="db_p6.js?v=8f73d876"></script>
+<script src="db_p7.js?v=8f73d876"></script>
+<script src="db_p8.js?v=8f73d876"></script>
 
 <div id="loginModal">
   <form class="lbox" id="loginForm">
@@ -1552,7 +1552,7 @@ function gtmCalc(o){
   const hgwRaw=parseInt(edVal(o,'gtm','hgw_fact',''));
   const hgwFact=isNaN(hgwRaw)?null:hgwRaw;
   // --- требуемая сеть: СП 25.13330.2020, прил. М, табл. М.1 ---
-  const nPiles=parseFloat(edVal(o,'gtm','n_piles',''));
+  const nPiles=parseFloat(edVal(o,'gtm','n_piles', o.np||''));
   const wellsReq=(nPiles>0)?Math.max(2,Math.ceil(nPiles*0.02)):null; // не менее 2% числа фундаментов (свай)
   const nSeams=parseInt(edVal(o,'gtm','n_seams',''))||0;
   const marksReq=8+2*nSeams; // угловые 4 + средние по осям наружного контура 4 + по обе стороны осадочных швов
@@ -1610,7 +1610,7 @@ function tabGtm(o, el){
   <div class="sect">Исходные данные ${ro?'<span class="note">(редактирование — в режиме оператора)</span>':''}</div>
   <table class="kv">
     <tr><td>Принцип использования ММГ</td><td><b>${g.princip}</b> <span class="note">(задаётся в «Паспорте объекта»; продолжительность мониторинга: ${g.princip==='I'?'весь период эксплуатации':'5–10 лет'} — СП 497.1325800.2020, п. 9.6)</span></td></tr>
-    <tr><td>Общее число свай / столбчатых фундаментов</td><td>${inp(o,'gtm','n_piles','','number')} <span class="note">— база нормы «не менее 2 %» (табл. М.1)</span></td></tr>
+    <tr><td>Общее число свай / столбчатых фундаментов</td><td>${inp(o,'gtm','n_piles', o.np||'','number')} <span class="note">— база нормы «не менее 2 %» (табл. М.1)${o.nps&&!edVal(o,'gtm','n_piles','')?'; автозаполнено: '+esc(o.nps):''}</span></td></tr>
     <tr><td>Число осадочных швов</td><td>${inp(o,'gtm','n_seams','','number')}</td></tr>
     <tr><td>Малое здание (ширина ≤ 6 м и длина ≤ 10 м)</td><td>${sel(o,'gtm','small_b','',['','нет','да'])} <span class="note">— освобождает от ГГ-скважин (табл. М.1, сноска 5)</span></td></tr>
     <tr><td>Класс ответственности (ГОСТ 27751)</td><td>${sel(o,'gtm','klass','нормальный',['нормальный','повышенный'])}</td></tr>
@@ -4113,7 +4113,7 @@ function enterApp(role){
 })();
 
 };
-const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",ivD:"AYqRhlqo7a3ypTSP"};
+const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",ivD:"5jm4GKoQjNqXJg5B"};
 function enterApp(role){ sessionStorage.setItem("ngk_role",role); document.body.classList.add("authed","role-"+role); document.getElementById("loginModal").style.display="none"; document.getElementById("roleBadge").textContent=role==="edit"?"оператор":"наблюдатель"; }
 const _b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 async function _unwrap(pw,saltB,ivB,wrapB){
