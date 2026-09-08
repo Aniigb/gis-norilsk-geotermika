@@ -1046,13 +1046,14 @@ function drawTrend(cv, seriesList, unit){ // seriesList: [{label, xs, ys, color}
 }
 
 /* ---------- прогноз температуры основания до 2050 г. (5/10/15 м, среднее по скважинам) ---------- */
-function drawForecast(cv, o){
+function drawForecast(cv, o, dep0){
   const ctx=cv.getContext('2d');
   const W=cv.clientWidth, H=300; cv.width=W*2; cv.height=H*2; cv.style.height=H+'px'; ctx.scale(2,2);
   ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
   const END=2050, DAMP={5:0.6, 10:0.8, 15:0.9}, CLIM=0.035; // °C/год по воздуху, SSP2-4.5 (оценочно)
+  const deps=(dep0==='all'||dep0===undefined)?[5,10,15]:[dep0];
   const items=[];
-  [5,10,15].forEach((dep,i)=>{
+  deps.forEach((dep,i)=>{
     const s=objDepthSeries(o, dep);
     if(s.xs.length<3) return;
     const k=linreg(s.xs, s.ys); if(k===null) return;
@@ -1259,7 +1260,7 @@ function normText(s){
   return t.trim();
 }
 function escT(s){ return esc(normText(s)); }
-let curObj=null, curWell=null, curDepths=new Set(), curTab='passport';
+let curObj=null, curWell=null, curDepths=new Set(), curTab='passport', fcDepth=5;
 const TABS=[['passport','Паспорт объекта'],['gtm','Паспорт ГТМ'],['fund','Фундаменты'],['podpol','Подполье'],['cokper','Цокольное перекрытие'],['cokogr','Цокольное ограждение'],['geoterm','Геотермика'],['geod','Геодезия'],['calc','РАСЧЕТЫ'],['expl','Условия эксплуатации'],['plans','Планы'],['repairs','Ремонты'],['krplan','План ремонтов МКД'],['project','Проектная документация'],['igi','Инженерно-геологические условия'],['photo','Фотоматериалы'],['misc','Иное']];
 
 function select(i,fromList){
@@ -1609,7 +1610,8 @@ function tabGeoterm(o, el){
     <canvas class="plot" id="trendChart"></canvas>
     <div class="sect">Тренд температур по глубинам — все скважины (усреднённые ряды)</div>
     <canvas class="plot" id="trendChartAll"></canvas>
-    <div class="sect">Прогноз температуры основания до 2050 г. · 5 / 10 / 15 м (среднее по всем скважинам)</div>
+    <div class="sect">Прогноз температуры основания до 2050 г. (среднее по всем скважинам)</div>
+    <div class="note" style="margin:0 0 2px">Глубина прогноза: <span id="fcBtns"></span></div>
     <canvas class="plot" id="fcChart"></canvas>
     <div class="note">Прогноз оценочный: сплошная линия — ряд наблюдений; штриховая — линейная экстраполяция наблюдаемого тренда; пунктир — тренд с климатической поправкой потепления воздуха Арктической зоны ≈ +0,35 °C/декаду (сценарий SSP2-4.5, оценочно) с затуханием по глубине (5 м — ×0,6; 10 м — ×0,8; 15 м — ×0,9). Красная линия — 0 °C (граница мёрзлого состояния). Подлежит уточнению теплотехническим расчётом.</div>`
   : '<div class="empty" style="text-align:left;padding:8px 0">Числовые замеры по объекту в файлах не найдены — запись зарезервирована в структуре БД.<br>Замеры можно добавить через «⬆ Загрузка данных» в шапке.</div>';
@@ -1644,7 +1646,16 @@ function tabGeoterm(o, el){
       return {label:dep+' м · все скважины', xs:s.xs, ys:s.ys, color:DATE_COLORS[i%DATE_COLORS.length]};
     }).filter(s=>s.ys.length>=2);
     drawTrend(document.getElementById('trendChartAll'), listAll);
-    drawForecast(document.getElementById('fcChart'), o);
+    // переключатель глубины прогноза
+    const fcb=document.getElementById('fcBtns');
+    [5,10,15,'all'].forEach(dep=>{
+      const b=document.createElement('button');
+      b.className='dbtn'+(fcDepth===dep?' on':'');
+      b.textContent=dep==='all'?'все 3':dep+' м';
+      b.onclick=()=>{ fcDepth=dep; renderDetail(o); };
+      fcb.appendChild(b);
+    });
+    drawForecast(document.getElementById('fcChart'), o, fcDepth);
   }
 }
 
