@@ -110,6 +110,17 @@
   .photos figcaption{font-size:10.5px; padding:3px 6px; color:var(--mut); display:flex; justify-content:space-between; align-items:center}
   .ukgroup{position:sticky; top:0; background:#e4ded2; padding:5px 14px; font-size:11.5px; font-weight:700; letter-spacing:.4px; color:#5a5346; border-bottom:1px solid var(--line); z-index:5}
   .ukgroup .n{font-weight:400; color:var(--mut); margin-left:6px}
+  /* --- аккордеон по улицам (полный реестр МКД) --- */
+  .acc-h{padding:7px 14px; font-size:12.5px; font-weight:700; color:#4a4234; background:#efe9dc; border-bottom:1px solid var(--line); cursor:pointer; user-select:none; display:flex; justify-content:space-between; align-items:center}
+  .acc-h:hover{background:#e7dfcd}
+  .acc-h .n{font-weight:400; color:var(--mut); font-size:11px}
+  .acc-h::before{content:'▸'; margin-right:6px; font-size:10px; color:var(--mut)}
+  .acc.open>.acc-h::before{content:'▾'}
+  .acc-b{display:none}
+  .acc.open>.acc-b{display:block}
+  .item.stub{color:#8a8378}
+  .item.stub .a{font-weight:400}
+  .stubbadge{display:inline-block; font-size:9.5px; color:#9a8f7a; border:1px solid #d8d0bd; border-radius:3px; padding:0 4px; margin-left:6px}
   /* ---------- загрузка данных ---------- */
   #uploadBtn{background:#2e7d32; border:1px solid #2e7d32; color:#fff; border-radius:6px; padding:4px 12px; cursor:pointer; font-size:13px}
   #uploadBtn:hover{background:#256a29}
@@ -385,14 +396,14 @@
   </div>
 </div>
 
-<script src="db_p1.js?v=8f73d876"></script>
-<script src="db_p2.js?v=8f73d876"></script>
-<script src="db_p3.js?v=8f73d876"></script>
-<script src="db_p4.js?v=8f73d876"></script>
-<script src="db_p5.js?v=8f73d876"></script>
-<script src="db_p6.js?v=8f73d876"></script>
-<script src="db_p7.js?v=8f73d876"></script>
-<script src="db_p8.js?v=8f73d876"></script>
+<script src="db_p1.js?v=ce989aa0"></script>
+<script src="db_p2.js?v=ce989aa0"></script>
+<script src="db_p3.js?v=ce989aa0"></script>
+<script src="db_p4.js?v=ce989aa0"></script>
+<script src="db_p5.js?v=ce989aa0"></script>
+<script src="db_p6.js?v=ce989aa0"></script>
+<script src="db_p7.js?v=ce989aa0"></script>
+<script src="db_p8.js?v=ce989aa0"></script>
 
 <div id="loginModal">
   <form class="lbox" id="loginForm">
@@ -680,13 +691,17 @@ function setBranch(b){
 }
 document.getElementById('brMkd').onclick=()=>setBranch('mkd');
 document.getElementById('brSkb').onclick=()=>setBranch('skb');
+const openStreets=new Set();
+function streetOf(o){ const m=o.a.match(/^(.*?)\s+\d/); return (m?m[1]:o.a).toLowerCase().replace(/ё/g,'е'); }
+function stubUK(s){ return s.uk||'Не определена'; }
+function stubPass(s){ return curBranch==='mkd'&&(curD==='Все'||s.d===curD)&&(curUK==='Все'||stubUK(s)===curUK)&&(!curQ||s.a.toLowerCase().includes(curQ)); }
 function renderList(){
   const list=document.getElementById('list'); list.innerHTML='';
-  let idx=DB.objects.map((o,i)=>[o,i]).filter(([o])=>passF(o));
-  if(groupUK) idx.sort((a,b)=>{ const ua=effectiveUK(a[0]), ub=effectiveUK(b[0]); return ua===ub? a[0].a.localeCompare(b[0].a,'ru') : ua.localeCompare(ub,'ru'); });
-  let lastGroup=null;
-  idx.forEach(([o,i])=>{
-    if(groupUK){
+  if(groupUK){
+    let idx=DB.objects.map((o,i)=>[o,i]).filter(([o])=>passF(o));
+    idx.sort((a,b)=>{ const ua=effectiveUK(a[0]), ub=effectiveUK(b[0]); return ua===ub? a[0].a.localeCompare(b[0].a,'ru') : ua.localeCompare(ub,'ru'); });
+    let lastGroup=null;
+    idx.forEach(([o,i])=>{
       const g=effectiveUK(o);
       if(g!==lastGroup){
         lastGroup=g;
@@ -695,16 +710,67 @@ function renderList(){
         gh.className='ukgroup'; gh.innerHTML=g+`<span class="n">${n} об.</span>`;
         list.appendChild(gh);
       }
-    }
-    const st=statusOf(o);
-    const el=document.createElement('div');
-    el.className='item'; el.id='it'+i;
-    const info=o.nm?`${o.nm} зам. · ${(o.d0||'').slice(0,4)}–${(o.d1||'').slice(0,4)}`:(o.d||'');
-    el.innerHTML=`<span class="a">${st?`<span class="sdot" style="background:${SCOL[st]}"></span>`:''}${o.a}</span><span class="t${o.nm?' has':''}">${info}</span>`;
-    el.onclick=()=>select(i,true);
-    list.appendChild(el);
+      list.appendChild(objItem(o,i));
+    });
+    applyFilter(); return;
+  }
+  // --- аккордеон по улицам: карточки мониторинга + полный реестр домов города ---
+  const groups=new Map();
+  DB.objects.forEach((o,i)=>{ if(!passF(o)) return; const st=streetOf(o); if(!groups.has(st)) groups.set(st,[]); groups.get(st).push({t:'o',o,i}); });
+  (DB.stubs||[]).forEach((s,si)=>{ if(!stubPass(s)) return; if(!groups.has(s.st)) groups.set(s.st,[]); groups.get(s.st).push({t:'s',s,si}); });
+  [...groups.entries()].sort((a,b)=>a[0].localeCompare(b[0],'ru')).forEach(([st,items])=>{
+    items.sort((a,b)=>{ const ha=(a.t==='o'?a.o.a:a.s.a), hb=(b.t==='o'?b.o.a:b.s.a);
+      const na=parseInt((ha.match(/\d+/)||[999])[0]), nb=parseInt((hb.match(/\d+/)||[999])[0]);
+      return (na-nb)||ha.localeCompare(hb,'ru'); });
+    const disp=((items[0].t==='o'?items[0].o.a:items[0].s.a).replace(/\s+\d[^\s]*$/,''))||items[0].t;
+    const nMon=items.filter(x=>x.t==='o').length;
+    const acc=document.createElement('div');
+    acc.className='acc'+((openStreets.has(st)||curQ)?' open':'');
+    const h=document.createElement('div'); h.className='acc-h';
+    h.innerHTML=`<span>${esc(disp)}</span><span class="n">${items.length} дом.${nMon&&nMon<items.length?` · карточек: ${nMon}`:''}</span>`;
+    h.onclick=()=>{ acc.classList.toggle('open'); if(acc.classList.contains('open')) openStreets.add(st); else openStreets.delete(st); };
+    const bd=document.createElement('div'); bd.className='acc-b';
+    items.forEach(x=>{ bd.appendChild(x.t==='o'?objItem(x.o,x.i):stubItem(x.s,x.si)); });
+    acc.appendChild(h); acc.appendChild(bd); list.appendChild(acc);
   });
   applyFilter();
+}
+function objItem(o,i){
+  const st=statusOf(o);
+  const el=document.createElement('div');
+  el.className='item'; el.id='it'+i;
+  const info=o.nm?`${o.nm} зам. · ${(o.d0||'').slice(0,4)}–${(o.d1||'').slice(0,4)}`:(o.d||'');
+  el.innerHTML=`<span class="a">${st?`<span class="sdot" style="background:${SCOL[st]}"></span>`:''}${o.a}</span><span class="t${o.nm?' has':''}">${info}</span>`;
+  el.onclick=()=>select(i,true);
+  return el;
+}
+function stubItem(s,si){
+  const el=document.createElement('div');
+  el.className='item stub'; el.id='st'+si;
+  el.innerHTML=`<span class="a">${esc(s.a)}<span class="stubbadge">реестр</span></span><span class="t">${esc(s.uk?s.uk.replace(/^(ООО|АО)\s*"?|"?$/g,''):(s.d||''))}</span>`;
+  el.onclick=()=>selectStub(si);
+  return el;
+}
+function selectStub(si){
+  const s=(DB.stubs||[])[si]; if(!s) return;
+  curObj=null;
+  document.querySelectorAll('.item').forEach(e=>e.classList.remove('sel'));
+  const li=document.getElementById('st'+si); if(li){ li.classList.add('sel'); }
+  if(s.lat!=null) map.panTo([s.lat,s.lon]);
+  const d=document.getElementById('detail');
+  d.innerHTML=`
+    <h2>${esc(s.a)}<span class="badge b-card">реестр МКД</span></h2>
+    <div class="rayon">Район: <b style="color:${DCOL[s.d]||'#666'}">${esc(s.d||'не определён')}</b> · УК: <b>${esc(s.uk||'не определена')}</b> · г. Норильск</div>
+    <div class="normref">Адрес из полного реестра МКД города: координаты и наименование — адресный справочник ginfo.ru; УК, год постройки, кадастровый номер — ГИС ЖКХ. Карточка геотехнического мониторинга по этому дому не заведена.</div>
+    <table class="kv">
+      ${s.ao?`<tr><td>Официальный адрес</td><td><b>${esc(s.ao)}</b></td></tr>`:''}
+      ${s.cad?`<tr><td>Кадастровый номер</td><td><b>${esc(s.cad)}</b></td></tr>`:''}
+      ${s.y?`<tr><td>Год постройки</td><td>${esc(String(s.y))}</td></tr>`:''}
+      ${s.pc?`<tr><td>Почтовый индекс</td><td>${esc(s.pc)}</td></tr>`:''}
+      <tr><td>Координаты (WGS-84)</td><td>${s.lat!=null?fmt(s.lat)+', '+fmt(s.lon):'—'}</td></tr>
+    </table>`;
+  if(window.matchMedia('(max-width:900px)').matches)
+    setTimeout(()=>document.getElementById('detail').scrollIntoView({behavior:'smooth'}),150);
 }
 function applyFilter(){
   DB.objects.forEach((o,i)=>{
@@ -4113,7 +4179,7 @@ function enterApp(role){
 })();
 
 };
-const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",ivD:"5jm4GKoQjNqXJg5B"};
+const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",ivD:"hxPGTcXCftjxrTUN"};
 function enterApp(role){ sessionStorage.setItem("ngk_role",role); document.body.classList.add("authed","role-"+role); document.getElementById("loginModal").style.display="none"; document.getElementById("roleBadge").textContent=role==="edit"?"оператор":"наблюдатель"; }
 const _b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 async function _unwrap(pw,saltB,ivB,wrapB){
