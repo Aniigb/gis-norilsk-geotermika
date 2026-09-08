@@ -313,6 +313,7 @@
       <div>
         <b style="font-size:12.5px">Задачи отчёта:</b>
         <label class="task"><input type="checkbox" class="repTask" value="passport" checked> Паспорт и общие сведения</label>
+        <label class="task"><input type="checkbox" class="repTask" value="gtm" checked> Паспорт геотехнического мониторинга</label>
         <label class="task"><input type="checkbox" class="repTask" value="grunts" checked> Оценка несущей способности по грунтам основания</label>
         <label class="task"><input type="checkbox" class="repTask" value="strength" checked> Оценка по прочности (деформации основания)</label>
         <label class="task"><input type="checkbox" class="repTask" value="defects" checked> Оценка по дефектам и повреждениям конструкций</label>
@@ -991,7 +992,7 @@ function normText(s){
 }
 function escT(s){ return esc(normText(s)); }
 let curObj=null, curWell=null, curDepths=new Set(), curTab='passport';
-const TABS=[['passport','Паспорт объекта'],['fund','Фундаменты'],['podpol','Подполье'],['cokper','Цокольное перекрытие'],['cokogr','Цокольное ограждение'],['geoterm','Геотермика'],['geod','Геодезия'],['calc','РАСЧЕТЫ'],['expl','Условия эксплуатации'],['plans','Планы'],['repairs','Ремонты'],['project','Проектная документация'],['igi','Инженерно-геологические условия'],['photo','Фотоматериалы'],['misc','Иное']];
+const TABS=[['passport','Паспорт объекта'],['gtm','Паспорт ГТМ'],['fund','Фундаменты'],['podpol','Подполье'],['cokper','Цокольное перекрытие'],['cokogr','Цокольное ограждение'],['geoterm','Геотермика'],['geod','Геодезия'],['calc','РАСЧЕТЫ'],['expl','Условия эксплуатации'],['plans','Планы'],['repairs','Ремонты'],['project','Проектная документация'],['igi','Инженерно-геологические условия'],['photo','Фотоматериалы'],['misc','Иное']];
 
 function select(i,fromList){
   const o=DB.objects[i]; curObj=o;
@@ -1039,7 +1040,7 @@ function renderDetail(o){
 }
 function renderTab(o){
   const el=document.getElementById('tabBody');
-  ({passport:tabPassport, fund:tabFund, podpol:tabPodpol, cokper:tabCokPer, cokogr:tabCokOgr,
+  ({passport:tabPassport, gtm:tabGtm, fund:tabFund, podpol:tabPodpol, cokper:tabCokPer, cokogr:tabCokOgr,
     project:tabProject, igi:tabIGI, geoterm:tabGeoterm, calc:tabCalc,
     geod:tabGeod, expl:tabExpl, plans:tabPlans, repairs:tabRepairs, photo:tabPhoto, misc:tabMisc})[curTab](o, el);
 }
@@ -1365,6 +1366,139 @@ function tabGeoterm(o, el){
     }).filter(s=>s.ys.length>=2);
     drawTrend(document.getElementById('trendChart'), list);
   }
+}
+
+/* ---------- Паспорт геотехнического мониторинга (Паспорт ГТМ) ----------
+   СП 25.13330.2020 (с Изм. № 1, 2, 3): прил. М, табл. М.1 — состав сети наблюдений;
+   СП 497.1325800.2020: разд. 4 (осмотры), разд. 9, табл. 9.1 — периодичность измерений. */
+const GTM_COL={ok:'#1a7f37', warn:'#a86400', bad:'#b3261e', na:'#667'};
+function gtmBadge(st){
+  const c=st.s==='НОРМА'?GTM_COL.ok:(st.s==='НЕДОСТАТОЧНО'?GTM_COL.warn:(st.s==='—'?GTM_COL.na:GTM_COL.bad));
+  return `<b style="color:${c}">${st.s}</b>`;
+}
+function gtmCalc(o){
+  const curY=new Date().getFullYear();
+  const pr0=(edVal(o,'pf','princip','')||'');
+  const princip=pr0.startsWith('II')?'II':'I';
+  const yStr=edVal(o,'pf','year', o.y??(o.pf2&&((o.pf2.year_in||'').match(/\d{4}/)||[])[0])??'');
+  const y=parseInt(yStr); const age=isNaN(y)?null:curY-y;
+  // --- фактические средства наблюдений (синхронизация с разделами) ---
+  const wellsFact=o.prof?Object.keys(o.prof).length:(o.nw||0);
+  const marksFact=o.geod?Object.keys(o.geod).length:0;
+  const hgwFact=parseInt(edVal(o,'gtm','hgw_fact',''));
+  // --- требуемая сеть: СП 25.13330.2020, прил. М, табл. М.1 ---
+  const nPiles=parseFloat(edVal(o,'gtm','n_piles',''));
+  const wellsReq=(nPiles>0)?Math.max(2,Math.ceil(nPiles*0.02)):null; // не менее 2% числа фундаментов (свай)
+  const nSeams=parseInt(edVal(o,'gtm','n_seams',''))||0;
+  const marksReq=8+2*nSeams; // угловые 4 + средние по осям наружного контура 4 + по обе стороны осадочных швов
+  const smallB=(edVal(o,'gtm','small_b','')==='да'); // ширина ≤6 м и длина ≤10 м — ГГ-скважины не требуются
+  const hgwReq=smallB?0:2;
+  // --- периодичность: СП 497.1325800.2020, разд. 4 и табл. 9.1 (принцип I/II) ---
+  const since=new Date(); since.setFullYear(since.getFullYear()-1);
+  const iso=since.toISOString().slice(0,10);
+  const tempDates=new Set();
+  if(o.prof) Object.values(o.prof).forEach(w=>w.s.forEach(([d])=>{ if(d>=iso) tempDates.add(d); }));
+  const geodDates=new Set();
+  if(o.geod) Object.values(o.geod).forEach(s=>s.forEach(p=>{ if(p[0]>=iso) geodDates.add(p[0]); }));
+  const osmN=(typeof OSM!=='undefined'&&OSM[o.a]?OSM[o.a]:[]).filter(x=>x.date&&x.date>=iso&&(x.kind||'bld')==='bld').length;
+  const tempReq=princip==='I'?2:(age!==null&&age<=1?4:1);
+  const geodReq=(age!==null&&age<=3)?4:2;
+  const osmReq=(age!==null&&age<=3)?(edVal(o,'gtm','klass','нормальный')==='повышенный'?365:52):12; // п. 4.6: первые 3 г. — еженед./ежедн., далее ежемес.
+  function eq(fact, req){
+    if(req===null) return {s:'—', d:'задайте исходные данные'};
+    if(fact>=req) return {s:'НОРМА', d:`${fact} из ${req}`};
+    if(fact>0) return {s:'НЕДОСТАТОЧНО', d:`${fact} из ${req} (${Math.round(fact/req*100)}%)`};
+    return {s:'ТРЕБУЕТСЯ ДООСНАСТКА', d:`0 из ${req}`};
+  }
+  function fr(fact, req){
+    if(fact>=req) return {s:'НОРМА', d:`${fact} цикл(ов) за 12 мес. при норме ${req}`};
+    if(fact>0) return {s:'НЕДОСТАТОЧНО', d:`${fact} цикл(ов) за 12 мес. при норме ${req}`};
+    return {s:'НЕ ПРОВОДЯТСЯ', d:'за последние 12 мес. циклов нет'};
+  }
+  return {princip, age, y:isNaN(y)?null:y,
+    wellsFact, wellsReq, marksFact, marksReq, hgwFact:isNaN(hgwFact)?null:hgwFact, hgwReq,
+    nPiles:(nPiles>0)?nPiles:null, nSeams,
+    tempFact:tempDates.size, tempReq, geodFact:geodDates.size, geodReq, osmN, osmReq,
+    eqWells:eq(wellsFact,wellsReq), eqMarks:eq(marksFact,marksReq),
+    eqHgw:hgwReq===0?{s:'НОРМА',d:'не требуются (малые размеры здания)'}:(hgwFact===null?{s:'—',d:'нет данных — внесите факт'}:eq(hgwFact,hgwReq)),
+    frTemp:fr(tempDates.size,tempReq), frGeod:fr(geodDates.size,geodReq),
+    frOsmT:fr(osmN,osmReq), frOsmS:fr(osmN,2)};
+}
+function tabGtm(o, el){
+  const g=gtmCalc(o);
+  const ro=!document.body.classList.contains('role-edit');
+  const WORST={'ТРЕБУЕТСЯ ДООСНАСТКА':4,'НЕ ПРОВОДЯТСЯ':3,'НЕДОСТАТОЧНО':2,'НОРМА':1,'—':0};
+  const all=[g.eqWells,g.eqMarks,g.eqHgw,g.frTemp,g.frGeod,g.frOsmT,g.frOsmS];
+  const worst=all.reduce((a,b)=>WORST[b.s]>WORST[a.s]?b:a);
+  const recs=[];
+  if(g.eqWells.s==='ТРЕБУЕТСЯ ДООСНАСТКА') recs.push(`оборудовать термометрические скважины в количестве не менее ${g.wellsReq} (не менее 2 % общего числа свай) — СП 25.13330.2020, прил. М, табл. М.1`);
+  else if(g.eqWells.s==='НЕДОСТАТОЧНО') recs.push(`оборудовать дополнительно ${g.wellsReq-g.wellsFact} термометрич. скважин(у) до нормативных ${g.wellsReq} — СП 25.13330.2020, прил. М, табл. М.1`);
+  if(g.eqMarks.s==='ТРЕБУЕТСЯ ДООСНАСТКА') recs.push(`установить постоянные геодезические марки (не менее ${g.marksReq}) на угловых фундаментах, в средней части по осям и по обе стороны осадочных швов — СП 25.13330.2020, прил. М, табл. М.1`);
+  else if(g.eqMarks.s==='НЕДОСТАТОЧНО') recs.push(`установить дополнительно ${g.marksReq-g.marksFact} геодезич. марок до нормативных ${g.marksReq} — СП 25.13330.2020, прил. М, табл. М.1`);
+  if(g.eqHgw.s==='ТРЕБУЕТСЯ ДООСНАСТКА') recs.push('оборудовать 2 гидрогеологические скважины (внутри и снаружи контура здания) — СП 25.13330.2020, прил. М, табл. М.1');
+  if(g.frTemp.s!=='НОРМА') recs.push(`восстановить режимные замеры температуры грунта: требуется ${g.tempReq} раз(а) в год (${g.princip==='I'?'в конце летнего периода и в середине зимы':'по табл. 9.1 для принципа II'}) — СП 497.1325800.2020, табл. 9.1`);
+  if(g.frGeod.s!=='НОРМА') recs.push(`восстановить геодезические наблюдения за осадками: требуется ${g.geodReq} раз(а) в год — СП 497.1325800.2020, табл. 9.1`);
+  if(g.frOsmS.s!=='НОРМА') recs.push('провести сезонные (весенний и осенний) осмотры — СП 497.1325800.2020, п. 4.7');
+  const conclCol=worst.s==='НОРМА'?GTM_COL.ok:(worst.s==='НЕДОСТАТОЧНО'?GTM_COL.warn:GTM_COL.bad);
+  el.innerHTML=`
+  <div class="normref">СП 25.13330.2020 «Основания и фундаменты на вечномерзлых грунтах» (действующая редакция с Изм. № 1, 2, 3), разд. 15, прил. М (табл. М.1 — состав сети наблюдений); СП 497.1325800.2020 «…Правила эксплуатации», разд. 4 (осмотры) и разд. 9, табл. 9.1 (периодичность измерений в период эксплуатации). Данные о фактическом оснащении и циклах наблюдений синхронизированы с разделами «Геотермика», «Геодезия» и журналом осмотров (📋).</div>
+  <div class="sect">Исходные данные ${ro?'<span class="note">(редактирование — в режиме оператора)</span>':''}</div>
+  <table class="kv">
+    <tr><td>Принцип использования ММГ</td><td><b>${g.princip}</b> <span class="note">(задаётся в «Паспорте объекта»; продолжительность мониторинга: ${g.princip==='I'?'весь период эксплуатации':'5–10 лет'} — СП 497.1325800.2020, п. 9.6)</span></td></tr>
+    <tr><td>Общее число свай / столбчатых фундаментов</td><td>${inp(o,'gtm','n_piles','','number')} <span class="note">— база нормы «не менее 2 %» (табл. М.1)</span></td></tr>
+    <tr><td>Число осадочных швов</td><td>${inp(o,'gtm','n_seams','','number')}</td></tr>
+    <tr><td>Малое здание (ширина ≤ 6 м и длина ≤ 10 м)</td><td>${sel(o,'gtm','small_b','',['','нет','да'])} <span class="note">— освобождает от ГГ-скважин (табл. М.1, сноска 5)</span></td></tr>
+    <tr><td>Класс ответственности (ГОСТ 27751)</td><td>${sel(o,'gtm','klass','нормальный',['нормальный','повышенный'])}</td></tr>
+    <tr><td>Гидрогеологические скважины, факт</td><td>${inp(o,'gtm','hgw_fact','','number')}</td></tr>
+  </table>
+  <div class="sect">Обеспеченность средствами мониторинга — СП 25.13330.2020, прил. М, табл. М.1</div>
+  <table class="rows static"><thead><tr>
+    <th>Средство наблюдений</th><th style="width:26%">Требуется по нормам</th><th style="width:12%">Фактически</th><th style="width:20%">Заключение</th>
+  </tr></thead><tbody>
+    <tr><td>Термометрические скважины <span class="note">(синхрон.: «Геотермика»)</span></td>
+      <td>не менее 2 % числа фундаментов${g.nPiles?` = ${g.wellsReq} (от ${g.nPiles} свай)`:' — задайте число свай'}; у наружных рядов и посредине здания</td>
+      <td><b>${g.wellsFact}</b></td><td>${gtmBadge(g.eqWells)} <span class="note">${g.eqWells.d}</span></td></tr>
+    <tr><td>Деформационные (геодезические) марки <span class="note">(синхрон.: «Геодезия»)</span></td>
+      <td>угловые + средние по осям + у осадочных швов = ${g.marksReq}${g.nSeams?` (швов: ${g.nSeams})`:''}</td>
+      <td><b>${g.marksFact}</b></td><td>${gtmBadge(g.eqMarks)} <span class="note">${g.eqMarks.d}</span></td></tr>
+    <tr><td>Гидрогеологические скважины</td>
+      <td>${g.hgwReq===0?'не требуются (малые размеры здания)':'не менее 2 (внутри и снаружи контура)'}</td>
+      <td><b>${g.hgwFact===null?'—':g.hgwFact}</b></td><td>${gtmBadge(g.eqHgw)} <span class="note">${g.eqHgw.d}</span></td></tr>
+  </tbody></table>
+  <div class="sect">Периодичность наблюдений — СП 497.1325800.2020 (разд. 4, табл. 9.1)${g.age!==null?` · возраст объекта: ${g.age} лет`:''}</div>
+  <table class="rows static"><thead><tr>
+    <th>Вид наблюдений</th><th style="width:30%">Требуется по нормам</th><th style="width:18%">Факт (12 мес.)</th><th style="width:20%">Заключение</th>
+  </tr></thead><tbody>
+    <tr><td>Текущие осмотры фундаментных конструкций (п. 4.6)</td>
+      <td>${g.age!==null&&g.age<=3?'первые 3 года — еженедельно (повыш. класс — ежедневно)':'ежемесячно'}</td>
+      <td>${g.osmN} осмотр(ов)</td><td>${gtmBadge(g.frOsmT)} <span class="note">${g.frOsmT.d}</span></td></tr>
+    <tr><td>Сезонные осмотры (п. 4.7)</td>
+      <td>2 раза в год (весенний, осенний)</td>
+      <td>${g.osmN} осмотр(ов)</td><td>${gtmBadge(g.frOsmS)} <span class="note">${g.frOsmS.d}</span></td></tr>
+    <tr><td>Температура грунта (табл. 9.1) <span class="note">(синхрон.: «Геотермика»)</span></td>
+      <td>${g.princip==='I'?'2 раза в год (конец лета, середина зимы)':(g.tempReq===4?'1-й год — ежеквартально':'1 раз в год')}</td>
+      <td>${g.tempFact} цикл(ов) замеров</td><td>${gtmBadge(g.frTemp)} <span class="note">${g.frTemp.d}</span></td></tr>
+    <tr><td>Деформации (осадки) фундаментов (табл. 9.1) <span class="note">(синхрон.: «Геодезия»)</span></td>
+      <td>${g.age!==null&&g.age<=3?'первые 3 года — не реже 4 раз в год':'2 раза в год'}</td>
+      <td>${g.geodFact} цикл(ов) нивелирования</td><td>${gtmBadge(g.frGeod)} <span class="note">${g.frGeod.d}</span></td></tr>
+    <tr><td>Температура воздуха в проветриваемом подполье (табл. 9.1)</td>
+      <td>первые 2 года эксплуатации — 2 раза в месяц${g.age!==null&&g.age>2?' <span class="note">(период истёк — контроль по программе)</span>':''}</td>
+      <td colspan="2">${inp(o,'gtm','air_fact','')} <span class="note">— замеров за 12 мес. (ручной учёт)</span></td></tr>
+  </tbody></table>
+  <div style="margin:10px 0; padding:9px 12px; border-radius:6px; background:#f6f7f9; border-left:4px solid ${conclCol}">
+    <b>Заключение по обеспеченности мониторингом: <span style="color:${conclCol}">${worst.s==='НОРМА'?'ОБЕСПЕЧЕН (НОРМА)':worst.s}</span></b>
+    ${recs.length?`<ul style="margin:6px 0 2px 18px">${recs.map(r=>`<li style="margin:2px 0">${esc(r)}</li>`).join('')}</ul>`:'<div class="note">Сеть наблюдений и периодичность соответствуют требованиям СП 25.13330.2020 (прил. М) и СП 497.1325800.2020 (табл. 9.1).</div>'}
+  </div>
+  <div class="noprint" style="display:flex; gap:8px; flex-wrap:wrap">
+    <button class="wbtn" id="gtmGoTherm">→ Геотермика (скважины, замеры)</button>
+    <button class="wbtn" id="gtmGoGeod">→ Геодезия (марки, осадки)</button>
+    <button class="wbtn" id="gtmGoPass">→ Паспорт объекта (принцип, год)</button>
+  </div>`;
+  wireEd(o, el, 'gtm');
+  el.querySelectorAll('.ed[data-scope="gtm"]').forEach(i2=>i2.addEventListener('change',()=>renderTab(o)));
+  el.querySelector('#gtmGoTherm').onclick=()=>{curTab='geoterm'; renderDetail(o);};
+  el.querySelector('#gtmGoGeod').onclick=()=>{curTab='geod'; renderDetail(o);};
+  el.querySelector('#gtmGoPass').onclick=()=>{curTab='passport'; renderDetail(o);};
 }
 
 function tabGeod(o, el){
@@ -1874,6 +2008,21 @@ function repAssessTable(o, tasks){
       <tr><td>Проект / серия</td><td>${esc(p.project||p.arc_series||'—')}</td><td>Год ввода</td><td>${esc(p.year_in||p.arc_year||o.y||'—')}</td></tr>
       <tr><td>Фундаменты</td><td colspan="3">${esc(p.fund||'—')}</td></tr>
       <tr><td>Принцип использования ММГ</td><td>${esc(p.princip||'—')}</td><td>НГК</td><td>${o.ngc?o.ngc.h+' м, T='+o.ngc.t+' °C':'—'}</td></tr></table>`;
+  }
+  if(tasks.has('gtm')){
+    const g=gtmCalc(o);
+    const row=(n,req,fact,st)=>`<tr><td>${n}</td><td>${req}</td><td>${fact}</td><td><b>${st.s}</b> <span style="color:#666">(${st.d})</span></td></tr>`;
+    h+=`<h3 style="font-size:12.5px">Паспорт геотехнического мониторинга — СП 25.13330.2020 (прил. М, табл. М.1); СП 497.1325800.2020 (разд. 4, табл. 9.1)</h3>
+    <table>
+      <tr><td colspan="4"><b>Принцип использования ММГ: ${g.princip}</b>; мониторинг: ${g.princip==='I'?'весь период эксплуатации':'5–10 лет'} (п. 9.6 СП 497.1325800.2020)</td></tr>
+      ${row('Термометрические скважины', g.wellsReq===null?'не менее 2 % числа свай':'≥ '+g.wellsReq+' (2 % от '+(g.nPiles||'—')+' свай)', g.wellsFact, g.eqWells)}
+      ${row('Деформационные марки', '≥ '+g.marksReq+' (углы, оси, швы)', g.marksFact, g.eqMarks)}
+      ${row('Гидрогеологические скважины', g.hgwReq===0?'не требуются':'≥ 2', g.hgwFact===null?'—':g.hgwFact, g.eqHgw)}
+      ${row('Температура грунта', g.tempReq+' раз(а)/год', g.tempFact+' цикл(ов)/12 мес.', g.frTemp)}
+      ${row('Деформации (осадки)', g.geodReq+' раз(а)/год', g.geodFact+' цикл(ов)/12 мес.', g.frGeod)}
+      ${row('Текущие осмотры (п. 4.6)', 'ежемесячно', g.osmN+'/12 мес.', g.frOsmT)}
+      ${row('Сезонные осмотры (п. 4.7)', '2 раза/год', g.osmN+'/12 мес.', g.frOsmS)}
+    </table>`;
   }
   const sect=(key,title,score,notes)=>{
     if(!tasks.has(key)) return '';
