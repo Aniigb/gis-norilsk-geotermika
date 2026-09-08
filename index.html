@@ -511,6 +511,7 @@ function normAddrKey(s){
   if(!m) return s;
   let h=m[2].toLowerCase().replace(/\s/g,'').replace(/_/g,'-');
   const mm=h.match(/^(\d+)([а-я]{2,}.*)$/); if(mm) h=mm[1];
+  h=h.replace(/(\d+)[кK](\d+)$/,'$1').replace(/(\d+)-(\d+)$/,'$1'); // корпус/секция ЖКС -> базовый дом
   return m[1].trim()+' '+h;
 }
 
