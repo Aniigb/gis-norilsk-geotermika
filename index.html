@@ -595,6 +595,19 @@ for(const [name, rings] of Object.entries(DB.districts)){
   L.marker(labelPos[name],{interactive:false,icon:L.divIcon({className:'district-label',html:name.toUpperCase(),iconSize:null})}).addTo(map);
 }
 let curD='Все', curQ='', curUK='Все', groupUK=false, curBranch='mkd';
+/* --- срез охвата ГТМ (кликабельная диаграмма): объявлено до drawMarkers() --- */
+let covFilter=null; // null | 'tw' | 'gd' | 'os' | 'full'
+function covOSM(){ try{ return OSM; }catch(e){ return {}; } }
+function covPass(o){
+  if(!covFilter) return true;
+  const t=(o.prof&&Object.keys(o.prof).length>0)||!!o.nw;
+  const g=!!(o.geod&&Object.keys(o.geod).length);
+  const since=new Date(); since.setFullYear(since.getFullYear()-1);
+  const iso=since.toISOString().slice(0,10);
+  const m=(covOSM()[o.a]||[]).some(x=>x.date&&x.date>=iso);
+  return covFilter==='tw'?t:covFilter==='gd'?g:covFilter==='os'?m:(t&&g&&m);
+}
+const COV_LABELS={tw:'термоскважины',gd:'геодезические марки',os:'осмотры (12 мес.)',full:'полный ГТМ'};
 const markers = {};
 function markerColor(o){ const st=statusOf(o); return st?SCOL[st]:'#8a97a3'; }
 function drawMarkers(){
@@ -667,18 +680,6 @@ document.getElementById('map').appendChild(geoCtl);
 drawMarkers();
 
 /* --- живая диаграмма охвата ГТМ (нижний левый угол карты) --- */
-let covFilter=null; // null | 'tw' | 'gd' | 'os' | 'full' — срез охвата (клик по строке диаграммы)
-function covOSM(){ try{ return OSM; }catch(e){ return {}; } }
-function covPass(o){
-  if(!covFilter) return true;
-  const t=(o.prof&&Object.keys(o.prof).length>0)||!!o.nw;
-  const g=!!(o.geod&&Object.keys(o.geod).length);
-  const since=new Date(); since.setFullYear(since.getFullYear()-1);
-  const iso=since.toISOString().slice(0,10);
-  const m=(covOSM()[o.a]||[]).some(x=>x.date&&x.date>=iso);
-  return covFilter==='tw'?t:covFilter==='gd'?g:covFilter==='os'?m:(t&&g&&m);
-}
-const COV_LABELS={tw:'термоскважины',gd:'геодезические марки',os:'осмотры (12 мес.)',full:'полный ГТМ'};
 function gtmCovDraw(){
   const cv=document.getElementById('gtmCovC'); if(!cv) return;
   const objs=DB.objects.filter(o=>branchOf(o)===curBranch);
