@@ -728,7 +728,10 @@ function setBranch(b){
 document.getElementById('brMkd').onclick=()=>setBranch('mkd');
 document.getElementById('brSkb').onclick=()=>setBranch('skb');
 const openStreets=new Set();
-function streetOf(o){ const m=o.a.match(/^(.*?)\s+\d/); return (m?m[1]:o.a).toLowerCase().replace(/ё/g,'е'); }
+function streetOf(o){ const m=o.a.match(/^(.*?)\s+\d/); let s=(m?m[1]:o.a).toLowerCase().replace(/ё/g,'е');
+  s=s.replace(/[.\s]+/g,'');
+  const fix={'бхмельницкого':'богданахмельницкого','бхмельницкого,':'богданахмельницкого','мкравца':'михаилакравца','лауретов':'лауреатов','комсомольсая':'комсомольская','московскаяд':'московская'};
+  return fix[s]||s; }
 function stubUK(s){ return s.uk||'Не определена'; }
 function stubPass(s){ return curBranch==='mkd'&&(curD==='Все'||s.d===curD)&&(curUK==='Все'||stubUK(s)===curUK)&&(!curQ||s.a.toLowerCase().includes(curQ)); }
 function renderList(){
@@ -753,7 +756,7 @@ function renderList(){
   // --- аккордеон по улицам: карточки мониторинга + полный реестр домов города ---
   const groups=new Map();
   DB.objects.forEach((o,i)=>{ if(!passF(o)) return; const st=streetOf(o); if(!groups.has(st)) groups.set(st,[]); groups.get(st).push({t:'o',o,i}); });
-  (DB.stubs||[]).forEach((s,si)=>{ if(!stubPass(s)) return; if(!groups.has(s.st)) groups.set(s.st,[]); groups.get(s.st).push({t:'s',s,si}); });
+  (DB.stubs||[]).forEach((s,si)=>{ if(!stubPass(s)) return; const stk=s.st.replace(/[.\s]+/g,''); if(!groups.has(stk)) groups.set(stk,[]); groups.get(stk).push({t:'s',s,si}); });
   [...groups.entries()].sort((a,b)=>a[0].localeCompare(b[0],'ru')).forEach(([st,items])=>{
     items.sort((a,b)=>{ const ha=(a.t==='o'?a.o.a:a.s.a), hb=(b.t==='o'?b.o.a:b.s.a);
       const na=parseInt((ha.match(/\d+/)||[999])[0]), nb=parseInt((hb.match(/\d+/)||[999])[0]);
