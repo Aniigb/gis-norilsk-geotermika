@@ -2655,7 +2655,10 @@ function uniThermParse(rows){
   for(let hi=0; hi<Math.min(rows.length,40); hi++){
     const hr=rows[hi]||[];
     const dcols=[]; hr.forEach((v,j)=>{ const n=parseNum(v); if(n!==null&&n>=0&&n<=30) dcols.push([j,n]); });
-    if(dcols.length<4) continue;
+    // глубины в заголовке идут неубывающим рядом от малых значений (0.5, 1, 2…), иначе это не ведомость
+    const vals=dcols.map(x=>x[1]);
+    const mono=vals.length>=4&&vals[0]<=5&&vals.every((v,i)=>i===0||v>=vals[i-1]);
+    if(!mono) continue;
     const out=[];
     for(let i=hi+1;i<rows.length;i++){
       const r=rows[i]; if(!Array.isArray(r)) continue;
@@ -2663,7 +2666,9 @@ function uniThermParse(rows){
       r.forEach((v,j)=>{ if(j>=dcols[0][0]) return; const s=String(v).trim(); if(!s) return;
         const d=parseDateCell(v); if(d&&!date) date=d; else if(!well&&okWell(s)) well=s; });
       if(!date||!okDate(date)) continue;
-      dcols.forEach(([j,dep])=>{ const t=parseNum(r[j]); if(t!==null&&t>-60&&t<60) out.push({well:well||'б/л', date, dep, t}); });
+      const pts=[];
+      dcols.forEach(([j,dep])=>{ const t=parseNum(r[j]); if(t!==null&&t>-40&&t<30) pts.push([dep,t]); });
+      if(pts.length>=2) pts.forEach(([dep,t])=>out.push({well:well||'б/л', date, dep, t}));
     }
     if(out.length>=8) return {mode:'wide', pts:out};
   }
