@@ -70,6 +70,8 @@
   #mapTicker .tk{display:flex; white-space:nowrap; animation:tkScroll 40s linear infinite; will-change:transform}
   #mapTicker .tk span{padding-right:90px; font-size:12.3px; letter-spacing:.02em}
   #mapTicker:hover .tk{animation-play-state:paused}
+  #gtmCov{position:absolute; left:8px; bottom:34px; z-index:640; background:rgba(255,255,255,.93); border:1px solid var(--line); border-radius:8px; padding:6px 8px 4px; box-shadow:0 2px 10px rgba(20,30,40,.18)}
+  @media (max-width:900px){ #gtmCov{transform:scale(.82); transform-origin:bottom left} }
   @keyframes tkScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
   .sw{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px}
   .wells{display:flex; flex-wrap:wrap; gap:5px; margin:6px 0 8px}
@@ -289,6 +291,7 @@
       <div><span class="sw" style="background:transparent; border:2px solid #2f6fb2; border-radius:2px"></span>границы районов</div>
     </div>
     <div id="mapTicker" title="Бегущая строка: количество объектов по категориям состояния (пауза — навести курсор)"><div class="tk"><span id="tkA"></span><span id="tkB" aria-hidden="true"></span></div></div>
+    <div id="gtmCov" title="Охват объектов геотехническим мониторингом: термометрические скважины, геодезические марки, осмотры за 12 мес. Обновляется при изменении данных."><canvas id="gtmCovC" width="248" height="126"></canvas></div>
   </div>
   <div id="detail"><div class="empty">Выберите объект на карте или в списке слева</div></div>
 </div>
@@ -624,6 +627,37 @@ geoCtl.onclick=toggleGeoMode;
 document.getElementById('map').appendChild(geoCtl);
 drawMarkers();
 
+/* --- живая диаграмма охвата ГТМ (нижний левый угол карты) --- */
+function gtmCovDraw(){
+  const cv=document.getElementById('gtmCovC'); if(!cv) return;
+  const objs=DB.objects.filter(o=>branchOf(o)===curBranch);
+  const since=new Date(); since.setFullYear(since.getFullYear()-1);
+  const iso=since.toISOString().slice(0,10);
+  let tw=0, gd=0, os=0, full=0;
+  objs.forEach(o=>{
+    const t=(o.prof&&Object.keys(o.prof).length>0)||!!o.nw;
+    const g=!!(o.geod&&Object.keys(o.geod).length);
+    const m=typeof OSM!=='undefined'&&OSM[o.a]&&OSM[o.a].some(x=>x.date&&x.date>=iso);
+    if(t)tw++; if(g)gd++; if(m)os++; if(t&&g&&m)full++;
+  });
+  const n=objs.length||1;
+  const rows=[['Термоскважины',tw,'#2f6fb2'],['Геодезические марки',gd,'#2e7d32'],['Осмотры (12 мес.)',os,'#e08a00'],['Полный ГТМ',full,'#7b5ea7']];
+  const ctx=cv.getContext('2d'); const W=cv.width, H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.font='bold 10.5px Segoe UI, sans-serif'; ctx.fillStyle='#33404d';
+  ctx.fillText('Охват ГТМ · '+(curBranch==='mkd'?'МКД':'Соцкультбыт')+' · объектов: '+objs.length, 2, 12);
+  const barX=118, barW=W-barX-44, rowH=26;
+  rows.forEach(([label,v,color],i)=>{
+    const y=20+i*rowH;
+    ctx.font='10px Segoe UI, sans-serif'; ctx.fillStyle='#4a4234';
+    ctx.fillText(label, 2, y+12);
+    ctx.fillStyle='#e8e2d4'; ctx.fillRect(barX,y+2,barW,13);
+    const w=Math.max(v?3:0, barW*v/n);
+    ctx.fillStyle=color; ctx.fillRect(barX,y+2,Math.min(w,barW),13);
+    ctx.fillStyle='#1d2733'; ctx.font='bold 10px Segoe UI, sans-serif';
+    ctx.fillText(v+' ('+Math.round(v/n*100)+'%)', barX+Math.min(w,barW)+4, y+12);
+  });
+}
 /* ---------- шапка ---------- */
 function renderStats(){
   const n={НОРМА:0,РИСК:0,КРИТИЧНО:0};
@@ -638,6 +672,7 @@ function renderStats(){
   const txt=`⛔ КРИТИЧНО: ${n.КРИТИЧНО}     ⚠️ РИСК: ${n.РИСК}     ✔ НОРМА: ${n.НОРМА}     ○ без замеров: ${noData}     ▦ всего объектов: ${DB.objects.length}     ·     ГИС-база геотехнического мониторинга зданий · г. Норильск · АНО «АНИИГБ» им. М.В. Кима     ·     `;
   const a=document.getElementById('tkA'), b=document.getElementById('tkB');
   if(a&&b){ a.textContent=txt; b.textContent=txt; }
+  gtmCovDraw();
 }
 renderStats();
 setTimeout(()=>loadOsmotry(), 0); // после полной инициализации скрипта (TG_SB и пр.)
@@ -687,7 +722,7 @@ function setBranch(b){
   ukSel.innerHTML='<option value="Все">'+(b==='mkd'?'УК: Все':'Подразделение: Все')+' ('+DB.objects.filter(o=>branchOf(o)===b).length+')</option>'+
     opts.map(u=>{ const n=DB.objects.filter(o=>branchOf(o)===b&&effectiveUK(o)===u).length; return `<option value="${esc(u)}">${esc(u)} (${n})</option>`; }).join('');
   curUK='Все';
-  renderChips(); renderList();
+  renderChips(); renderList(); gtmCovDraw();
 }
 document.getElementById('brMkd').onclick=()=>setBranch('mkd');
 document.getElementById('brSkb').onclick=()=>setBranch('skb');
@@ -3479,6 +3514,7 @@ async function loadOsmotry(){
     OSM={};
     (rows||[]).forEach(r=>{ (OSM[r.addr]=OSM[r.addr]||[]).push(Object.assign({}, r.data)); });
     if(typeof curObj!=='undefined'&&curObj) renderDetail(curObj);
+    gtmCovDraw();
     const rm=document.getElementById('regModal');
     if(rm&&rm.style.display==='block') renderRegTable();
   }catch(e){ /* таблица может отсутствовать — работаем локально */ }
