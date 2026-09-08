@@ -690,6 +690,22 @@ async function hydroToggle(on){
 }
 
 /* ---------- тепловая карта грунтов (IDW-интерполяция по объектам, глубины 3–15 м) ---------- */
+function inPoly(la, lo, rings){
+  let inside=false;
+  for(const ring of rings){
+    let j=ring.length-1;
+    for(let i=0;i<ring.length;i++){
+      const yi=ring[i][0], xi=ring[i][1], yj=ring[j][0], xj=ring[j][1];
+      if(((xi>lo)!==(xj>lo))&&(la<(yj-yi)*(lo-xi)/(xj-xi+1e-12)+yi)) inside=!inside;
+      j=i;
+    }
+  }
+  return inside;
+}
+function inDistricts(la, lo){
+  for(const k in DB.districts) if(inPoly(la, lo, DB.districts[k])) return true;
+  return false;
+}
 const THERM_DEPTHS=[3,5,7,10,12,15];
 let thermDepth=10, thermCv=null, thermOn=false, thermCtl=null;
 function thermPoints(dep){
@@ -736,6 +752,7 @@ function thermDraw(){
     for(let gx=0; gx<GX; gx++){
       const lat=b.getNorth()-(gy+0.5)/GY*(b.getNorth()-b.getSouth());
       const lon=b.getWest()+(gx+0.5)/GX*(b.getEast()-b.getWest());
+      if(!inDistricts(lat,lon)){ rowT.push(null); rowP.push(null); continue; }   // только в границах районов
       let sw=0, swt=0;
       for(const [la,lo,t] of pts){
         const d2=(la-lat)**2+((lo-lon)*Math.cos(lat*Math.PI/180))**2;
@@ -756,6 +773,7 @@ function thermDraw(){
       if(t===null||t<-6||t>4) continue;
       const tq=Math.round(t/STEP)*STEP;           // квантование по изолиниям 0,3 °C
       const p0=PG[gy][gx], p1=PG[Math.min(gy+1,GY-1)][Math.min(gx+1,GX-1)];
+      if(!p0||!p1) continue;
       ctx.fillStyle=isoColor(tq, tmin, tmax);
       ctx.globalAlpha=0.55;
       ctx.fillRect(p0.x, p0.y, Math.abs(p1.x-p0.x)+1.5, Math.abs(p1.y-p0.y)+1.5);
@@ -776,12 +794,14 @@ function thermDraw(){
         if(tr!==null&&(t-Lv)*(tr-Lv)<0){
           const f=(Lv-t)/(tr-t);
           const a=PG[gy][gx], bb=PG[gy][gx+1];
+          if(!a||!bb) continue;
           const x=a.x+(bb.x-a.x)*f, y=a.y+(bb.y-a.y)*f;
           ctx.beginPath(); ctx.moveTo(x-2.2,y); ctx.lineTo(x+2.2,y); ctx.stroke();
         }
         if(td!==null&&(t-Lv)*(td-Lv)<0){
           const f=(Lv-t)/(td-t);
           const a=PG[gy][gx], bb=PG[gy+1][gx];
+          if(!a||!bb) continue;
           const x=a.x+(bb.x-a.x)*f, y=a.y+(bb.y-a.y)*f;
           ctx.beginPath(); ctx.moveTo(x,y-2.2); ctx.lineTo(x,y+2.2); ctx.stroke();
         }
