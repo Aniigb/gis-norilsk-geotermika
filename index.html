@@ -607,7 +607,7 @@ function drawMarkers(){
     const m=L.circleMarker([o.lat,o.lon],{radius:has?7:5,
       color:kp?'#4a2f6b':'#fff', weight:kp?2.2:1.2,
       fillColor:kp?'#7b5ea7':markerColor(o),
-      fillOpacity:window.kpOn?(kp?.95:.22):.92});
+      fillOpacity:window.kpOn?(kp?.95:.22):(covFilter?(covPass(o)?.92:.12):.92)});
     m.bindTooltip(o.a+(statusOf(o)?' · '+statusOf(o):'')+(kp?' · КП '+kpYear:''),{direction:'top',offset:[0,-6]});
     m.on('click',()=>select(i));
     markers[i]=m;
@@ -667,6 +667,18 @@ document.getElementById('map').appendChild(geoCtl);
 drawMarkers();
 
 /* --- живая диаграмма охвата ГТМ (нижний левый угол карты) --- */
+let covFilter=null; // null | 'tw' | 'gd' | 'os' | 'full' — срез охвата (клик по строке диаграммы)
+function covOSM(){ try{ return OSM; }catch(e){ return {}; } }
+function covPass(o){
+  if(!covFilter) return true;
+  const t=(o.prof&&Object.keys(o.prof).length>0)||!!o.nw;
+  const g=!!(o.geod&&Object.keys(o.geod).length);
+  const since=new Date(); since.setFullYear(since.getFullYear()-1);
+  const iso=since.toISOString().slice(0,10);
+  const m=(covOSM()[o.a]||[]).some(x=>x.date&&x.date>=iso);
+  return covFilter==='tw'?t:covFilter==='gd'?g:covFilter==='os'?m:(t&&g&&m);
+}
+const COV_LABELS={tw:'термоскважины',gd:'геодезические марки',os:'осмотры (12 мес.)',full:'полный ГТМ'};
 function gtmCovDraw(){
   const cv=document.getElementById('gtmCovC'); if(!cv) return;
   const objs=DB.objects.filter(o=>branchOf(o)===curBranch);
@@ -681,22 +693,37 @@ function gtmCovDraw(){
     if(t)tw++; if(g)gd++; if(m)os++; if(t&&g&&m)full++;
   });
   const n=objs.length||1;
-  const rows=[['Термоскважины',tw,'#2f6fb2'],['Геодезические марки',gd,'#2e7d32'],['Осмотры (12 мес.)',os,'#e08a00'],['Полный ГТМ',full,'#7b5ea7']];
+  const rows=[['tw','Термоскважины',tw,'#2f6fb2'],['gd','Геодезические марки',gd,'#2e7d32'],['os','Осмотры (12 мес.)',os,'#e08a00'],['full','Полный ГТМ',full,'#7b5ea7']];
   const ctx=cv.getContext('2d'); const W=cv.width, H=cv.height;
   ctx.clearRect(0,0,W,H);
   ctx.font='bold 10.5px Segoe UI, sans-serif'; ctx.fillStyle='#33404d';
-  ctx.fillText('Охват ГТМ · '+(curBranch==='mkd'?'МКД':'Соцкультбыт')+' · объектов: '+objs.length, 2, 12);
+  ctx.fillText('Охват ГТМ · '+(curBranch==='mkd'?'МКД':'Соцкультбыт')+' · объектов: '+objs.length+(covFilter?'':' · клик по строке — фильтр'), 2, 12);
   const barX=118, barW=W-barX-44, rowH=26;
-  rows.forEach(([label,v,color],i)=>{
+  rows.forEach(([key,label,v,color],i)=>{
     const y=20+i*rowH;
+    if(covFilter===key){ ctx.fillStyle='#f2ecd9'; ctx.fillRect(0,y-2,W,rowH-3); }
     ctx.font='10px Segoe UI, sans-serif'; ctx.fillStyle='#4a4234';
-    ctx.fillText(label, 2, y+12);
+    ctx.fillText((covFilter===key?'▣ ':'▢ ')+label, 2, y+12);
     ctx.fillStyle='#e8e2d4'; ctx.fillRect(barX,y+2,barW,13);
     const w=Math.max(v?3:0, barW*v/n);
     ctx.fillStyle=color; ctx.fillRect(barX,y+2,Math.min(w,barW),13);
     ctx.fillStyle='#1d2733'; ctx.font='bold 10px Segoe UI, sans-serif';
-    ctx.fillText(v+' ('+Math.round(v/n*100)+'%)', barX+Math.min(w,barW)+4, y+12);
+    ctx.fillText(v+' ('+Math.round(v/n*100)+'%)'+(covFilter===key?'  ✕ сброс':''), barX+Math.min(w,barW)+4, y+12);
   });
+  if(!cv.dataset.wired){
+    cv.dataset.wired='1';
+    cv.style.cursor='pointer';
+    cv.addEventListener('click', ev=>{
+      const r=cv.getBoundingClientRect();
+      const my=(ev.clientY-r.top)*(cv.height/r.height);
+      const rowH=26*(cv.height/cv.clientHeight), top=20*(cv.height/cv.clientHeight);
+      const idx=Math.floor((my-top)/rowH);
+      const keys=['tw','gd','os','full'];
+      if(idx>=0&&idx<4){ covFilter=(covFilter===keys[idx])?null:keys[idx]; }
+      else covFilter=null;
+      renderList(); drawMarkers(); gtmCovDraw();
+    });
+  }
 }
 /* --- бегущая строка погоды Норильска (Open-Meteo, обновление каждые 30 мин) --- */
 async function wxTick(){
@@ -764,7 +791,7 @@ const ukSel=document.getElementById('ukFilter');
   document.getElementById('kpYr').onchange=e=>{ window.kpOn=e.target.checked; drawMarkers(); };
 }
 function passF(o){ const inBr=curBranch==='mkd'?(o.br||'mkd')==='mkd':o.br==='skb';
-  return inBr&&(curD==='Все'||o.d===curD)&&(curUK==='Все'||effectiveUK(o)===curUK)&&(!curQ||o.a.toLowerCase().includes(curQ)); }
+  return inBr&&(curD==='Все'||o.d===curD)&&(curUK==='Все'||effectiveUK(o)===curUK)&&(!curQ||o.a.toLowerCase().includes(curQ))&&covPass(o); }
 /* --- переключатель веток: МКД / объекты соцкультбыта Администрации --- */
 function branchOf(o){ return o.br||'mkd'; }
 function podrList(){ const s=new Set(); DB.objects.forEach(o=>{ if(o.br==='skb') s.add(o.podr||'Администрация г. Норильска'); }); return [...s].sort(); }
@@ -792,7 +819,7 @@ function streetOf(o){ let s=o.a;
   const fix={'бхмельницкого':'богданахмельницкого','мкравца':'михаилакравца','лауретов':'лауреатов','комсомольсая':'комсомольская','московскаяд':'московская'};
   return fix[s]||s; }
 function stubUK(s){ return s.uk||'Не определена'; }
-function stubPass(s){ return curBranch==='mkd'&&(curD==='Все'||s.d===curD)&&(curUK==='Все'||stubUK(s)===curUK)&&(!curQ||s.a.toLowerCase().includes(curQ)); }
+function stubPass(s){ return !covFilter&&curBranch==='mkd'&&(curD==='Все'||s.d===curD)&&(curUK==='Все'||stubUK(s)===curUK)&&(!curQ||s.a.toLowerCase().includes(curQ)); }
 function renderList(){
   const list=document.getElementById('list'); list.innerHTML='';
   if(groupUK){
