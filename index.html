@@ -633,34 +633,38 @@ function hydroSeed(){
   hydroParts=[];
   const {nx,ny,a}=hydroGrid;
   let guard=0;
-  while(hydroParts.length<380&&guard++<4000){
+  while(hydroParts.length<380&&guard++<6000){
     const ix=Math.floor(Math.random()*nx), iy=Math.floor(Math.random()*ny);
-    if(a[iy]&&a[iy][ix]>25) hydroParts.push({ix,iy,fx:0,fy:0,age:0,max:60+Math.random()*140});
+    if(a[iy]&&a[iy][ix]>3) hydroParts.push({ix,iy,fx:0,fy:0,age:0,max:160+Math.random()*300});
   }
 }
 function hydroStep(){
   if(!hydroAnimOn) return;
   const ctx=hydroCv.getContext('2d');
-  ctx.clearRect(0,0,hydroCv.width,hydroCv.height);
+  // шлейф: медленное затухание предыдущего кадра вместо полной очистки
+  ctx.globalCompositeOperation='destination-out';
+  ctx.fillStyle='rgba(0,0,0,0.045)';
+  ctx.fillRect(0,0,hydroCv.width,hydroCv.height);
+  ctx.globalCompositeOperation='source-over';
   const {bbox,nx,ny,u,v,a}=hydroGrid;
-  ctx.fillStyle='rgba(120,205,255,.85)';
+  ctx.fillStyle='rgba(150,220,255,.9)';
   hydroParts.forEach(p=>{
     p.age++;
     const ix=Math.round(p.ix+p.fx), iy=Math.round(p.iy+p.fy);
-    if(p.age>p.max||ix<0||iy<0||ix>=nx||iy>=ny||!a[iy]||a[iy][ix]<25){
+    if(p.age>p.max||ix<0||iy<0||ix>=nx||iy>=ny||!a[iy]||a[iy][ix]<3){
       Object.assign(p,{fx:0,fy:0,age:0});
       let guard=0;
       while(guard++<300){ const jx=Math.floor(Math.random()*nx), jy=Math.floor(Math.random()*ny);
-        if(a[jy]&&a[jy][jx]>25){ p.ix=jx; p.iy=jy; return; } }
+        if(a[jy]&&a[jy][jx]>3){ p.ix=jx; p.iy=jy; return; } }
       p.age=p.max+1; return;
     }
-    const sp=1+2.2*Math.min(1,Math.log10(a[iy][ix])/3);
-    p.fx+=u[iy][ix]*sp*0.22; p.fy+=-v[iy][ix]*sp*0.22;
+    const sp=(0.5+1.8*Math.min(1,Math.log10(a[iy][ix])/3))*0.055;  // медленный режим
+    p.fx+=u[iy][ix]*sp; p.fy+=-v[iy][ix]*sp;
     const lon=bbox[0]+(p.ix+p.fx+0.5)/nx*(bbox[2]-bbox[0]);
     const lat=bbox[3]+(p.iy+p.fy+0.5)/ny*(bbox[1]-bbox[3]);
     const pt=map.latLngToContainerPoint([lat,lon]);
     if(pt.x>=0&&pt.y>=0&&pt.x<=hydroCv.width&&pt.y<=hydroCv.height){
-      ctx.beginPath(); ctx.arc(pt.x,pt.y,1.4+Math.min(1.6,Math.log10(a[iy][ix])/3),0,7); ctx.fill();
+      ctx.beginPath(); ctx.arc(pt.x,pt.y,1.3+Math.min(1.5,Math.log10(a[iy][ix])/3),0,7); ctx.fill();
     }
   });
   hydroRAF=requestAnimationFrame(hydroStep);
@@ -724,8 +728,11 @@ function thermDraw(){
   if(pts.length<4){ ctx.fillStyle='#666'; ctx.font='12px sans-serif'; ctx.fillText('мало данных на этой глубине',10,20); return; }
   const b=map.getBounds().pad(0.15);
   const GX=110, GY=Math.round(GX*r.height/r.width);
-  const tmin=-3, tmax=1;  // шкала, °C
+  const STEP=0.3;                     // шаг изолиний, °C
+  const tmin=-3, tmax=1;
+  const TG=[], PG=[];
   for(let gy=0; gy<GY; gy++){
+    const rowT=[], rowP=[];
     for(let gx=0; gx<GX; gx++){
       const lat=b.getNorth()-(gy+0.5)/GY*(b.getNorth()-b.getSouth());
       const lon=b.getWest()+(gx+0.5)/GX*(b.getEast()-b.getWest());
@@ -736,28 +743,61 @@ function thermDraw(){
         const w=1/(d2+1e-6);
         sw+=w; swt+=w*t;
       }
-      if(!sw) continue;
-      const t=swt/sw;
-      if(t<-6||t>4) continue;
-      const p0=map.latLngToContainerPoint([b.getNorth()-gy/GY*(b.getNorth()-b.getSouth()), b.getWest()+gx/GX*(b.getEast()-b.getWest())]);
-      const p1=map.latLngToContainerPoint([b.getNorth()-(gy+1)/GY*(b.getNorth()-b.getSouth()), b.getWest()+(gx+1)/GX*(b.getEast()-b.getWest())]);
-      ctx.fillStyle=isoColor(t, tmin, tmax);
+      const t=sw?swt/sw:null;
+      rowT.push(t);
+      rowP.push(map.latLngToContainerPoint([lat,lon]));
+    }
+    TG.push(rowT); PG.push(rowP);
+  }
+  // 1) цветовые полосы с шагом 0,3 °C
+  for(let gy=0; gy<GY; gy++){
+    for(let gx=0; gx<GX; gx++){
+      const t=TG[gy][gx];
+      if(t===null||t<-6||t>4) continue;
+      const tq=Math.round(t/STEP)*STEP;           // квантование по изолиниям 0,3 °C
+      const p0=PG[gy][gx], p1=PG[Math.min(gy+1,GY-1)][Math.min(gx+1,GX-1)];
+      ctx.fillStyle=isoColor(tq, tmin, tmax);
       ctx.globalAlpha=0.55;
-      ctx.fillRect(p0.x, p0.y, p1.x-p0.x+1, p1.y-p0.y+1);
+      ctx.fillRect(p0.x, p0.y, Math.abs(p1.x-p0.x)+1.5, Math.abs(p1.y-p0.y)+1.5);
     }
   }
   ctx.globalAlpha=1;
-  // точки объектов
+  // 2) изолинии с шагом 0,3 °C (0 °C — утолщённая)
+  const L0=Math.ceil(tmin/STEP)*STEP;
+  for(let Lv=L0; Lv<=tmax; Lv+=STEP){
+    const zero=Math.abs(Lv)<0.01;
+    ctx.strokeStyle=zero?'#08306b':'rgba(40,40,40,.5)';
+    ctx.lineWidth=zero?1.8:0.7;
+    for(let gy=0; gy<GY-1; gy++){
+      for(let gx=0; gx<GX-1; gx++){
+        const t=TG[gy][gx];
+        if(t===null) continue;
+        const tr=TG[gy][gx+1], td=TG[gy+1][gx];
+        if(tr!==null&&(t-Lv)*(tr-Lv)<0){
+          const f=(Lv-t)/(tr-t);
+          const a=PG[gy][gx], bb=PG[gy][gx+1];
+          const x=a.x+(bb.x-a.x)*f, y=a.y+(bb.y-a.y)*f;
+          ctx.beginPath(); ctx.moveTo(x-2.2,y); ctx.lineTo(x+2.2,y); ctx.stroke();
+        }
+        if(td!==null&&(t-Lv)*(td-Lv)<0){
+          const f=(Lv-t)/(td-t);
+          const a=PG[gy][gx], bb=PG[gy+1][gx];
+          const x=a.x+(bb.x-a.x)*f, y=a.y+(bb.y-a.y)*f;
+          ctx.beginPath(); ctx.moveTo(x,y-2.2); ctx.lineTo(x,y+2.2); ctx.stroke();
+        }
+      }
+    }
+  }
+  // 3) точки объектов (из скважин)
   pts.forEach(([la,lo,t])=>{
     const p=map.latLngToContainerPoint([la,lo]);
     ctx.beginPath(); ctx.arc(p.x,p.y,2.6,0,7);
     ctx.fillStyle=isoColor(t,tmin,tmax); ctx.fill();
     ctx.strokeStyle='#333'; ctx.lineWidth=.6; ctx.stroke();
   });
-  // шкала глубин + легенда
   thermCtl.style.display='block';
   thermCtl.innerHTML='🌡 Глубина: '+THERM_DEPTHS.map(d=>`<button class="wbtn" data-td="${d}" style="padding:1px 6px; ${d===thermDepth?'background:#2f6fb2;color:#fff':''}">${d} м</button>`).join(' ')+
-    ' <span style="color:#08306b">■</span><0°C <span style="color:#f50818">■</span>>0°C';
+    ` · изолинии 0,3 °C · <span style="color:#08306b">━</span> 0 °C · <span style="color:#08306b">■</span><0°C <span style="color:#f50818">■</span>>0°C`;
   thermCtl.querySelectorAll('[data-td]').forEach(bt=>bt.onclick=()=>{ thermDepth=+bt.dataset.td; thermDraw(); });
 }
 function thermToggle(on){
