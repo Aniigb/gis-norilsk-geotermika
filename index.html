@@ -610,12 +610,163 @@ window.addEventListener('orientationchange', ()=>{ map.invalidateSize(); if(curO
 const osmTiles=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap'});
 const satTiles=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19, attribution:'Esri, Maxar, Earthstar Geographics'});
 satTiles.addTo(map);
-L.control.layers({'Спутник (Esri)':satTiles,'Карта (OSM)':osmTiles},null,{position:'topright'}).addTo(map);
+const hydroGroup=L.layerGroup(), thermGroup=L.layerGroup();
+L.control.layers({'Спутник (Esri)':satTiles,'Карта (OSM)':osmTiles},{'💧 Сток по рельефу (модель, ЦМР 30 м)':hydroGroup,'🌡 Тепловая карта грунтов':thermGroup},{position:'topright'}).addTo(map);
+map.on('overlayadd',e=>{ if(e.layer===hydroGroup) hydroToggle(true); if(e.layer===thermGroup) thermToggle(true); });
+map.on('overlayremove',e=>{ if(e.layer===hydroGroup) hydroToggle(false); if(e.layer===thermGroup) thermToggle(false); });
 const labelPos = {"Центральный":[69.349,88.19],"Талнах":[69.494,88.40],"Кайеркан":[69.352,87.755]};
 for(const [name, rings] of Object.entries(DB.districts)){
   L.polygon(rings.map(r=>r.map(p=>[p[0],p[1]])),{color:DCOL[name],weight:2.5,fillColor:DCOL[name],fillOpacity:.06,dashArray:'6 4'}).addTo(map);
   L.marker(labelPos[name],{interactive:false,icon:L.divIcon({className:'district-label',html:name.toUpperCase(),iconSize:null})}).addTo(map);
 }
+
+/* ---------- слой гидрологической модели поверхностного стока (ЦМР Copernicus 30 м, D8) ---------- */
+let hydroLoaded=false, hydroGrid=null, hydroAnimOn=false, hydroParts=[], hydroRAF=0;
+let hydroCv=null;
+async function hydroLoad(){
+  if(hydroLoaded) return;
+  const [fc, gr]=await Promise.all([fetch('hydro_flow.json').then(r=>r.json()), fetch('hydro_grid.json').then(r=>r.json())]);
+  L.geoJSON(fc,{renderer:L.canvas(), style:f=>({color:'#2f8fd4', weight:0.7+f.properties.w*0.55, opacity:.8})}).addTo(hydroGroup);
+  hydroGrid=gr; hydroLoaded=true;
+}
+function hydroSeed(){
+  hydroParts=[];
+  const {nx,ny,a}=hydroGrid;
+  let guard=0;
+  while(hydroParts.length<380&&guard++<4000){
+    const ix=Math.floor(Math.random()*nx), iy=Math.floor(Math.random()*ny);
+    if(a[iy]&&a[iy][ix]>25) hydroParts.push({ix,iy,fx:0,fy:0,age:0,max:60+Math.random()*140});
+  }
+}
+function hydroStep(){
+  if(!hydroAnimOn) return;
+  const ctx=hydroCv.getContext('2d');
+  ctx.clearRect(0,0,hydroCv.width,hydroCv.height);
+  const {bbox,nx,ny,u,v,a}=hydroGrid;
+  ctx.fillStyle='rgba(120,205,255,.85)';
+  hydroParts.forEach(p=>{
+    p.age++;
+    const ix=Math.round(p.ix+p.fx), iy=Math.round(p.iy+p.fy);
+    if(p.age>p.max||ix<0||iy<0||ix>=nx||iy>=ny||!a[iy]||a[iy][ix]<25){
+      Object.assign(p,{fx:0,fy:0,age:0});
+      let guard=0;
+      while(guard++<300){ const jx=Math.floor(Math.random()*nx), jy=Math.floor(Math.random()*ny);
+        if(a[jy]&&a[jy][jx]>25){ p.ix=jx; p.iy=jy; return; } }
+      p.age=p.max+1; return;
+    }
+    const sp=1+2.2*Math.min(1,Math.log10(a[iy][ix])/3);
+    p.fx+=u[iy][ix]*sp*0.22; p.fy+=-v[iy][ix]*sp*0.22;
+    const lon=bbox[0]+(p.ix+p.fx+0.5)/nx*(bbox[2]-bbox[0]);
+    const lat=bbox[3]+(p.iy+p.fy+0.5)/ny*(bbox[1]-bbox[3]);
+    const pt=map.latLngToContainerPoint([lat,lon]);
+    if(pt.x>=0&&pt.y>=0&&pt.x<=hydroCv.width&&pt.y<=hydroCv.height){
+      ctx.beginPath(); ctx.arc(pt.x,pt.y,1.4+Math.min(1.6,Math.log10(a[iy][ix])/3),0,7); ctx.fill();
+    }
+  });
+  hydroRAF=requestAnimationFrame(hydroStep);
+}
+function hydroEnsureCanvas(){
+  if(hydroCv) return;
+  hydroCv=document.createElement('canvas');
+  hydroCv.style.cssText='position:absolute; inset:0; z-index:600; pointer-events:none';
+  document.getElementById('map').appendChild(hydroCv);
+  const rs=()=>{ const r=map.getContainer().getBoundingClientRect(); hydroCv.width=r.width; hydroCv.height=r.height; };
+  rs(); map.on('resize movezoom', rs);
+}
+async function hydroToggle(on){
+  if(on){
+    try{ await hydroLoad(); }catch(e){ alert('Не удалось загрузить данные гидромодели (нужен интернет).'); return; }
+    if(!map.hasLayer(hydroGroup)) hydroGroup.addTo(map);
+    hydroEnsureCanvas(); hydroSeed(); hydroAnimOn=true; hydroStep();
+  }else{
+    map.removeLayer(hydroGroup);
+    hydroAnimOn=false; cancelAnimationFrame(hydroRAF);
+    if(hydroCv) hydroCv.getContext('2d').clearRect(0,0,hydroCv.width,hydroCv.height);
+  }
+}
+
+/* ---------- тепловая карта грунтов (IDW-интерполяция по объектам, глубины 3–15 м) ---------- */
+const THERM_DEPTHS=[3,5,7,10,12,15];
+let thermDepth=10, thermCv=null, thermOn=false, thermCtl=null;
+function thermPoints(dep){
+  // по каждому объекту: средняя t на глубине dep за последние 3 года замеров
+  const cut=new Date(); cut.setFullYear(cut.getFullYear()-3);
+  const iso=cut.toISOString().slice(0,10);
+  const pts=[];
+  DB.objects.forEach(o=>{
+    if(!o.prof||o.lat==null) return;
+    const s=objDepthSeries(o, dep);
+    if(!s.xs.length) return;
+    let vs=s.xs.map((d,i)=>[d,s.ys[i]]).filter(p=>p[0]>=iso).map(p=>p[1]);
+    if(!vs.length) vs=[s.ys[s.ys.length-1]];
+    const t=vs.reduce((a,b)=>a+b,0)/vs.length;
+    pts.push([o.lat, o.lon, t, o.a]);
+  });
+  return pts;
+}
+function thermEnsure(){
+  if(thermCv) return;
+  thermCv=document.createElement('canvas');
+  thermCv.style.cssText='position:absolute; inset:0; z-index:590; pointer-events:none';
+  document.getElementById('map').appendChild(thermCv);
+  // переключатель глубин
+  thermCtl=document.createElement('div');
+  thermCtl.style.cssText='position:absolute; right:64px; top:26px; z-index:640; background:rgba(255,255,255,.94); border:1px solid var(--line); border-radius:7px; padding:5px 8px; font-size:11.5px; display:none';
+  document.getElementById('map').appendChild(thermCtl);
+  map.on('resize move zoom', ()=>{ if(thermOn) thermDraw(); });
+}
+function thermDraw(){
+  const r=map.getContainer().getBoundingClientRect();
+  thermCv.width=r.width; thermCv.height=r.height;
+  const ctx=thermCv.getContext('2d');
+  ctx.clearRect(0,0,r.width,r.height);
+  const pts=thermPoints(thermDepth);
+  if(pts.length<4){ ctx.fillStyle='#666'; ctx.font='12px sans-serif'; ctx.fillText('мало данных на этой глубине',10,20); return; }
+  const b=map.getBounds().pad(0.15);
+  const GX=110, GY=Math.round(GX*r.height/r.width);
+  const tmin=-3, tmax=1;  // шкала, °C
+  for(let gy=0; gy<GY; gy++){
+    for(let gx=0; gx<GX; gx++){
+      const lat=b.getNorth()-(gy+0.5)/GY*(b.getNorth()-b.getSouth());
+      const lon=b.getWest()+(gx+0.5)/GX*(b.getEast()-b.getWest());
+      let sw=0, swt=0;
+      for(const [la,lo,t] of pts){
+        const d2=(la-lat)**2+((lo-lon)*Math.cos(lat*Math.PI/180))**2;
+        if(d2>0.03) continue;                      // радиус ≈ 5.5 км
+        const w=1/(d2+1e-6);
+        sw+=w; swt+=w*t;
+      }
+      if(!sw) continue;
+      const t=swt/sw;
+      if(t<-6||t>4) continue;
+      const p0=map.latLngToContainerPoint([b.getNorth()-gy/GY*(b.getNorth()-b.getSouth()), b.getWest()+gx/GX*(b.getEast()-b.getWest())]);
+      const p1=map.latLngToContainerPoint([b.getNorth()-(gy+1)/GY*(b.getNorth()-b.getSouth()), b.getWest()+(gx+1)/GX*(b.getEast()-b.getWest())]);
+      ctx.fillStyle=isoColor(t, tmin, tmax);
+      ctx.globalAlpha=0.55;
+      ctx.fillRect(p0.x, p0.y, p1.x-p0.x+1, p1.y-p0.y+1);
+    }
+  }
+  ctx.globalAlpha=1;
+  // точки объектов
+  pts.forEach(([la,lo,t])=>{
+    const p=map.latLngToContainerPoint([la,lo]);
+    ctx.beginPath(); ctx.arc(p.x,p.y,2.6,0,7);
+    ctx.fillStyle=isoColor(t,tmin,tmax); ctx.fill();
+    ctx.strokeStyle='#333'; ctx.lineWidth=.6; ctx.stroke();
+  });
+  // шкала глубин + легенда
+  thermCtl.style.display='block';
+  thermCtl.innerHTML='🌡 Глубина: '+THERM_DEPTHS.map(d=>`<button class="wbtn" data-td="${d}" style="padding:1px 6px; ${d===thermDepth?'background:#2f6fb2;color:#fff':''}">${d} м</button>`).join(' ')+
+    ' <span style="color:#08306b">■</span><0°C <span style="color:#f50818">■</span>>0°C';
+  thermCtl.querySelectorAll('[data-td]').forEach(bt=>bt.onclick=()=>{ thermDepth=+bt.dataset.td; thermDraw(); });
+}
+function thermToggle(on){
+  thermOn=on;
+  thermEnsure();
+  if(on){ thermDraw(); }
+  else{ thermCv.getContext('2d').clearRect(0,0,thermCv.width,thermCv.height); thermCtl.style.display='none'; }
+}
+
 let curD='Все', curQ='', curUK='Все', groupUK=false, curBranch='mkd';
 /* --- срез охвата ГТМ (кликабельная диаграмма): объявлено до drawMarkers() --- */
 let covFilter=null; // null | 'tw' | 'gd' | 'os' | 'full'
