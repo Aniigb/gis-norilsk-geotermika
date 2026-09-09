@@ -5727,7 +5727,8 @@ setTimeout(()=>{ try{
 }catch(e){} }, 5000); // тихое ежедневное пополнение метеоряда при открытии приложения
 
 };
-const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",ivD:"iDDubdhI1TsG9RIQ"};
+const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",ivD:"iDDubdhI1TsG9RIQ"};
+const BUILD="9c2fb80e";
 function enterApp(role){ sessionStorage.setItem("ngk_role",role); document.body.classList.add("authed","role-"+role); document.getElementById("loginModal").style.display="none"; document.getElementById("roleBadge").textContent=role==="edit"?"оператор":"наблюдатель"; }
 const _b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 async function _unwrap(pw,saltB,ivB,wrapB){
@@ -5746,6 +5747,18 @@ async function _decrypt(rawK){
 (async()=>{
   const lm=document.getElementById("loginModal");
   const errEl=document.getElementById("loginErr");
+  if(window.__DBV!==BUILD){ // смешение версий кэша: одна принудительная перезагрузка, затем понятное сообщение
+    lm.style.display="flex";
+    if(!sessionStorage.getItem("ngk_rl")){
+      sessionStorage.setItem("ngk_rl","1");
+      errEl.textContent="Обновляю данные до актуальной версии…";
+      setTimeout(()=>location.reload(),400);
+    } else {
+      errEl.textContent="Кэш браузера устарел. Обновите страницу вручную: Ctrl+F5 (Windows) или Cmd+Shift+R (Mac).";
+    }
+    return;
+  }
+  sessionStorage.removeItem("ngk_rl");
   async function init(rawK,role,silent){
     try{
       const txt=await _decrypt(rawK);
@@ -5756,7 +5769,7 @@ async function _decrypt(rawK){
     }catch(e){
       sessionStorage.removeItem("ngk_k"); sessionStorage.removeItem("ngk_role");
       lm.style.display="flex";
-      if(!silent) errEl.textContent="Ошибка расшифровки данных: "+e;
+      if(!silent) errEl.textContent="Не удалось загрузить данные. Обновите страницу (Ctrl+F5). Если ошибка повторится — сообщите администратору. ("+e+")";
     }
   }
   document.getElementById("logoutBtn").onclick=()=>{ sessionStorage.removeItem("ngk_role"); sessionStorage.removeItem("ngk_k"); location.reload(); };
@@ -5768,6 +5781,7 @@ async function _decrypt(rawK){
     if(rawK) return init(rawK,"edit");
     rawK=await _unwrap(pw,ENC.saltV,ENC.ivV,ENC.wrapV);
     if(rawK) return init(rawK,"view");
+    if(ENC.saltX){ rawK=await _unwrap(pw,ENC.saltX,ENC.ivX,ENC.wrapX); if(rawK) return init(rawK,"view"); }
     errEl.textContent="Неверный пароль";
   };
   const ck=sessionStorage.getItem("ngk_k"), cr=sessionStorage.getItem("ngk_role");
