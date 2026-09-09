@@ -313,6 +313,9 @@
   <label>РИСК: скорость осадки ≥ <span><input id="sGRisk" type="number" step="1"> мм/год</span></label>
   <label>КРИТИЧНО: скорость осадки ≥ <span><input id="sGCrit" type="number" step="1"> мм/год</span></label>
   <label>КРИТИЧНО: суммарная осадка ≥ <span><input id="sGTotal" type="number" step="5"> мм</span></label>
+  <h3 style="margin-top:12px">Несущая способность сваи против проектной</h3>
+  <label>РИСК: F_d &lt; <span><input id="sBearR" type="number" step="0.01"> доли проектной</span></label>
+  <label>КРИТИЧНО: F_d &lt; <span><input id="sBearC" type="number" step="0.01"> доли проектной</span></label>
   <button class="save" id="sSave">Применить</button>
   <div class="note">Пороги — рабочие превентивные значения макета; при наличии проектной (расчётной) температуры основания здания введите её в карточке объекта.</div>
 </div>
@@ -451,7 +454,7 @@ const SCOL = {"НОРМА":"#2e7d32","РИСК":"#e08a00","КРИТИЧНО":"#c
 const DB = window.DB;
 
 /* ---------- пороги ---------- */
-const DEF_TH = {tcrit:-0.5, depth:3, trend:0.10, trendDepth:10, above:0.5, geodRiskSpeed:10, geodCritSpeed:20, geodCritTotal:100};
+const DEF_TH = {tcrit:-0.5, depth:3, trend:0.10, trendDepth:10, above:0.5, geodRiskSpeed:10, geodCritSpeed:20, geodCritTotal:100, bearRisk:0.91, bearCrit:0.77};
 let TH = Object.assign({}, DEF_TH, JSON.parse(localStorage.getItem('ngk_th')||'{}'));
 function saveTH(){ localStorage.setItem('ngk_th', JSON.stringify(TH)); }
 
@@ -549,8 +552,39 @@ function objDepthSeries(o, depth){ // средний ряд по скважин�
   const xs=Object.keys(byDate).sort();
   return {xs, ys:xs.map(d=>+(byDate[d].reduce((a,b)=>a+b,0)/byDate[d].length).toFixed(2))};
 }
-function geodMetrics(o){ // макс. скорость последнего цикла и макс. суммарная осадка по маркам
-  if(!o.geod) return null;
+/* --- несущая способность вмороженной сваи в динамике: F_d(t) от фактической t грунта (СП 25.13330.2020, прил. В) --- */
+function bearingDyn(o){
+  if(!o.prof) return null;
+  const pl=parsePile(o);
+  const U=parseFloat(edVal(o,'pile','U', pl.U||1.4));
+  const Ap=parseFloat(edVal(o,'pile','Ap', pl.Ap||0.1225));
+  const L=parseFloat(edVal(o,'pile','L', pl.L||o.md||10));
+  const Lth=parseFloat(edVal(o,'pile','Lthaw', 3));
+  const Lf=Math.max(0,L-Lth);
+  if(!(U>0&&Ap>0&&Lf>0)) return null;
+  const gg=gruntGuess(o);
+  const gkAuto=gg?(/глин|суглин/.test(gg)?'глинистые':'песчаные'):'известково-песчаный раствор';
+  const gk=edVal(o,'pile','gk', gkAuto)||gkAuto;
+  const rk=edVal(o,'pile','rk', gg||'суглинки и глины')||'суглинки и глины';
+  const byDate={};
+  Object.values(o.prof).forEach(wd=>wd.s.forEach(([dt,pts])=>{
+    const ts=pts.filter(p=>p[0]>=Lth&&p[0]<=L).map(p=>p[1]);
+    if(ts.length) (byDate[dt]=byDate[dt]||[]).push(ts.reduce((a,b)=>a+b,0)/ts.length);
+  }));
+  const dates=Object.keys(byDate).sort();
+  if(dates.length<2) return null;
+  const rafRow=TB_RAF[gk]||TB_RAF['глинистые'];
+  const rows=TB_R[rk]||TB_R['суглинки и глины'];
+  const dr=rows['—']?'—':(L<7.5?'3–5 м':(L<12.5?'10 м':'15 м и более'));
+  const rRow=rows[dr]||rows['10 м']||Object.values(rows)[0];
+  const Fd=t=>tbInterp(TB_T,rafRow,t)/1000*U*Lf*1000 + tbInterp(TB_T,rRow,t)/1000*Ap*1000; // кН
+  const fd=dates.map(d=>Fd(byDate[d].reduce((a,b)=>a+b,0)/byDate[d].length));
+  const tc=TCALC[o.a];
+  let fd0=null, k=null;
+  if(tc!==undefined){ fd0=Fd(tc); k=fd[fd.length-1]/fd0; }
+  return {dates, fd, fd0, k, U, Ap, L, Lth, Lf, gk, rk, dr, tc};
+}
+function geodMetrics(o){ // макс. скорость последнего цикла и макс. суммарная осадка по маркам  if(!o.geod) return null;
   let maxSpeed=0, maxOsad=0, speedMark='', osadMark='';
   Object.entries(o.geod).forEach(([mk,s])=>{
     if(s.length>=2){
@@ -590,6 +624,12 @@ function statusDetail(o){ // статус + причины (какие прав�
         if(s.ys.length){ const tl=s.ys[s.ys.length-1]; const dv=tl-tc; if(dv>TH.above&&(!worstD||dv>worstD.dv)) worstD={w,tl,dv}; }
       });
       if(worstD) reasons.push({level:'risk', text:`T на уровне НГК ${worstD.tl} °C выше расчётной ${tc} °C на ${worstD.dv.toFixed(1)} °C > порога ${TH.above} °C (скв. ${worstD.w})`});
+    }
+    // запас несущей способности вмороженной сваи против проектной (СП 25.13330.2020, прил. В)
+    const bd=bearingDyn(o);
+    if(bd&&bd.k!==null){
+      if(bd.k<TH.bearCrit) reasons.push({level:'crit', text:`несущая способность сваи ${bd.fd[bd.fd.length-1].toFixed(0)} кН = ${(bd.k*100).toFixed(0)} % от проектной (при T расч ${bd.tc} °C, F_d ${bd.fd0.toFixed(0)} кН) — хуже порога ${(TH.bearCrit*100).toFixed(0)} %`});
+      else if(bd.k<TH.bearRisk) reasons.push({level:'risk', text:`несущая способность сваи снизилась до ${(bd.k*100).toFixed(0)} % от проектной (при T расч ${bd.tc} °C, F_d ${bd.fd0.toFixed(0)} кН) — ниже порога ${(TH.bearRisk*100).toFixed(0)} %`});
     }
   }
   const gm=geodMetrics(o);
@@ -1850,7 +1890,9 @@ function tabGeoterm(o, el){
     <div class="sect">Прогноз температуры основания до 2050 г. (среднее по всем скважинам)</div>
     <div class="note" style="margin:0 0 2px">Глубина прогноза: <span id="fcBtns"></span></div>
     <canvas class="plot" id="fcChart"></canvas>
-    <div class="note">Прогноз оценочный: сплошная линия — ряд наблюдений; штриховая — линейная экстраполяция наблюдаемого тренда; пунктир — тренд с климатической поправкой потепления воздуха Арктической зоны ≈ +0,35 °C/декаду (сценарий SSP2-4.5, оценочно) с затуханием по глубине (5 м — ×0,6; 10 м — ×0,8; 15 м — ×0,9). Красная линия — 0 °C (граница мёрзлого состояния). Подлежит уточнению теплотехническим расчётом.</div>`
+    <div class="note">Прогноз оценочный: сплошная линия — ряд наблюдений; штриховая — линейная экстраполяция наблюдаемого тренда; пунктир — тренд с климатической поправкой потепления воздуха Арктической зоны ≈ +0,35 °C/декаду (сценарий SSP2-4.5, оценочно) с затуханием по глубине (5 м — ×0,6; 10 м — ×0,8; 15 м — ×0,9). Красная линия — 0 °C (граница мёрзлого состояния). Подлежит уточнению теплотехническим расчётом.</div>
+    <div class="sect">Несущая способность вмороженной сваи в динамике F_d(t) · СП 25.13330.2020, прил. В</div>
+    <div id="bearingBody"></div>`
   : '<div class="empty" style="text-align:left;padding:8px 0">Числовые замеры по объекту в файлах не найдены — запись зарезервирована в структуре БД.<br>Замеры можно добавить через «⬆ Загрузка данных» в шапке.</div>';
   if(o.prof){
     const wb=document.getElementById('wellBtns');
@@ -1893,6 +1935,7 @@ function tabGeoterm(o, el){
       fcb.appendChild(b);
     });
     drawForecast(document.getElementById('fcChart'), o, fcDepth);
+    renderBearing(o);
   }
 }
 
@@ -2057,6 +2100,80 @@ function tabKrp(o, el){
     await krpRefresh(true);
     if(curObj){ curTab='krplan'; renderDetail(curObj); }
   };
+}
+
+/* ---------- динамика несущей способности сваи: рендер и график ---------- */
+function drawBearing(cv, bd){
+  const ctx=cv.getContext('2d');
+  const W=cv.clientWidth, H=260; cv.width=W*2; cv.height=H*2; cv.style.height=H+'px'; ctx.scale(2,2);
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+  const L=64,R=14,T=18,B=36;
+  const ys=bd.dates.map(d=>+d.slice(0,4)+ (+d.slice(5,7))/12);
+  let fmin=Math.min(...bd.fd.concat([bd.fd0||Infinity]))*0.97;
+  let fmax=Math.max(...bd.fd.concat([bd.fd0||0]))*1.03;
+  if(fmax-fmin<1){ fmax=fmin+10; }
+  const px=i=>L+i/(ys.length-1||1)*(W-L-R);
+  const py=f=>T+(fmax-f)/(fmax-fmin)*(H-T-B);
+  ctx.strokeStyle='#000'; ctx.strokeRect(L,T,W-L-R,H-T-B);
+  ctx.font='10px "Times New Roman",serif'; ctx.fillStyle='#000'; ctx.textAlign='right';
+  const step=fmax-fmin>200?100:(fmax-fmin>80?50:20);
+  for(let f=Math.ceil(fmin/step)*step; f<=fmax; f+=step){
+    ctx.strokeStyle='#ddd'; ctx.beginPath();ctx.moveTo(L,py(f));ctx.lineTo(W-R,py(f));ctx.stroke();
+    ctx.fillText(String(Math.round(f)),L-6,py(f)+3);
+  }
+  ctx.textAlign='center';
+  bd.dates.forEach((d,i)=>{ if(bd.dates.length>12&&i%2) return; ctx.fillText(d.slice(2,7), px(i), H-B+13); });
+  ctx.save();ctx.translate(14,(T+H-B)/2);ctx.rotate(-Math.PI/2);ctx.font='italic 12px "Times New Roman",serif';ctx.fillText('F_d, кН',0,0);ctx.restore();
+  const hline=(f,col,dash,label)=>{
+    if(f===null||f===undefined) return;
+    ctx.strokeStyle=col; ctx.setLineDash(dash); ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.moveTo(L,py(f));ctx.lineTo(W-R,py(f));ctx.stroke();
+    ctx.setLineDash([]); ctx.lineWidth=1;
+    ctx.fillStyle=col; ctx.textAlign='left'; ctx.font='10px "Times New Roman",serif';
+    ctx.fillText(label, W-R-ctx.measureText(label).width-4, py(f)-4);
+  };
+  if(bd.fd0!==null){
+    hline(bd.fd0,'#334047',[6,4],`проектная (T расч ${bd.tc} °C): ${bd.fd0.toFixed(0)} кН`);
+    hline(bd.fd0*TH.bearRisk,'#C8871A',[4,3],`РИСК ${(TH.bearRisk*100).toFixed(0)} %`);
+    hline(bd.fd0*TH.bearCrit,'#C8372D',[4,3],`КРИТИЧНО ${(TH.bearCrit*100).toFixed(0)} %`);
+  }
+  ctx.strokeStyle='#c8372d'; ctx.fillStyle='#c8372d'; ctx.lineWidth=1.8;
+  ctx.beginPath();
+  bd.fd.forEach((f,i)=>{ const x=px(i),y=py(f); i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+  ctx.stroke();
+  bd.fd.forEach((f,i)=>{ ctx.beginPath();ctx.arc(px(i),py(f),2.5,0,7);ctx.fill(); });
+  ctx.textAlign='left'; ctx.font='10.5px "Times New Roman",serif'; ctx.fillStyle='#000';
+  ctx.fillText(`F_d(t) = Raf(t)·U·L + R(t)·A — средняя t грунта в зоне смерзания (${bd.Lth}–${bd.L} м) по всем скважинам`, L+6, T+12);
+}
+function renderBearing(o){
+  const el=document.getElementById('bearingBody'); if(!el) return;
+  const bd=bearingDyn(o);
+  const pl=parsePile(o);
+  if(!bd){
+    el.innerHTML='<div class="note">Недостаточно рядов замеров в зоне смерзания сваи (нужно ≥ 2 замеров с температурой на глубинах смерзания) или не заданы параметры сваи.</div>';
+    return;
+  }
+  const gkOpts=['глинистые','песчаные','известково-песчаный раствор'];
+  const rkOpts=['крупнообломочные','пески крупной и средней крупности','пески мелкие и пылеватые','супеси','суглинки и глины'];
+  el.innerHTML=`
+  <table class="kv">
+    <tr><td>Параметры сваи</td><td>
+      U = <input class="ed" data-scope="pile" data-k="U" type="number" step="0.01" style="width:64px" value="${bd.U}"> м ·
+      A = <input class="ed" data-scope="pile" data-k="Ap" type="number" step="0.001" style="width:76px" value="${bd.Ap}"> м² ·
+      длина <input class="ed" data-scope="pile" data-k="L" type="number" step="0.5" style="width:58px" value="${bd.L}"> м ·
+      оттаивание <input class="ed" data-scope="pile" data-k="Lthaw" type="number" step="0.5" style="width:52px" value="${bd.Lth}"> м
+      ${pl.note?'<span class="note">(паспорт: '+esc(pl.note)+')</span>':'<span class="note">(по умолчанию 0,35×0,35 м — проверьте по паспорту)</span>'}</td></tr>
+    <tr><td>Поверхность смерзания (Raf)</td><td>${sel(o,'pile','gk', bd.gk, gkOpts)}</td></tr>
+    <tr><td>Грунт под торцом (R)</td><td>${sel(o,'pile','rk', bd.rk, rkOpts)} <span class="note">строка табл. В.1: ${bd.dr}</span></td></tr>
+    <tr><td>Запас против проектной</td><td>${bd.k!==null
+      ?`<b style="color:${bd.k<TH.bearCrit?'#C8372D':(bd.k<TH.bearRisk?'#C8871A':'#3D8A5A')}">${(bd.k*100).toFixed(0)} %</b> (F_d ${bd.fd[bd.fd.length-1].toFixed(0)} кН при t средней ${bd.dates[bd.dates.length-1]} против ${bd.fd0.toFixed(0)} кН при T расч ${bd.tc} °C)`
+      :'<span class="note">не задана расчётная температура (вкладка «Паспорт объекта») — показана только динамика F_d</span>'}</td></tr>
+  </table>
+  <canvas class="plot" id="bearingChart"></canvas>
+  <div class="note">Методика: F_d(t) = Raf(t)·U·L_смерз + R(t)·A; Raf — СП 25.13330.2020, табл. В.3 (бетон, γ_af=1,0); R — табл. В.1; t — средняя по всем скважинам в зоне смерзания (от глубины оттаивания до конца сваи). Пороги запаса редактируются в «⚙ Пороги» (по умолчанию РИСК &lt; ${(TH.bearRisk*100).toFixed(0)} %, КРИТИЧНО &lt; ${(TH.bearCrit*100).toFixed(0)} % от проектной). Оценка по фактическим температурам грунта; учёт нагрузки N на сваю — следующий шаг (требуются проектные нагрузки).</div>`;
+  drawBearing(document.getElementById('bearingChart'), bd);
+  wireEd(o, el, 'pile');
+  el.querySelectorAll('.ed[data-scope="pile"]').forEach(i2=>i2.addEventListener('change',()=>{ renderDetail(o); }));
 }
 
 /* ---------- Паспорт геотехнического мониторинга (Паспорт ГТМ) ----------
@@ -3460,10 +3577,12 @@ document.getElementById('gear').onclick=()=>{
   setEl.style.display=setEl.style.display==='block'?'none':'block';
   sTcrit.value=TH.tcrit; sDepth.value=TH.depth; sTrend.value=TH.trend; sTrendDepth.value=TH.trendDepth; sAbove.value=TH.above;
   sGRisk.value=TH.geodRiskSpeed; sGCrit.value=TH.geodCritSpeed; sGTotal.value=TH.geodCritTotal;
+  sBearR.value=TH.bearRisk; sBearC.value=TH.bearCrit;
 };
 document.getElementById('sSave').onclick=()=>{
   TH={tcrit:+sTcrit.value, depth:+sDepth.value, trend:+sTrend.value, trendDepth:+sTrendDepth.value, above:+sAbove.value,
-      geodRiskSpeed:+sGRisk.value, geodCritSpeed:+sGCrit.value, geodCritTotal:+sGTotal.value};
+      geodRiskSpeed:+sGRisk.value, geodCritSpeed:+sGCrit.value, geodCritTotal:+sGTotal.value,
+      bearRisk:+sBearR.value, bearCrit:+sBearC.value};
   saveTH(); setEl.style.display='none';
   drawMarkers(); renderStats(); renderList(); if(curObj) renderDetail(curObj);
 };
