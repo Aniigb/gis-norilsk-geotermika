@@ -454,15 +454,11 @@ const SCOL = {"НОРМА":"#2e7d32","РИСК":"#e08a00","КРИТИЧНО":"#c
 const DB = window.DB;
 
 /* ---------- пороги ---------- */
-/* временная диагностика ошибок инициализации */
-window.addEventListener('error', e=>{ try{ const d=document.createElement('div'); d.id='jserr'; d.style.cssText='position:fixed;left:8px;top:8px;z-index:9999;background:#c8372d;color:#fff;padding:6px 10px;font-size:12px;border-radius:4px'; d.textContent='JS: '+e.message+' @'+(e.filename||'').split('/').pop()+':'+e.lineno; document.body.appendChild(d); }catch(_){} });
-
 const DEF_TH = {tcrit:-0.5, depth:3, trend:0.10, trendDepth:10, above:0.5, geodRiskSpeed:10, geodCritSpeed:20, geodCritTotal:100, bearRisk:0.91, bearCrit:0.77};
 let TH = Object.assign({}, DEF_TH, JSON.parse(localStorage.getItem('ngk_th')||'{}'));
 function saveTH(){ localStorage.setItem('ngk_th', JSON.stringify(TH)); }
 
 /* ---------- миграция ключей localStorage по карте переименований адресов (канонизация) ---------- */
-document.title='M1';
 (function(){
   const R=(window.DB&&DB.renames)||{}; if(!Object.keys(R).length) return;
   const mig=(k)=>{
@@ -491,7 +487,6 @@ document.title='M1';
 })();
 
 /* ---------- расчётные температуры (ввод пользователя, по адресу) ---------- */
-document.title='M2';
 let TCALC = JSON.parse(localStorage.getItem('ngk_tcalc')||'{}');
 function saveTCALC(){ localStorage.setItem('ngk_tcalc', JSON.stringify(TCALC)); }
 
@@ -505,7 +500,6 @@ let USERDATA = JSON.parse(localStorage.getItem('ngk_userdata')||'[]');  // [{a,w
 function saveUSERDATA(){ localStorage.setItem('ngk_userdata', JSON.stringify(USERDATA)); }
 
 /* ---------- управляющие компании ---------- */
-document.title='M3';
 const UK_LIST = ['УК «ЖКС-Норильск»','УК «Город»','ООО «Нордсервис»','ООО «СеверныйБыт»','ООО «СеверныйУправдом»','ООО «Заполярный жилищный трест»','ООО «Будущее»'];
 function effectiveUK(o){ if(o.br==='skb') return o.podr||'Администрация г. Норильска';
   const c=CARD[o.a]; return (c&&c.uk!==undefined&&c.uk!=='')?c.uk:(o.uk||'Не определена'); }
@@ -529,7 +523,6 @@ let addrIndex=null;
 try{ applyUserData(); }catch(e){ console.error('applyUserData:', e); }
 
 /* ---------- аналитика ---------- */
-document.title='M4';
 function interp(pts, d){ // линейная интерполяция профиля [[d,t]...] на глубину d
   if(!pts.length) return null;
   if(d<=pts[0][0]) return pts[0][1];
@@ -593,7 +586,8 @@ function bearingDyn(o){
   if(tc!==undefined){ fd0=Fd(tc); k=fd[fd.length-1]/fd0; }
   return {dates, fd, fd0, k, U, Ap, L, Lth, Lf, gk, rk, dr, tc};
 }
-function geodMetrics(o){ // макс. скорость последнего цикла и макс. суммарная осадка по маркам  if(!o.geod) return null;
+function geodMetrics(o){ // макс. скорость последнего цикла и макс. суммарная осадка по маркам
+  if(!o.geod) return null;
   let maxSpeed=0, maxOsad=0, speedMark='', osadMark='';
   Object.entries(o.geod).forEach(([mk,s])=>{
     if(s.length>=2){
@@ -653,7 +647,6 @@ function statusDetail(o){ // статус + причины (какие прав�
 function statusOf(o){ return statusDetail(o).status; }
 
 /* ---------- карта ---------- */
-document.title='M5';
 const map = L.map('map',{zoomControl:true}).setView([69.355,88.20], 12);
 window.addEventListener('resize', ()=>map.invalidateSize());
 window.addEventListener('orientationchange', ()=>{ map.invalidateSize(); if(curObj) renderDetail(curObj); });
@@ -896,7 +889,6 @@ function markerColor(o){ const st=statusOf(o); return st?SCOL[st]:'#8a97a3'; }
 function drawMarkers(){
   const kpYear=String(new Date().getFullYear());
   DB.objects.forEach((o,i)=>{
-    try{
     if(o.lat===null||o.lat===undefined) return;   // без координат — только в списке
     const has=!!o.prof;
     const kp=window.kpOn&&(o.krp||[]).some(k=>String(k.year||'').includes(kpYear));
@@ -908,7 +900,6 @@ function drawMarkers(){
     m.bindTooltip(o.a+(statusOf(o)?' · '+statusOf(o):'')+(kp?' · КП '+kpYear:''),{direction:'top',offset:[0,-6]});
     m.on('click',()=>select(i));
     markers[i]=m;
-    }catch(e){ const d=document.createElement('div'); d.id='jserr'; d.style.cssText='position:fixed;left:8px;top:8px;z-index:9999;background:#c8372d;color:#fff;padding:6px 10px;font-size:12px;border-radius:4px;max-width:90vw'; d.textContent='DM#'+i+' '+o.a+' :: '+e.message+' :: '+((e.stack||'').split('\n')[1]||''); document.body.appendChild(d); throw e; }
   });
   applyFilter();
 }
@@ -962,9 +953,7 @@ geoCtl.style.cssText='position:absolute; top:84px; left:10px; z-index:700; backg
 geoCtl.title='Режим уточнения координат: клик по зданию на снимке → ближайший объект → перенос точки';
 geoCtl.onclick=toggleGeoMode;
 document.getElementById('map').appendChild(geoCtl);
-document.title='S1';
 drawMarkers();
-document.title='S2';
 
 /* --- живая диаграмма охвата ГТМ (нижний левый угол карты) --- */
 function gtmCovDraw(){
