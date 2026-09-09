@@ -957,7 +957,9 @@ geoCtl.style.cssText='position:absolute; top:84px; left:10px; z-index:700; backg
 geoCtl.title='Режим уточнения координат: клик по зданию на снимке → ближайший объект → перенос точки';
 geoCtl.onclick=toggleGeoMode;
 document.getElementById('map').appendChild(geoCtl);
+document.title='S1';
 drawMarkers();
+document.title='S2';
 
 /* --- живая диаграмма охвата ГТМ (нижний левый угол карты) --- */
 function gtmCovDraw(){
