@@ -689,8 +689,8 @@ for(const [name, rings] of Object.entries(DB.districts)){
 
 /* ---------- слои гидрологической модели поверхностного стока (D8): город — ЦМР Copernicus 30 м; Оганер — ЦМР 5 см (тест) ---------- */
 const hydroSets={
-  city:{group:hydroGroup, flow:'hydro_flow.json', grid:'hydro_grid.json', loaded:false, grid:null, parts:[], nParts:380, color:'rgba(150,220,255,.9)'},
-  oganer:{group:hydroOgGroup, flow:'hydro_oganer_flow.json', grid:'hydro_oganer_grid.json', loaded:false, grid:null, parts:[], nParts:300, color:'rgba(120,200,255,.9)'}
+  city:{group:hydroGroup, flow:'hydro_flow.json', grid:'hydro_grid.json', loaded:false, parts:[], nParts:380, color:'rgba(150,220,255,.9)'},
+  oganer:{group:hydroOgGroup, flow:'hydro_oganer_flow.json', grid:'hydro_oganer_grid.json', loaded:false, parts:[], nParts:300, color:'rgba(120,200,255,.9)'}
 };
 let hydroAnimOn={city:false,oganer:false}, hydroRAF=0;
 let hydroCv=null;
