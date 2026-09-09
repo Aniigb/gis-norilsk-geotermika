@@ -553,8 +553,10 @@ function objDepthSeries(o, depth){ // средний ряд по скважин�
   return {xs, ys:xs.map(d=>+(byDate[d].reduce((a,b)=>a+b,0)/byDate[d].length).toFixed(2))};
 }
 /* --- несущая способность вмороженной сваи в динамике: F_d(t) от фактической t грунта (СП 25.13330.2020, прил. В) --- */
+function bearingTables(){ try{ return {TB_T, TB_RAF, TB_R}; }catch(e){ return null; } } // защита от TDZ при ранней инициализации
 function bearingDyn(o){
   if(!o.prof) return null;
+  const tb=bearingTables(); if(!tb) return null;
   const pl=parsePile(o);
   const U=parseFloat(edVal(o,'pile','U', pl.U||1.4));
   const Ap=parseFloat(edVal(o,'pile','Ap', pl.Ap||0.1225));
@@ -573,11 +575,11 @@ function bearingDyn(o){
   }));
   const dates=Object.keys(byDate).sort();
   if(dates.length<2) return null;
-  const rafRow=TB_RAF[gk]||TB_RAF['глинистые'];
-  const rows=TB_R[rk]||TB_R['суглинки и глины'];
+  const rafRow=tb.TB_RAF[gk]||tb.TB_RAF['глинистые'];
+  const rows=tb.TB_R[rk]||tb.TB_R['суглинки и глины'];
   const dr=rows['—']?'—':(L<7.5?'3–5 м':(L<12.5?'10 м':'15 м и более'));
   const rRow=rows[dr]||rows['10 м']||Object.values(rows)[0];
-  const Fd=t=>tbInterp(TB_T,rafRow,t)/1000*U*Lf*1000 + tbInterp(TB_T,rRow,t)/1000*Ap*1000; // кН
+  const Fd=t=>tbInterp(tb.TB_T,rafRow,t)/1000*U*Lf*1000 + tbInterp(tb.TB_T,rRow,t)/1000*Ap*1000; // кН
   const fd=dates.map(d=>Fd(byDate[d].reduce((a,b)=>a+b,0)/byDate[d].length));
   const tc=TCALC[o.a];
   let fd0=null, k=null;
