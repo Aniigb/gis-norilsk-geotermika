@@ -225,6 +225,20 @@
   .tglock:hover{color:var(--ink)}
   #tgModal{display:none; position:fixed; inset:0; z-index:1100; background:rgba(15,28,38,.6)}
   #tgModal .box{background:var(--panel); width:860px; max-width:95vw; max-height:92vh; margin:3vh auto; border-radius:10px; padding:20px 24px; box-shadow:0 10px 40px rgba(0,0,0,.4); overflow-y:auto}
+  #meteoModal{display:none; position:fixed; inset:0; z-index:1150; background:rgba(15,28,38,.6)}
+  #meteoModal .box{background:var(--panel); width:1020px; max-width:96vw; max-height:94vh; margin:2.5vh auto; border-radius:10px; padding:18px 24px; box-shadow:0 10px 40px rgba(0,0,0,.4); overflow-y:auto}
+  .mt-kpi{display:flex; gap:10px; flex-wrap:wrap; margin:8px 0}
+  .mt-kpi .k{flex:1; min-width:150px; border:1px solid var(--line); border-radius:8px; padding:7px 10px; background:#fbfdfe}
+  .mt-kpi .k b{display:block; font-size:15.5px; margin-top:2px}
+  .mt-kpi .k span{font-size:11px; color:var(--mut)}
+  .mt-tabs{display:flex; gap:6px; flex-wrap:wrap; margin:8px 0}
+  .mt-tabs button{border:1px solid var(--line); background:#fff; border-radius:6px; padding:4px 12px; font-size:12.5px; cursor:pointer}
+  .mt-tabs button.on{background:#2f6fb2; color:#fff; border-color:#2f6fb2}
+  .mt-tbl{border-collapse:collapse; font-size:11.5px; width:100%; margin-top:6px}
+  .mt-tbl td,.mt-tbl th{border:1px solid var(--line); padding:2px 5px; text-align:right}
+  .mt-tbl th{background:#eef3f7; text-align:center; position:sticky; top:0}
+  .mt-anom{background:#fdeceb; color:#a02518; font-weight:600}
+  .mt-anom2{background:#fff4e0; color:#8a5a00}
   #tgModal .close{float:right; border:none; background:none; font-size:20px; cursor:pointer; color:var(--mut)}
   #tgModal input, #tgModal select, #tgModal textarea{padding:5px 8px; border:1px solid var(--line); border-radius:5px; font-size:12.8px; font-family:inherit}
   .tg-rec{border:1px solid var(--line); border-radius:8px; background:#fff; padding:10px 14px; margin:10px 0}
@@ -270,6 +284,7 @@
     <div class="stats" id="hstats"></div>
     <span id="roleBadge" style="font-size:11px; color:#9fb0bf; border:1px solid #3a4c5c; border-radius:10px; padding:2px 10px"></span>
     <button id="regBtn" title="Сводный реестр объектов РИСК/КРИТИЧНО" style="background:none; border:1px solid #3a4c5c; color:#cdd8e2; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:13px">▤ Реестр</button>
+    <button id="meteoBtn" title="Метеоданные г. Норильска: история с 1950 г., автопополнение из открытых метеоархивов, аномалии, тренды, прогноз, параметры для теплотехнических расчётов (СП 25.13330.2020, прил. Г)" style="background:none; border:1px solid #3a4c5c; color:#cdd8e2; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:13px">🌦 Метеоданные</button>
     <button id="repBtn" title="Формирование сводного отчёта" style="background:none; border:1px solid #3a4c5c; color:#cdd8e2; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:13px">📄 Отчёт</button>
     <button id="uploadBtn" title="Загрузка данных по шаблону">⬆ Загрузка данных</button>
     <button id="gear" title="Пороги статусов">⚙ Пороги</button>
@@ -324,6 +339,13 @@
   <div class="box">
     <button class="close" id="tgClose">✕</button>
     <div id="tgBody"></div>
+  </div>
+</div>
+
+<div id="meteoModal">
+  <div class="box">
+    <button class="close" id="meteoClose">✕</button>
+    <div id="meteoBody"></div>
   </div>
 </div>
 
@@ -429,14 +451,14 @@
   </div>
 </div>
 
-<script src="db_p1.js?v=fc01014c"></script>
-<script src="db_p2.js?v=fc01014c"></script>
-<script src="db_p3.js?v=fc01014c"></script>
-<script src="db_p4.js?v=fc01014c"></script>
-<script src="db_p5.js?v=fc01014c"></script>
-<script src="db_p6.js?v=fc01014c"></script>
-<script src="db_p7.js?v=fc01014c"></script>
-<script src="db_p8.js?v=fc01014c"></script>
+<script src="db_p1.js?v=9c2fb80e"></script>
+<script src="db_p2.js?v=9c2fb80e"></script>
+<script src="db_p3.js?v=9c2fb80e"></script>
+<script src="db_p4.js?v=9c2fb80e"></script>
+<script src="db_p5.js?v=9c2fb80e"></script>
+<script src="db_p6.js?v=9c2fb80e"></script>
+<script src="db_p7.js?v=9c2fb80e"></script>
+<script src="db_p8.js?v=9c2fb80e"></script>
 
 <div id="loginModal">
   <form class="lbox" id="loginForm">
@@ -5098,8 +5120,426 @@ function enterApp(role){
   };
 })();
 
+/* ==================== МЕТЕОДАННЫЕ (раздел) ==================== */
+const METEO_P={t:'Температура воздуха, °C',rh:'Относительная влажность, %',p:'Атмосферное давление, мм рт. ст.',w:'Скорость ветра, м/с',pr:'Осадки, мм/мес',sn:'Высота снежного покрова, см',sd:'Плотность снежного покрова, г/см³'};
+const METEO_RNG={t:[-60,40],rh:[5,100],p:[550,850],w:[0,45],pr:[0,1200],sn:[0,500],sd:[0.03,0.9]};
+const MT_MON=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+const MT_DAYS=[31,28,31,30,31,30,31,31,30,31,30,31];
+function mtBase(){ try{ return (typeof DB!=='undefined'&&DB.meteo)?DB.meteo:null; }catch(e){ return null; } }
+function mtStore(){ try{ const s=JSON.parse(localStorage.getItem('ngk_meteo')||'null'); return (s&&s.add)?s:{add:{}}; }catch(e){ return {add:{}}; } }
+function mtData(){ // базовый ряд (db.js) + пополнение Open-Meteo (localStorage)
+  const b=mtBase(); if(!b) return null;
+  const add=mtStore().add;
+  const ys=new Set(b.years); Object.keys(add).forEach(y=>ys.add(+y));
+  const years=[...ys].sort((a,b)=>a-b);
+  const bidx={}; b.years.forEach((y,i)=>{ bidx[y]=i; });
+  const m={};
+  Object.keys(METEO_P).forEach(k=>{
+    m[k]=years.map(y=>{
+      const r=new Array(12).fill(null);
+      const bi=bidx[y];
+      const base=(bi!==undefined&&b.m&&b.m[k])?b.m[k][bi]:null;
+      const ad=(add[y]&&add[y][k])||null;
+      for(let mo=0;mo<12;mo++){
+        if(ad&&ad[mo]!==null&&ad[mo]!==undefined) r[mo]=ad[mo];
+        else if(base&&base[mo]!==null&&base[mo]!==undefined) r[mo]=base[mo];
+      }
+      return r;
+    });
+  });
+  return {years, m, src:b.src||'', station:b.station||''};
+}
+function mtYearAgg(d,k){ // годовые: среднее (≥10 мес.); осадки — сумма; снег: высота — максимум, плотность — среднее зимних
+  const out=[];
+  d.years.forEach((y,i)=>{
+    const row=(d.m[k]||[])[i]||[];
+    const vals=row.filter(v=>v!==null&&v!==undefined);
+    if(k==='pr'){ if(vals.length>=10) out.push({y, v:+vals.reduce((s,v)=>s+v,0).toFixed(1), full:vals.length===12}); }
+    else if(k==='sn'){ if(vals.length>=3) out.push({y, v:+Math.max.apply(null,vals).toFixed(1), full:vals.length>=6}); }
+    else if(k==='sd'){ if(vals.length>=2) out.push({y, v:+(vals.reduce((s,v)=>s+v,0)/vals.length).toFixed(2), full:vals.length>=6}); }
+    else if(vals.length>=10) out.push({y, v:+(vals.reduce((s,v)=>s+v,0)/vals.length).toFixed(2), full:vals.length===12});
+  });
+  return out;
+}
+function mtClim(d,k){ // климатология по календарным месяцам (среднее, σ)
+  const mean=new Array(12).fill(null), sd=new Array(12).fill(null);
+  for(let mo=0;mo<12;mo++){
+    const vals=[];
+    d.years.forEach((y,i)=>{ const v=((d.m[k]||[])[i]||[])[mo]; if(v!==null&&v!==undefined) vals.push(v); });
+    if(vals.length>=5){
+      const av=vals.reduce((s,v)=>s+v,0)/vals.length;
+      mean[mo]=av; sd[mo]=Math.sqrt(vals.reduce((s,v)=>s+(v-av)*(v-av),0)/vals.length)||1e-6;
+    }
+  }
+  return {mean, sd};
+}
+function mtAnoms(d,k,thr){
+  const c=mtClim(d,k), out=[];
+  d.years.forEach((y,i)=>{ ((d.m[k]||[])[i]||[]).forEach((v,mo)=>{
+    if(v===null||v===undefined||c.mean[mo]===null) return;
+    const z=(v-c.mean[mo])/c.sd[mo];
+    if(Math.abs(z)>=(thr||2.5)) out.push({y, mo, v, z:+z.toFixed(2), norm:+c.mean[mo].toFixed(2)});
+  });});
+  return out.sort((a,b)=>Math.abs(b.z)-Math.abs(a.z));
+}
+function mtLin(xs,ys){
+  const n=xs.length; if(n<3) return null;
+  const mx=xs.reduce((s,v)=>s+v,0)/n, my=ys.reduce((s,v)=>s+v,0)/n;
+  let sxy=0, sxx=0, syy=0;
+  for(let i=0;i<n;i++){ sxy+=(xs[i]-mx)*(ys[i]-my); sxx+=(xs[i]-mx)**2; syy+=(ys[i]-my)**2; }
+  if(!sxx) return null;
+  const k=sxy/sxx;
+  return {k, b:my-k*mx, r2:syy?+((sxy*sxy)/(sxx*syy)).toFixed(3):0, n};
+}
+function mtSP(d){ // параметры для теплотехнических расчётов (СП 25.13330.2020, прил. Г; климатология — СП 131.13330)
+  if(!d) return null;
+  const comp=[];
+  d.years.forEach((y,i)=>{ const row=(d.m.t||[])[i]||[]; if(row.filter(v=>v!==null&&v!==undefined).length===12) comp.push({y, row}); });
+  if(comp.length<5) return null;
+  const last=comp.slice(-Math.min(10,comp.length));
+  let sTf=0, sDf=0, sTt=0, sDt=0, sMGT=0, sF=0, sT=0;
+  last.forEach(({row})=>{
+    row.forEach((v,mo)=>{
+      const dd=MT_DAYS[mo];
+      sMGT+=v/12;
+      if(v<0){ sTf+=v*dd; sDf+=dd; sF+=Math.abs(v)*dd; }
+      else { sTt+=v*dd; sDt+=dd; sT+=v*dd; }
+    });
+  });
+  const n=last.length;
+  const r={period:last[0].y+'–'+last[last.length-1].y, nY:n,
+    Tfm:+(sTf/sDf).toFixed(1), tfm:Math.round(sDf/n*24),
+    Ttc:+(sTt/sDt).toFixed(1), ttc:Math.round(sDt/n*24),
+    MGT:+(sMGT/n).toFixed(2), OmF:Math.round(sF/n), OmT:Math.round(sT/n)};
+  const snL=mtYearAgg(d,'sn').slice(-10), sdL=mtYearAgg(d,'sd').slice(-10);
+  if(snL.length){ r.snH=+(snL.reduce((s,a)=>s+a.v,0)/snL.length).toFixed(1); r.snPeriod=snL[0].y+'–'+snL[snL.length-1].y; }
+  if(sdL.length){ r.sdM=+(sdL.reduce((s,a)=>s+a.v,0)/sdL.length).toFixed(2); r.sdPeriod=sdL[0].y+'–'+sdL[sdL.length-1].y; }
+  return r;
+}
+window.meteoSP=function(){ return mtSP(mtData()); }; // точка интеграции с разделом «РАСЧЕТЫ» карточки
+/* --- автопополнение из открытых метеоархивов (Open-Meteo: ERA5 + оперативный анализ) --- */
+async function mtFetchDaily(url){
+  const r=await fetch(url);
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  const j=await r.json();
+  return j.daily||null;
+}
+async function mtAutoupdate(log){
+  log=log||function(){};
+  const d=mtData(); if(!d) return 'база метеоданных недоступна';
+  let li=-1, lm=-1;
+  d.years.forEach((y,i)=>{ ((d.m.t||[])[i]||[]).forEach((v,mo)=>{ if(v!==null&&v!==undefined){ li=i; lm=mo; } }); });
+  if(li<0) return 'базовый ряд пуст';
+  let sy=d.years[li]+Math.floor((lm+1)/12), sm=(lm+1)%12;
+  const now=new Date(), ey=now.getFullYear(), em=now.getMonth();
+  if(sy>ey||(sy===ey&&sm>em)) return 'данные актуальны (последний месяц: '+ey+'-'+String(em+1).padStart(2,'0')+')';
+  const start=sy+'-'+String(sm+1).padStart(2,'0')+'-01';
+  const archEnd=new Date(now.getTime()-6*864e5).toISOString().slice(0,10);
+  const V='temperature_2m_mean,relative_humidity_2m_mean,surface_pressure_mean,wind_speed_10m_mean,precipitation_sum,snow_depth_mean';
+  const L='latitude=69.355&longitude=88.20&timezone=Asia%2FKrasnoyarsk';
+  const packs=[];
+  if(start<=archEnd){
+    log('загрузка архива ERA5: '+start+' … '+archEnd+' …');
+    let s0=start;
+    while(s0<=archEnd){
+      const d0=new Date(s0+'T00:00:00');
+      let e1=new Date(d0.getTime()+5*365.25*864e5).toISOString().slice(0,10);
+      if(e1>archEnd) e1=archEnd;
+      try{ const dl=await mtFetchDaily('https://archive-api.open-meteo.com/v1/archive?'+L+'&start_date='+s0+'&end_date='+e1+'&daily='+V); if(dl&&dl.time) packs.push(dl); }
+      catch(e){ log('архив: пропуск фрагмента '+s0+' ('+e.message+')'); }
+      s0=new Date(new Date(e1+'T00:00:00').getTime()+864e5).toISOString().slice(0,10);
+    }
+  }
+  log('оперативные данные (последние 14 сут) …');
+  try{ const dl2=await mtFetchDaily('https://api.open-meteo.com/v1/forecast?'+L+'&daily='+V+'&past_days=14&forecast_days=1'); if(dl2&&dl2.time) packs.push(dl2); }catch(e){}
+  const agg={};
+  packs.forEach(dl=>{
+    dl.time.forEach((dt,ix)=>{
+      if(dt<start) return;
+      const key=(+dt.slice(0,4))*12+(+dt.slice(5,7))-1;
+      const a=agg[key]||(agg[key]={t:[],rh:[],p:[],w:[],pr:[],sn:[]});
+      const put=(k,v,mul)=>{ if(v!==null&&v!==undefined&&!isNaN(v)) a[k].push(v*(mul||1)); };
+      put('t',dl.temperature_2m_mean?dl.temperature_2m_mean[ix]:null);
+      put('rh',dl.relative_humidity_2m_mean?dl.relative_humidity_2m_mean[ix]:null);
+      put('p',dl.surface_pressure_mean?dl.surface_pressure_mean[ix]:null,0.750062);
+      put('w',dl.wind_speed_10m_mean?dl.wind_speed_10m_mean[ix]:null);
+      put('pr',dl.precipitation_sum?dl.precipitation_sum[ix]:null);
+      put('sn',dl.snow_depth_mean?dl.snow_depth_mean[ix]:null,100);
+    });
+  });
+  const st=mtStore();
+  let added=0, flagged=0;
+  Object.keys(agg).map(Number).sort((a,b)=>a-b).forEach(key=>{
+    const y=Math.floor(key/12), mo=key%12, a=agg[key];
+    const rec=st.add[y]||(st.add[y]={});
+    const setv=(k,arr,isSum)=>{
+      if(!arr.length) return;
+      let v=isSum?arr.reduce((s,v)=>s+v,0):arr.reduce((s,v)=>s+v,0)/arr.length;
+      v=+v.toFixed(2);
+      const rng=METEO_RNG[k];
+      if(rng&&(v<rng[0]||v>rng[1])){ flagged++; return; }
+      rec[k]=rec[k]||new Array(12).fill(null);
+      rec[k][mo]=v; added++;
+    };
+    setv('t',a.t); setv('rh',a.rh); setv('p',a.p); setv('w',a.w); setv('pr',a.pr,true); setv('sn',a.sn);
+  });
+  st.ts=Date.now(); st.src='Open-Meteo Archive/Forecast API (ERA5 / ECMWF IFS), узел 69.355 N, 88.20 E';
+  try{ localStorage.setItem('ngk_meteo', JSON.stringify(st)); }catch(e){ return 'хранилище браузера переполнено — пополнение не сохранено'; }
+  return 'обновлено: +'+added+' помесячных значений ('+start+' → '+now.toISOString().slice(0,10)+')'+(flagged?', отклонено валидацией: '+flagged:'');
+}
+/* --- UI раздела --- */
+let mtView='chart', mtParam='t', mtY0=null, mtY1=null, mtShowAnom=true;
+function meteoOpen(){
+  const d=mtData();
+  document.getElementById('meteoModal').style.display='block';
+  const bd=document.getElementById('meteoBody');
+  if(!d){ bd.innerHTML='<h2 style="font-size:16px">Метеоданные · г. Норильск</h2><div class="normref">База метеоданных не найдена.</div>'; return; }
+  if(mtY0===null||mtY0<d.years[0]) mtY0=d.years[0];
+  if(mtY1===null||mtY1>d.years[d.years.length-1]) mtY1=d.years[d.years.length-1];
+  mtRender(d);
+}
+function mtRender(d){
+  const bd=document.getElementById('meteoBody');
+  const tAgg=mtYearAgg(d,'t'), prAgg=mtYearAgg(d,'pr');
+  const fullT=tAgg.filter(a=>a.full), lastT=fullT[fullT.length-1]||tAgg[tAgg.length-1];
+  const norm=tAgg.filter(a=>a.y>=1961&&a.y<=1990);
+  const normV=norm.length?norm.reduce((s,a)=>s+a.v,0)/norm.length:null;
+  const lin=mtLin(tAgg.map(a=>a.y), tAgg.map(a=>a.v));
+  const fullPr=prAgg.filter(a=>a.full), lastPr=fullPr[fullPr.length-1];
+  let snMax=null, snY=null;
+  for(let i=d.years.length-1;i>=0;i--){ const vals=((d.m.sn||[])[i]||[]).filter(v=>v!==null&&v!==undefined&&v>0); if(vals.length){ snMax=Math.max.apply(null,vals); snY=d.years[i]; break; } }
+  const st=mtStore();
+  const updInfo=st.ts?('пополнение Open-Meteo: '+new Date(st.ts).toLocaleDateString('ru-RU')):'пополнение не выполнялось';
+  bd.innerHTML=`
+  <h2 style="font-size:16px">Метеоданные · г. Норильск <span style="font-size:11.5px; color:var(--mut); font-weight:400">${esc(d.station)} · ряд ${d.years[0]}–${d.years[d.years.length-1]}</span></h2>
+  <div class="normref">Источник: ${esc(d.src)}. ${esc(updInfo)}. Аномалии — по z-оценке относительно месячной климатологии ряда (|z| ≥ 2,5); тренды — линейная регрессия МНК; прогноз — сезонная климатология + годовой тренд с полосой ±1,96σ.</div>
+  <div class="mt-kpi">
+    <div class="k"><span>МГТ за ${lastT?lastT.y:'—'} г.${normV!==null?' (норма 1961–1990: '+normV.toFixed(1)+' °C)':''}</span><b>${lastT?lastT.v.toFixed(1)+' °C':'—'}${lastT&&normV!==null?` <small style="color:${(lastT.v-normV)>0?'#c8372d':'#2e7d32'}">(${(lastT.v-normV)>=0?'+':''}${(lastT.v-normV).toFixed(1)})</small>`:''}</b></div>
+    <div class="k"><span>Тренд МГТ за ${tAgg.length?tAgg[0].y+'–'+tAgg[tAgg.length-1].y:'—'} (R²=${lin?lin.r2:'—'})</span><b>${lin?(lin.k*10>=0?'+':'')+(lin.k*10).toFixed(2)+' °C/10 лет':'—'}</b></div>
+    <div class="k"><span>Осадки за ${lastPr?lastPr.y:'—'} г.</span><b>${lastPr?lastPr.v.toFixed(0)+' мм':'—'}</b></div>
+    <div class="k"><span>Макс. высота снега, зима ${snY||'—'}</span><b>${snMax!==null?snMax+' см':'—'}</b></div>
+  </div>
+  <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:6px 0">
+    <label style="font-size:12.5px">Параметр: <select id="mtP" style="padding:4px 6px; border:1px solid var(--line); border-radius:5px">${Object.keys(METEO_P).map(k=>`<option value="${k}"${k===mtParam?' selected':''}>${METEO_P[k]}</option>`).join('')}</select></label>
+    <label style="font-size:12.5px">с <input id="mtY0" type="number" value="${mtY0}" style="width:64px; padding:3px 5px; border:1px solid var(--line); border-radius:5px"> по <input id="mtY1" type="number" value="${mtY1}" style="width:64px; padding:3px 5px; border:1px solid var(--line); border-radius:5px"></label>
+    <label style="font-size:12px; cursor:pointer"><input type="checkbox" id="mtAn"${mtShowAnom?' checked':''}> выделять аномалии</label>
+    <button id="mtUpd" style="margin-left:auto; border:1px solid #2e7d32; color:#2e7d32; background:#fff; border-radius:6px; padding:4px 12px; font-size:12.5px; cursor:pointer" title="Дозагрузить недостающие месяцы из открытого метеоархива Open-Meteo (ERA5 + оперативный анализ)">⟳ Обновить из метеоархива</button>
+    <span id="mtUpdSt" style="font-size:11.5px; color:var(--mut)"></span>
+  </div>
+  <div class="mt-tabs" id="mtTabs">
+    ${[['chart','График'],['table','Таблица'],['anoms','Аномалии'],['trends','Тренды'],['fc','Прогноз'],['sp','Для расчётов (СП)']].map(([id,nm])=>`<button data-v="${id}" class="${id===mtView?'on':''}">${nm}</button>`).join('')}
+  </div>
+  <div id="mtOut"></div>`;
+  document.getElementById('mtP').onchange=ev=>{ mtParam=ev.target.value; mtRender(d); };
+  document.getElementById('mtY0').onchange=ev=>{ mtY0=+ev.target.value||d.years[0]; mtRender(d); };
+  document.getElementById('mtY1').onchange=ev=>{ mtY1=+ev.target.value||d.years[d.years.length-1]; mtRender(d); };
+  document.getElementById('mtAn').onchange=ev=>{ mtShowAnom=ev.target.checked; mtRender(d); };
+  document.getElementById('mtUpd').onclick=async ev=>{
+    ev.target.disabled=true;
+    const stEl=document.getElementById('mtUpdSt');
+    try{ stEl.textContent=await mtAutoupdate(m=>{ stEl.textContent=m; }); }
+    catch(e){ stEl.textContent='ошибка обновления: '+e.message; }
+    ev.target.disabled=false;
+    mtRender(mtData());
+  };
+  document.querySelectorAll('#mtTabs button').forEach(b=>b.onclick=()=>{ mtView=b.dataset.v; mtRender(d); });
+  mtRenderView(d);
+}
+function mtRenderView(d){
+  const out=document.getElementById('mtOut');
+  const k=mtParam, nm=METEO_P[k];
+  if(mtView==='chart'){
+    out.innerHTML='<canvas id="mtCv" style="width:100%; height:400px; border:1px solid var(--line); border-radius:6px; background:#fff"></canvas><div style="font-size:11.5px; color:var(--mut); margin-top:4px">Точки — помесячные значения; синяя линия — скользящее среднее 12 мес.; чёрный пунктир — линейный тренд; красные кружки — аномалии |z| ≥ 2,5.</div>';
+    mtChart(document.getElementById('mtCv'), d, k);
+  }
+  if(mtView==='table'){
+    const clim=mtClim(d,k);
+    let h='<div style="max-height:55vh; overflow-y:auto"><table class="mt-tbl"><tr><th>Год</th>'+MT_MON.map(m=>'<th>'+m+'</th>').join('')+'<th>'+(k==='pr'?'Σ год':'Ср. год')+'</th></tr>';
+    d.years.forEach((y,i)=>{
+      if(y<mtY0||y>mtY1) return;
+      const row=(d.m[k]||[])[i]||[];
+      const agg=mtYearAgg({years:[y], m:{[k]:[row]}},k)[0];
+      h+='<tr><td><b>'+y+'</b></td>'+row.map((v,mo)=>{
+        if(v===null||v===undefined) return '<td style="color:#bbb">—</td>';
+        let cls='';
+        if(clim.mean[mo]!==null){ const z=(v-clim.mean[mo])/clim.sd[mo]; if(Math.abs(z)>=2.5) cls=' class="mt-anom"'; else if(Math.abs(z)>=2) cls=' class="mt-anom2"'; }
+        return '<td'+cls+'>'+v+'</td>';
+      }).join('')+'<td><b>'+(agg?agg.v:'—')+'</b></td></tr>';
+    });
+    out.innerHTML=h+'</table></div><div style="font-size:11.5px; color:var(--mut); margin-top:4px">Подсветка: красная — |z| ≥ 2,5 (аномалия), жёлтая — |z| ≥ 2,0 относительно месячной климатологии ряда.</div>';
+  }
+  if(mtView==='anoms'){
+    const an=mtAnoms(d,k,2.5).filter(a=>a.y>=mtY0&&a.y<=mtY1);
+    let h='<table class="mt-tbl"><tr><th>№</th><th>Дата</th><th>Значение</th><th>Норма месяца</th><th>z</th><th>Характер</th></tr>';
+    an.slice(0,50).forEach((a,i)=>{
+      h+='<tr><td>'+(i+1)+'</td><td>'+MT_MON[a.mo]+' '+a.y+'</td><td>'+a.v+'</td><td>'+a.norm+'</td><td><b>'+(a.z>0?'+':'')+a.z+'</b></td><td class="'+(Math.abs(a.z)>=3?'mt-anom':'mt-anom2')+'">'+(a.z>0?'выше нормы':'ниже нормы')+(Math.abs(a.z)>=3?' (экстремум)':'')+'</td></tr>';
+    });
+    out.innerHTML='<div style="font-size:12.5px; margin:4px 0">Параметр: <b>'+esc(nm)+'</b> · выявлено аномалий: <b>'+an.length+'</b> (показаны 50 крупнейших)</div>'+h+'</table>';
+  }
+  if(mtView==='trends'){
+    let h='<table class="mt-tbl"><tr><th style="text-align:left">Параметр</th><th>Период</th><th>Тренд, ед./10 лет</th><th>R²</th><th>За 30 последних лет, /10 лет</th><th>R²</th></tr>';
+    Object.keys(METEO_P).forEach(kk=>{
+      const ag=mtYearAgg(d,kk); if(ag.length<8) return;
+      const l1=mtLin(ag.map(a=>a.y),ag.map(a=>a.v));
+      const ag2=ag.slice(-30);
+      const l2=mtLin(ag2.map(a=>a.y),ag2.map(a=>a.v));
+      h+='<tr><td style="text-align:left">'+METEO_P[kk]+'</td><td>'+ag[0].y+'–'+ag[ag.length-1].y+'</td><td><b>'+(l1?(l1.k*10>=0?'+':'')+(l1.k*10).toFixed(2):'—')+'</b></td><td>'+(l1?l1.r2:'—')+'</td><td><b>'+(l2?(l2.k*10>=0?'+':'')+(l2.k*10).toFixed(2):'—')+'</b></td><td>'+(l2?l2.r2:'—')+'</td></tr>';
+    });
+    h+='</table>';
+    const ag=mtYearAgg(d,'t');
+    if(ag.length>=10){
+      h+='<h3 style="font-size:13.5px; margin:12px 0 4px">Тренды температуры по календарным месяцам, °C/10 лет ('+ag[0].y+'–'+ag[ag.length-1].y+')</h3><table class="mt-tbl"><tr>'+MT_MON.map(m=>'<th>'+m+'</th>').join('')+'</tr><tr>';
+      for(let mo=0;mo<12;mo++){
+        const xs=[], ys=[];
+        d.years.forEach((y,i)=>{ const v=((d.m.t||[])[i]||[])[mo]; if(v!==null&&v!==undefined){ xs.push(y); ys.push(v); } });
+        const l=mtLin(xs,ys);
+        const val=l?l.k*10:null;
+        h+='<td style="'+(val!==null&&val>0.3?'background:#fdeceb; color:#a02518; font-weight:600':'')+'">'+(val!==null?(val>=0?'+':'')+val.toFixed(2):'—')+'</td>';
+      }
+      h+='</tr></table>';
+    }
+    out.innerHTML=h;
+  }
+  if(mtView==='fc'){
+    const ag=mtYearAgg(d,k);
+    const lin=ag.length>=10?mtLin(ag.map(a=>a.y),ag.map(a=>a.v)):null;
+    if(!lin){ out.innerHTML='<div class="normref">Недостаточно данных для прогноза по параметру «'+esc(nm)+'».</div>'; return; }
+    const res=ag.map(a=>a.v-(lin.k*a.y+lin.b));
+    const sigma=Math.sqrt(res.reduce((s,v)=>s+v*v,0)/Math.max(1,res.length-2));
+    const y0=ag[ag.length-1].y;
+    let rows='';
+    for(let y=y0+1;y<=y0+5;y++){
+      const v=lin.k*y+lin.b;
+      rows+='<tr><td><b>'+y+'</b></td><td>'+v.toFixed(k==='pr'?0:1)+'</td><td>'+(v-1.96*sigma).toFixed(k==='pr'?0:1)+' … '+(v+1.96*sigma).toFixed(k==='pr'?0:1)+'</td></tr>';
+    }
+    out.innerHTML=`<div class="normref">Модель: годовая величина = линейный тренд МНК (${ag[0].y}–${y0}, R²=${lin.r2}); сезонный ход — месячная климатология ряда; полоса ±1,96σ (σ остатков = ${sigma.toFixed(2)}). Прогноз индикативный, для инженерных расчётов применяются нормативные значения СП 131.13330.</div>
+    <table class="mt-tbl" style="width:auto"><tr><th>Год</th><th>${k==='pr'?'Σ осадков, мм':'Среднее, '+esc(nm.split(', ')[1]||'')}</th><th>Доверительный интервал 95%</th></tr>${rows}</table>
+    <canvas id="mtFc" style="width:100%; height:340px; border:1px solid var(--line); border-radius:6px; background:#fff; margin-top:8px"></canvas>`;
+    mtChartFc(document.getElementById('mtFc'), ag, lin, sigma, k);
+  }
+  if(mtView==='sp'){
+    const sp=mtSP(d);
+    if(!sp){ out.innerHTML='<div class="normref">Недостаточно полных годовых рядов температуры.</div>'; return; }
+    out.innerHTML=`<div class="normref">Расчёт по помесячному ряду температуры воздуха за последние ${sp.nY} полных лет (${sp.period}). Метод: периоды отрицательных/положительных температур — по устойчивому переходу среднемесячных значений через 0 °C; продолжительность — сумма суток месяцев периода × 24 ч. Величины T_f,m, t_f,m, T_th,c, t_th,c применяются в формулах прил. Г СП 25.13330.2020; при проектных расчётах сверять с нормами СП 131.13330 для п. Норильск.</div>
+    <table class="mt-tbl" style="width:auto">
+      <tr><th style="text-align:left">Величина</th><th>Обозн.</th><th>Значение</th></tr>
+      ${[['Среднегодовая температура воздуха, °C','T₀', sp.MGT],
+        ['Средняя температура воздуха за период отрицательных температур, °C','T_f,m', sp.Tfm],
+        ['Продолжительность периода отрицательных температур, ч','t_f,m', sp.tfm],
+        ['Средняя температура воздуха за период положительных температур, °C','T_th,c*', sp.Ttc],
+        ['Продолжительность периода положительных температур, ч','t_th,c', sp.ttc],
+        ['Сумма отрицательных градусо-суток за год, °C·сут (индекс промерзания)','Ω_f', sp.OmF],
+        ['Сумма положительных градусо-суток за год, °C·сут (индекс оттаивания)','Ω_t', sp.OmT],
+        ['Средняя из максимальных зимних высот снежного покрова, см (годы с данными: '+(sp.snPeriod||'—')+')','h_sn', sp.snH!==undefined?sp.snH:'—'],
+        ['Средняя плотность снежного покрова, г/см³ (годы с данными: '+(sp.sdPeriod||'—')+')','ρ_sn', sp.sdM!==undefined?sp.sdM:'—']]
+      .map(r=>'<tr><td style="text-align:left">'+r[0]+'</td><td>'+r[1]+'</td><td><b>'+r[2]+'</b></td></tr>').join('')}
+    </table>
+    <div style="font-size:11.5px; color:var(--mut); margin-top:4px">* для формул прил. Г требуется температура поверхности грунта; в инженерной методике допускается принимать по температуре воздуха с поправками на покров — уточняется при расчёте в карточке объекта.</div>
+    <button id="mtToCalc" style="margin-top:8px; border:1px solid #2f6fb2; color:#fff; background:#2f6fb2; border-radius:6px; padding:6px 14px; font-size:12.5px; cursor:pointer">Передать в раздел «РАСЧЕТЫ» карточки объекта</button>
+    <span id="mtToCalcSt" style="font-size:12px; color:#2e7d32; margin-left:8px"></span>`;
+    document.getElementById('mtToCalc').onclick=()=>{
+      try{ sessionStorage.setItem('ngk_meteo_sp', JSON.stringify(sp)); }catch(e){}
+      document.getElementById('mtToCalcSt').textContent='сохранено — автозаполнение расчётов карточки использует эти величины';
+    };
+  }
+}
+function mtChart(cv,d,k){
+  const ctx=cv.getContext('2d');
+  const W=cv.clientWidth, H=400;
+  cv.width=W*2; cv.height=H*2; ctx.scale(2,2);
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+  const pts=[];
+  d.years.forEach((y,i)=>{
+    if(y<mtY0||y>mtY1) return;
+    ((d.m[k]||[])[i]||[]).forEach((v,mo)=>{ if(v!==null&&v!==undefined) pts.push({x:y+(mo+0.5)/12, y: y, mo, v}); });
+  });
+  if(pts.length<4){ ctx.fillStyle='#666'; ctx.font='13px sans-serif'; ctx.fillText('нет данных за выбранный период',20,30); return; }
+  let vmn=Infinity, vmx=-Infinity;
+  pts.forEach(p=>{ if(p.v<vmn) vmn=p.v; if(p.v>vmx) vmx=p.v; });
+  const pad=(vmx-vmn)*0.08||1; vmn-=pad; vmx+=pad;
+  const L=56, R=14, T=14, B=30;
+  const xs=mtY0, xe=mtY1+1;
+  const px=x=>L+(x-xs)/(xe-xs)*(W-L-R);
+  const py=v=>T+(vmx-v)/(vmx-vmn)*(H-T-B);
+  ctx.strokeStyle='#000'; ctx.lineWidth=1;
+  ctx.strokeRect(L,T,W-L-R,H-T-B);
+  ctx.font='10px sans-serif'; ctx.fillStyle='#333'; ctx.textAlign='center';
+  const step=Math.max(1,Math.round((xe-xs)/12));
+  for(let y=Math.ceil(xs);y<xe;y+=step){ ctx.fillText(y,px(y),H-14); ctx.strokeStyle='#e6e6e6'; ctx.beginPath(); ctx.moveTo(px(y),T); ctx.lineTo(px(y),H-B); ctx.stroke(); }
+  ctx.textAlign='right';
+  for(let g=0;g<=5;g++){ const v=vmn+(vmx-vmn)*g/5; ctx.fillText((Math.abs(v)<10?v.toFixed(1):v.toFixed(0)),L-6,py(v)+3); ctx.strokeStyle='#e6e6e6'; ctx.beginPath(); ctx.moveTo(L,py(v)); ctx.lineTo(W-R,py(v)); ctx.stroke(); }
+  ctx.save(); ctx.beginPath(); ctx.rect(L,T,W-L-R,H-T-B); ctx.clip();
+  ctx.strokeStyle='#b9c6d2'; ctx.lineWidth=1; ctx.beginPath();
+  pts.forEach((p,i)=>{ const X=px(p.x), Y=py(p.v); if(i===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y); });
+  ctx.stroke();
+  const ma=[];
+  for(let i=0;i<pts.length;i++){ let s=0,n=0; for(let j=Math.max(0,i-11);j<=i;j++){ s+=pts[j].v; n++; } ma.push({x:pts[i].x, v:s/n}); }
+  ctx.strokeStyle='#2f6fb2'; ctx.lineWidth=2; ctx.beginPath();
+  ma.forEach((p,i)=>{ const X=px(p.x), Y=py(p.v); if(i===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y); });
+  ctx.stroke();
+  const ag=mtYearAgg(d,k).filter(a=>a.y>=mtY0&&a.y<=mtY1);
+  const lin=mtLin(ag.map(a=>a.y),ag.map(a=>a.v));
+  if(lin){
+    ctx.strokeStyle='#000'; ctx.setLineDash([5,4]); ctx.lineWidth=1.2; ctx.beginPath();
+    ctx.moveTo(px(xs),py(lin.k*xs+lin.b)); ctx.lineTo(px(xe),py(lin.k*xe+lin.b));
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+  if(mtShowAnom){
+    const clim=mtClim(d,k);
+    pts.forEach(p=>{
+      if(clim.mean[p.mo]===null) return;
+      const z=(p.v-clim.mean[p.mo])/clim.sd[p.mo];
+      if(Math.abs(z)>=2.5){ ctx.strokeStyle='#c8372d'; ctx.lineWidth=1.6; ctx.beginPath(); ctx.arc(px(p.x),py(p.v),4,0,6.29); ctx.stroke(); }
+    });
+  }
+  ctx.restore();
+  ctx.fillStyle='#333'; ctx.textAlign='left'; ctx.font='11px sans-serif';
+  ctx.fillText(METEO_P[k]+' · '+mtY0+'–'+mtY1, L+4, T+12);
+}
+function mtChartFc(cv,ag,lin,sigma,k){
+  const ctx=cv.getContext('2d');
+  const W=cv.clientWidth, H=340;
+  cv.width=W*2; cv.height=H*2; ctx.scale(2,2);
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+  const tail=ag.slice(-15);
+  const y0=ag[ag.length-1].y, ys=[];
+  for(let y=y0+1;y<=y0+5;y++) ys.push({y, v:lin.k*y+lin.b});
+  const all=tail.map(a=>({y:a.y, v:a.v})).concat(ys);
+  let vmn=Infinity, vmx=-Infinity;
+  all.forEach(p=>{ if(p.v<vmn) vmn=p.v; if(p.v>vmx) vmx=p.v; });
+  vmn=Math.min(vmn, lin.k*(y0+5)+lin.b-1.96*sigma)-0.5; vmx=Math.max(vmx, lin.k*(y0+5)+lin.b+1.96*sigma)+0.5;
+  const L=56, R=14, T=14, B=30;
+  const px=x=>L+(x-tail[0].y)/(y0+6-tail[0].y)*(W-L-R);
+  const py=v=>T+(vmx-v)/(vmx-vmn)*(H-T-B);
+  ctx.strokeStyle='#000'; ctx.strokeRect(L,T,W-L-R,H-T-B);
+  ctx.font='10px sans-serif'; ctx.fillStyle='#333'; ctx.textAlign='center';
+  for(let y=tail[0].y;y<=y0+5;y+=2){ ctx.fillText(y,px(y),H-14); }
+  ctx.textAlign='right';
+  for(let g=0;g<=4;g++){ const v=vmn+(vmx-vmn)*g/4; ctx.fillText(v.toFixed(1),L-6,py(v)+3); ctx.strokeStyle='#e6e6e6'; ctx.beginPath(); ctx.moveTo(L,py(v)); ctx.lineTo(W-R,py(v)); ctx.stroke(); }
+  ctx.fillStyle='rgba(47,111,178,.12)'; ctx.beginPath();
+  ys.forEach((p,i)=>{ const X=px(p.y), Y=py(p.v-1.96*sigma); if(i===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y); });
+  for(let i=ys.length-1;i>=0;i--) ctx.lineTo(px(ys[i].y),py(ys[i].v+1.96*sigma));
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='#2f6fb2'; ctx.lineWidth=2; ctx.beginPath();
+  tail.forEach((p,i)=>{ const X=px(p.y), Y=py(p.v); if(i===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y); });
+  ctx.stroke();
+  ctx.strokeStyle='#c8372d'; ctx.setLineDash([5,4]); ctx.beginPath();
+  ctx.moveTo(px(y0),py(tail[tail.length-1].v));
+  ys.forEach(p=>ctx.lineTo(px(p.y),py(p.v)));
+  ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle='#333'; ctx.textAlign='left'; ctx.font='11px sans-serif';
+  ctx.fillText((k==='pr'?'Σ осадков, мм':'Среднее за год')+': факт (синяя) и прогноз (красный пунктир) с полосой ±1,96σ', L+4, T+12);
+}
+document.getElementById('meteoBtn').onclick=meteoOpen;
+document.getElementById('meteoClose').onclick=()=>{ document.getElementById('meteoModal').style.display='none'; };
+setTimeout(()=>{ try{
+  const st=mtStore();
+  if(st.ts&&Date.now()-st.ts<20*3600e3) return;
+  mtAutoupdate().then(()=>{}).catch(()=>{});
+}catch(e){} }, 5000); // тихое ежедневное пополнение метеоряда при открытии приложения
+
 };
-const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",ivD:"x9n/W/XtN6zU8ikQ"};
+const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",ivD:"iDDubdhI1TsG9RIQ"};
 function enterApp(role){ sessionStorage.setItem("ngk_role",role); document.body.classList.add("authed","role-"+role); document.getElementById("loginModal").style.display="none"; document.getElementById("roleBadge").textContent=role==="edit"?"оператор":"наблюдатель"; }
 const _b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 async function _unwrap(pw,saltB,ivB,wrapB){
