@@ -1750,17 +1750,36 @@ function tabCokPer(o, el){
   ${reportSrc(o)}`;
 }
 function tabCokOgr(o, el){
+  const vc=ventCheck(o);
+  const dm=parseDims(o), pv=parseVent(o);
+  const vcCol=vc.st.s==='НОРМА'?GTM_COL.ok:(vc.st.s==='НЕДОСТАТОЧНО'?GTM_COL.warn:(vc.st.s==='—'?GTM_COL.na:GTM_COL.bad));
   el.innerHTML=`
-  <div class="normref">СП 497.1325800.2020 (вентиляционные продухи, отмостка, цоколь); ВСН 01-89; ГОСТ 31937-2024.</div>
+  <div class="normref">СП 497.1325800.2020 (вентиляционные продухи, отмостка, цоколь); Правила № 170, п. 4.1.4 (площадь и размещение продухов); СП 25.13330.2020, разд. 6.3, прил. Д (расчёт проветриваемого подполья); ВСН 01-89; ГОСТ 31937-2024.</div>
   <div class="sect">Конструкция и вентиляция</div>
   <table class="kv">
     ${pfRow(o,'cokol','Цокольное ограждение')}
     ${pfRow(o,'vent','Вентилирование подполья (продухи)')}
     ${pfRow(o,'otmostka','Отмостка')}
   </table>
+  <div class="sect">Нормативная проверка продухов — Правила № 170, п. 4.1.4; СП 25.13330.2020, разд. 6.3</div>
+  <table class="kv">
+    <tr><td>Площадь подполья S, м²</td><td>${inp(o,'cok','vs','','number')} <span class="note">— если пусто: ${dm?dm.A+' м² по габаритам в осях (паспорт)':'принимается по габаритам в осях из паспорта'}</span></td></tr>
+    <tr><td>Число секций дома</td><td>${inp(o,'cok','vsec','1','number')} <span class="note">— норма: не менее 2 продухов на каждую секцию</span></td></tr>
+    <tr><td>Число продухов, шт</td><td>${inp(o,'cok','vn','','number')} ${pv.n!==null?`<span class="note">— если пусто: ${pv.n} (из паспорта/отчёта)</span>`:''}</td></tr>
+    <tr><td>Сечение одного продуха, м</td><td>${inp(o,'cok','vw','0.25')} × ${inp(o,'cok','vh','0.25')} <span class="note">— типовое 0,25 × 0,25 м</span></td></tr>
+    <tr><td>Продухи на противоположных стенах</td><td>${sel(o,'cok','vopp','',['','да','нет'])} <span class="note">— для сквозного проветривания (п. 4.1.4)</span></td></tr>
+  </table>
+  <div style="margin:8px 0; padding:8px 12px; border-radius:6px; background:#f6f7f9; border-left:4px solid ${vcCol}">
+    <b>Заключение по продухам: <span style="color:${vcCol}">${vc.st.s}</span></b>
+    ${vc.Sreq!==null?`<div style="margin-top:4px">Требуемая суммарная площадь: S/400 = ${vc.S} / 400 = <b>${vc.Sreq.toFixed(2)} м²</b>; фактическая: ${vc.n!==null?(vc.n+' продух(а) × '+vc.w+' × '+vc.h+' м = <b>'+vc.F0.toFixed(2)+' м²</b>'):'—'}; минимум по числу: 2 × ${vc.nSec} секц. = ${vc.Nmin} шт${vc.Nreq!==null&&vc.Nreq>vc.Nmin?(' (с учётом площади — не менее <b>'+vc.Nreq+' шт</b>)'):''}.</div>`:''}
+    <div class="note" style="margin-top:4px">${esc(vc.st.d)}</div>
+    <div class="note" style="margin-top:4px">Для зданий на ММГ по принципу I число и площадь продухов уточняются теплотехническим расчётом проветриваемого подполья — СП 25.13330.2020, разд. 6.3, прил. Д (см. «РАСЧЕТЫ → Вентиляция подполья»); проверка 1/400 — обязательный минимум Правил № 170. Требование t ≥ +5 °C (разд. 4.1 Правил № 170) относится к подвалам жилых домов и к холодным проветриваемым подпольям на ММГ не применяется. Заключение синхронизировано с «Паспортом ГТМ».</div>
+  </div>
   <div class="sect">Дефекты и повреждения</div>
   ${defectBlock(o,['cok_ograd'])}
   ${reportSrc(o)}`;
+  wireEd(o, el, 'cok');
+  el.querySelectorAll('.ed[data-scope="cok"]').forEach(i2=>i2.addEventListener('change',()=>renderTab(o)));
 }
 
 /* --- редактируемые поля карточки: <input|select|textarea class="ed" data-scope data-k> --- */
@@ -2303,9 +2322,10 @@ function gtmCalc(o){
 }
 function tabGtm(o, el){
   const g=gtmCalc(o);
+  const vc=ventCheck(o);
   const ro=!document.body.classList.contains('role-edit');
   const WORST={'ТРЕБУЕТСЯ ДООСНАСТКА':4,'НЕ ПРОВОДЯТСЯ':3,'НЕДОСТАТОЧНО':2,'НОРМА':1,'—':0};
-  const all=[g.eqWells,g.eqMarks,g.eqHgw,g.frTemp,g.frGeod,g.frOsmT,g.frOsmS];
+  const all=[g.eqWells,g.eqMarks,g.eqHgw,g.frTemp,g.frGeod,g.frOsmT,g.frOsmS,vc.st];
   const worst=all.reduce((a,b)=>WORST[b.s]>WORST[a.s]?b:a);
   const recs=[];
   if(g.eqWells.s==='ТРЕБУЕТСЯ ДООСНАСТКА') recs.push(`оборудовать термометрические скважины в количестве не менее ${g.wellsReq} (не менее 2 % общего числа свай) — СП 25.13330.2020, прил. М, табл. М.1`);
@@ -2316,9 +2336,10 @@ function tabGtm(o, el){
   if(g.frTemp.s!=='НОРМА') recs.push(`восстановить режимные замеры температуры грунта: требуется ${g.tempReq} раз(а) в год (${g.princip==='I'?'в конце летнего периода и в середине зимы':'по табл. 9.1 для принципа II'}) — СП 497.1325800.2020, табл. 9.1`);
   if(g.frGeod.s!=='НОРМА') recs.push(`восстановить геодезические наблюдения за осадками: требуется ${g.geodReq} раз(а) в год — СП 497.1325800.2020, табл. 9.1`);
   if(g.frOsmS.s!=='НОРМА') recs.push('провести сезонные (весенний и осенний) осмотры — СП 497.1325800.2020, п. 4.7');
+  if(vc.st.s==='НЕДОСТАТОЧНО'||vc.st.s==='ТРЕБУЕТСЯ ДООСНАСТКА') recs.push(`привести вентиляцию подполья в соответствие с нормами (${vc.st.d}) — Правила № 170, п. 4.1.4; СП 25.13330.2020, разд. 6.3, прил. Д`);
   const conclCol=worst.s==='НОРМА'?GTM_COL.ok:(worst.s==='НЕДОСТАТОЧНО'?GTM_COL.warn:GTM_COL.bad);
   el.innerHTML=`
-  <div class="normref">СП 25.13330.2020 «Основания и фундаменты на вечномерзлых грунтах» (действующая редакция с Изм. № 1, 2, 3), разд. 15, прил. М (табл. М.1 — состав сети наблюдений); СП 497.1325800.2020 «…Правила эксплуатации», разд. 4 (осмотры) и разд. 9, табл. 9.1 (периодичность измерений в период эксплуатации). Данные о фактическом оснащении и циклах наблюдений синхронизированы с разделами «Геотермика», «Геодезия» и журналом осмотров (📋).</div>
+  <div class="normref">СП 25.13330.2020 «Основания и фундаменты на вечномерзлых грунтах» (действующая редакция с Изм. № 1, 2, 3), разд. 15, прил. М (табл. М.1 — состав сети наблюдений); СП 497.1325800.2020 «…Правила эксплуатации», разд. 4 (осмотры) и разд. 9, табл. 9.1 (периодичность измерений в период эксплуатации); Правила № 170, п. 4.1.4 (продухи подполья). Данные о фактическом оснащении и циклах наблюдений синхронизированы с разделами «Геотермика», «Геодезия», «Цокольное ограждение» и журналом осмотров (📋).</div>
   <div class="sect">Исходные данные ${ro?'<span class="note">(редактирование — в режиме оператора)</span>':''}</div>
   <table class="kv">
     <tr><td>Принцип использования ММГ</td><td><b>${g.princip}</b> <span class="note">(задаётся в «Паспорте объекта»; продолжительность мониторинга: ${g.princip==='I'?'весь период эксплуатации':'5–10 лет'} — СП 497.1325800.2020, п. 9.6)</span></td></tr>
@@ -2361,6 +2382,10 @@ function tabGtm(o, el){
     <tr><td>Температура воздуха в проветриваемом подполье (табл. 9.1)</td>
       <td>первые 2 года эксплуатации — 2 раза в месяц${g.age!==null&&g.age>2?' <span class="note">(период истёк — контроль по программе)</span>':''}</td>
       <td colspan="2">${inp(o,'gtm','air_fact','')} <span class="note">— замеров за 12 мес. (ручной учёт)</span></td></tr>
+    <tr><td>Состояние вентиляции подполья (продухи) <span class="note">(синхрон.: «Цокольное ограждение»)</span></td>
+      <td>исправны, открыты; ΣS ≈ 1/400 S пола; ≥ 2 на секцию; противоположные стены — Правила № 170, п. 4.1.4; СП 25.13330.2020, прил. Д</td>
+      <td>${vc.n!==null?(vc.n+' продух(а), ΣS = '+(vc.F0!==null?vc.F0.toFixed(2):'—')+' м²'):'—'}</td>
+      <td>${gtmBadge(vc.st)} <span class="note">${esc(vc.st.d)}</span></td></tr>
   </tbody></table>
   <div style="margin:10px 0; padding:9px 12px; border-radius:6px; background:#f6f7f9; border-left:4px solid ${conclCol}">
     <b>Заключение по обеспеченности мониторингом: <span style="color:${conclCol}">${worst.s==='НОРМА'?'ОБЕСПЕЧЕН (НОРМА)':worst.s}</span></b>
@@ -3910,6 +3935,40 @@ function parseVent(o){ const t=((o.pf2||{}).vent||'');
   const m2=t.match(/общей площадью[^\d]*([\d,]+)/i);
   if(m2) F0=parseFloat(m2[1].replace(',','.'));
   return {n:n, F0:F0};
+}
+/* --- нормативная проверка продухов: Правила № 170, п. 4.1.4 (ΣS ≈ 1/400 S пола подполья;
+       противоположные стены; ≥ 2 на секцию) + СП 25.13330.2020, разд. 6.3, прил. Д (уточнение расчётом).
+       Источники факта: ручной ввод в «Цокольном ограждении» → паспорт/отчёт (parseVent) → габариты (parseDims). --- */
+function ventCheck(o){
+  const pv=parseVent(o), dm=parseDims(o);
+  const sRaw=parseFloat(edVal(o,'cok','vs',''));
+  const S=(!isNaN(sRaw)&&sRaw>0)?sRaw:(dm?dm.A:null);
+  const nSec=parseInt(edVal(o,'cok','vsec',''))||1;
+  const nRaw=parseInt(edVal(o,'cok','vn',''));
+  const n=!isNaN(nRaw)?nRaw:(pv.n!==null?pv.n:null);
+  const w=parseFloat(edVal(o,'cok','vw',''))||0.25;
+  const h=parseFloat(edVal(o,'cok','vh',''))||0.25;
+  const opp=edVal(o,'cok','vopp','');
+  const F1=+(w*h).toFixed(4);
+  const F0=(n!==null)?+(n*F1).toFixed(3):null;
+  const Sreq=(S!==null)?+(S/400).toFixed(2):null;
+  const Nmin=2*nSec;
+  const Nreq=(Sreq!==null&&F1>0)?Math.max(Nmin,Math.ceil(Sreq/F1-1e-9)):null;
+  const det=[];
+  let st={s:'—', d:'нет данных — задайте площадь подполья и число продухов (вкладка «Цокольное ограждение»)'};
+  if(S===null||n===null){ /* остаётся «нет данных» */ }
+  else if(n===0){ st={s:'ТРЕБУЕТСЯ ДООСНАСТКА', d:'продухи отсутствуют (0 шт)'}; }
+  else{
+    const areaOK=F0>=Sreq-1e-9, countOK=n>=Nmin;
+    if(!areaOK) det.push('дефицит площади: '+F0.toFixed(2)+' м² из '+Sreq.toFixed(2)+' м² (добавить ≈ '+Math.max(0,Nreq-n)+' продух(а) '+w+' × '+h+' м)');
+    if(!countOK) det.push('число продухов '+n+' меньше минимальных '+Nmin+' (≥ 2 на секцию × '+nSec+' секц.)');
+    if(opp==='нет') det.push('продухи не на противоположных стенах — сквозное проветривание не обеспечено');
+    if(opp==='') det.push('размещение по фасадам не зафиксировано — подтвердить при осмотре');
+    if(areaOK&&countOK&&opp==='да') st={s:'НОРМА', d:n+' продух(а), ΣS = '+F0.toFixed(2)+' м² ≥ '+Sreq.toFixed(2)+' м²; размещение на противоположных стенах'};
+    else if(areaOK&&countOK&&opp==='') st={s:'НОРМА', d:n+' продух(а), ΣS = '+F0.toFixed(2)+' м² ≥ '+Sreq.toFixed(2)+' м²; размещение уточнить при осмотре'};
+    else st={s:'НЕДОСТАТОЧНО', d:det.join('; ')};
+  }
+  return {S:S, nSec:nSec, n:n, w:w, h:h, F1:F1, F0:F0, Sreq:Sreq, Nmin:Nmin, Nreq:Nreq, opp:opp, st:st, det:det};
 }
 function parsePile(o){ const t=((o.pf2||{}).fund||'');
   let U=null, Ap=null, L=null, note='';
