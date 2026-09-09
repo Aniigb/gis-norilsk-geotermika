@@ -451,14 +451,14 @@
   </div>
 </div>
 
-<script src="db_p1.js?v=9c2fb80e"></script>
-<script src="db_p2.js?v=9c2fb80e"></script>
-<script src="db_p3.js?v=9c2fb80e"></script>
-<script src="db_p4.js?v=9c2fb80e"></script>
-<script src="db_p5.js?v=9c2fb80e"></script>
-<script src="db_p6.js?v=9c2fb80e"></script>
-<script src="db_p7.js?v=9c2fb80e"></script>
-<script src="db_p8.js?v=9c2fb80e"></script>
+<script src="db_p1.js?v=d031fc01"></script>
+<script src="db_p2.js?v=d031fc01"></script>
+<script src="db_p3.js?v=d031fc01"></script>
+<script src="db_p4.js?v=d031fc01"></script>
+<script src="db_p5.js?v=d031fc01"></script>
+<script src="db_p6.js?v=d031fc01"></script>
+<script src="db_p7.js?v=d031fc01"></script>
+<script src="db_p8.js?v=d031fc01"></script>
 
 <div id="loginModal">
   <form class="lbox" id="loginForm">
@@ -677,63 +677,72 @@ window.addEventListener('orientationchange', ()=>{ map.invalidateSize(); if(curO
 const osmTiles=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap'});
 const satTiles=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19, attribution:'Esri, Maxar, Earthstar Geographics'});
 satTiles.addTo(map);
-const hydroGroup=L.layerGroup(), thermGroup=L.layerGroup();
-L.control.layers({'Спутник (Esri)':satTiles,'Карта (OSM)':osmTiles},{'💧 Сток по рельефу (модель, ЦМР 30 м)':hydroGroup,'🌡 Тепловая карта грунтов':thermGroup},{position:'topright'}).addTo(map);
-map.on('overlayadd',e=>{ if(e.layer===hydroGroup) hydroToggle(true); if(e.layer===thermGroup) thermToggle(true); });
-map.on('overlayremove',e=>{ if(e.layer===hydroGroup) hydroToggle(false); if(e.layer===thermGroup) thermToggle(false); });
+const hydroGroup=L.layerGroup(), thermGroup=L.layerGroup(), hydroOgGroup=L.layerGroup(), fpGroup=L.layerGroup();
+L.control.layers({'Спутник (Esri)':satTiles,'Карта (OSM)':osmTiles},{'💧 Сток по рельефу (модель, ЦМР 30 м)':hydroGroup,'💧 Оганер · сток (ЦМР 5 см, тест)':hydroOgGroup,'🏢 Контуры зданий · Оганер':fpGroup,'🌡 Тепловая карта грунтов':thermGroup},{position:'topright'}).addTo(map);
+map.on('overlayadd',e=>{ if(e.layer===hydroGroup) hydroToggle(true,'city'); if(e.layer===hydroOgGroup) hydroToggle(true,'oganer'); if(e.layer===fpGroup) fpToggle(true); if(e.layer===thermGroup) thermToggle(true); });
+map.on('overlayremove',e=>{ if(e.layer===hydroGroup) hydroToggle(false,'city'); if(e.layer===hydroOgGroup) hydroToggle(false,'oganer'); if(e.layer===fpGroup) fpToggle(false); if(e.layer===thermGroup) thermToggle(false); });
 const labelPos = {"Центральный":[69.349,88.19],"Талнах":[69.494,88.40],"Кайеркан":[69.352,87.755]};
 for(const [name, rings] of Object.entries(DB.districts)){
   L.polygon(rings.map(r=>r.map(p=>[p[0],p[1]])),{color:DCOL[name],weight:2.5,fillColor:DCOL[name],fillOpacity:.06,dashArray:'6 4'}).addTo(map);
   L.marker(labelPos[name],{interactive:false,icon:L.divIcon({className:'district-label',html:name.toUpperCase(),iconSize:null})}).addTo(map);
 }
 
-/* ---------- слой гидрологической модели поверхностного стока (ЦМР Copernicus 30 м, D8) ---------- */
-let hydroLoaded=false, hydroGrid=null, hydroAnimOn=false, hydroParts=[], hydroRAF=0;
+/* ---------- слои гидрологической модели поверхностного стока (D8): город — ЦМР Copernicus 30 м; Оганер — ЦМР 5 см (тест) ---------- */
+const hydroSets={
+  city:{group:hydroGroup, flow:'hydro_flow.json', grid:'hydro_grid.json', loaded:false, grid:null, parts:[], nParts:380, color:'rgba(150,220,255,.9)'},
+  oganer:{group:hydroOgGroup, flow:'hydro_oganer_flow.json', grid:'hydro_oganer_grid.json', loaded:false, grid:null, parts:[], nParts:300, color:'rgba(120,200,255,.9)'}
+};
+let hydroAnimOn={city:false,oganer:false}, hydroRAF=0;
 let hydroCv=null;
-async function hydroLoad(){
-  if(hydroLoaded) return;
-  const [fc, gr]=await Promise.all([fetch('hydro_flow.json').then(r=>r.json()), fetch('hydro_grid.json').then(r=>r.json())]);
-  L.geoJSON(fc,{renderer:L.canvas(), style:f=>({color:'#2f8fd4', weight:0.7+f.properties.w*0.55, opacity:.8})}).addTo(hydroGroup);
-  hydroGrid=gr; hydroLoaded=true;
+async function hydroLoad(key){
+  const S=hydroSets[key];
+  if(S.loaded) return;
+  const [fc, gr]=await Promise.all([fetch(S.flow).then(r=>r.json()), fetch(S.grid).then(r=>r.json())]);
+  L.geoJSON(fc,{renderer:L.canvas(), style:f=>({color:'#2f8fd4', weight:0.7+f.properties.w*0.55, opacity:.8})}).addTo(S.group);
+  S.grid=gr; S.loaded=true;
 }
-function hydroSeed(){
-  hydroParts=[];
-  const {nx,ny,a}=hydroGrid;
+function hydroSeed(key){
+  const S=hydroSets[key];
+  S.parts=[];
+  const {nx,ny,a}=S.grid;
   let guard=0;
-  while(hydroParts.length<380&&guard++<6000){
+  while(S.parts.length<S.nParts&&guard++<6000){
     const ix=Math.floor(Math.random()*nx), iy=Math.floor(Math.random()*ny);
-    if(a[iy]&&a[iy][ix]>3) hydroParts.push({ix,iy,fx:0,fy:0,age:0,max:160+Math.random()*300});
+    if(a[iy]&&a[iy][ix]>3) S.parts.push({ix,iy,fx:0,fy:0,age:0,max:160+Math.random()*300});
   }
 }
 function hydroStep(){
-  if(!hydroAnimOn) return;
+  if(!hydroAnimOn.city&&!hydroAnimOn.oganer) return;
   const ctx=hydroCv.getContext('2d');
   // шлейф: медленное затухание предыдущего кадра вместо полной очистки
   ctx.globalCompositeOperation='destination-out';
   ctx.fillStyle='rgba(0,0,0,0.045)';
   ctx.fillRect(0,0,hydroCv.width,hydroCv.height);
   ctx.globalCompositeOperation='source-over';
-  const {bbox,nx,ny,u,v,a}=hydroGrid;
-  ctx.fillStyle='rgba(150,220,255,.9)';
-  hydroParts.forEach(p=>{
-    p.age++;
-    const ix=Math.round(p.ix+p.fx), iy=Math.round(p.iy+p.fy);
-    if(p.age>p.max||ix<0||iy<0||ix>=nx||iy>=ny||!a[iy]||a[iy][ix]<3){
-      Object.assign(p,{fx:0,fy:0,age:0});
-      let guard=0;
-      while(guard++<300){ const jx=Math.floor(Math.random()*nx), jy=Math.floor(Math.random()*ny);
-        if(a[jy]&&a[jy][jx]>3){ p.ix=jx; p.iy=jy; return; } }
-      p.age=p.max+1; return;
-    }
-    const sp=(0.5+1.8*Math.min(1,Math.log10(a[iy][ix])/3))*0.055;  // медленный режим
-    p.fx+=u[iy][ix]*sp; p.fy+=-v[iy][ix]*sp;
-    const lon=bbox[0]+(p.ix+p.fx+0.5)/nx*(bbox[2]-bbox[0]);
-    const lat=bbox[3]+(p.iy+p.fy+0.5)/ny*(bbox[1]-bbox[3]);
-    const pt=map.latLngToContainerPoint([lat,lon]);
-    if(pt.x>=0&&pt.y>=0&&pt.x<=hydroCv.width&&pt.y<=hydroCv.height){
-      ctx.beginPath(); ctx.arc(pt.x,pt.y,1.3+Math.min(1.5,Math.log10(a[iy][ix])/3),0,7); ctx.fill();
-    }
-  });
+  for(const key in hydroSets){
+    if(!hydroAnimOn[key]) continue;
+    const S=hydroSets[key], {bbox,nx,ny,u,v,a}=S.grid;
+    ctx.fillStyle=S.color;
+    S.parts.forEach(p=>{
+      p.age++;
+      const ix=Math.round(p.ix+p.fx), iy=Math.round(p.iy+p.fy);
+      if(p.age>p.max||ix<0||iy<0||ix>=nx||iy>=ny||!a[iy]||a[iy][ix]<3){
+        Object.assign(p,{fx:0,fy:0,age:0});
+        let guard=0;
+        while(guard++<300){ const jx=Math.floor(Math.random()*nx), jy=Math.floor(Math.random()*ny);
+          if(a[jy]&&a[jy][jx]>3){ p.ix=jx; p.iy=jy; return; } }
+        p.age=p.max+1; return;
+      }
+      const sp=(0.5+1.8*Math.min(1,Math.log10(a[iy][ix])/3))*0.055;  // медленный режим
+      p.fx+=u[iy][ix]*sp; p.fy+=-v[iy][ix]*sp;
+      const lon=bbox[0]+(p.ix+p.fx+0.5)/nx*(bbox[2]-bbox[0]);
+      const lat=bbox[3]+(p.iy+p.fy+0.5)/ny*(bbox[1]-bbox[3]);
+      const pt=map.latLngToContainerPoint([lat,lon]);
+      if(pt.x>=0&&pt.y>=0&&pt.x<=hydroCv.width&&pt.y<=hydroCv.height){
+        ctx.beginPath(); ctx.arc(pt.x,pt.y,1.3+Math.min(1.5,Math.log10(a[iy][ix])/3),0,7); ctx.fill();
+      }
+    });
+  }
   hydroRAF=requestAnimationFrame(hydroStep);
 }
 function hydroEnsureCanvas(){
@@ -744,16 +753,41 @@ function hydroEnsureCanvas(){
   const rs=()=>{ const r=map.getContainer().getBoundingClientRect(); hydroCv.width=r.width; hydroCv.height=r.height; };
   rs(); map.on('resize movezoom', rs);
 }
-async function hydroToggle(on){
+async function hydroToggle(on,key){
+  const S=hydroSets[key];
   if(on){
-    try{ await hydroLoad(); }catch(e){ alert('Не удалось загрузить данные гидромодели (нужен интернет).'); return; }
-    if(!map.hasLayer(hydroGroup)) hydroGroup.addTo(map);
-    hydroEnsureCanvas(); hydroSeed(); hydroAnimOn=true; hydroStep();
+    try{ await hydroLoad(key); }catch(e){ alert('Не удалось загрузить данные гидромодели (нужен интернет).'); return; }
+    if(!map.hasLayer(S.group)) S.group.addTo(map);
+    hydroEnsureCanvas(); hydroSeed(key); hydroAnimOn[key]=true; hydroStep();
   }else{
-    map.removeLayer(hydroGroup);
-    hydroAnimOn=false; cancelAnimationFrame(hydroRAF);
-    if(hydroCv) hydroCv.getContext('2d').clearRect(0,0,hydroCv.width,hydroCv.height);
+    map.removeLayer(S.group);
+    hydroAnimOn[key]=false;
+    if(!hydroAnimOn.city&&!hydroAnimOn.oganer){
+      cancelAnimationFrame(hydroRAF);
+      if(hydroCv) hydroCv.getContext('2d').clearRect(0,0,hydroCv.width,hydroCv.height);
+    }
   }
+}
+
+/* ---------- интерактивные контуры зданий Оганера (ЦМР 5 см + OSM): подсветка при наведении, клик → карточка объекта ---------- */
+let FP=null;
+async function fpToggle(on){
+  if(on){
+    if(!FP){
+      try{ FP=await fetch('footprints_oganer.json').then(r=>r.json()); }
+      catch(e){ alert('Нет файла footprints_oganer.json (контуры Оганера).'); return; }
+      const FP_SRC={osm:'OSM (адрес)','osm-in':'OSM (точка)','dtm-in':'ЦМР (точка)','dtm-near':'ЦМР (ближайший)'};
+      FP.forEach(e=>{
+        const p=L.polygon(e.rings.map(r=>r.map(pt=>[pt[0],pt[1]])),{color:'#e8a13d',weight:1.5,fillColor:'#e8a13d',fillOpacity:.08});
+        p.bindTooltip(e.a+(e.src?' · периметр: '+(FP_SRC[e.src]||e.src):'')+(e.area?' · '+Math.round(e.area)+' м²':''),{direction:'top'});
+        p.on('mouseover',()=>p.setStyle({fillOpacity:.4,weight:2.5}));
+        p.on('mouseout',()=>p.setStyle({fillOpacity:.08,weight:1.5}));
+        p.on('click',()=>select(e.i));
+        p.addTo(fpGroup);
+      });
+    }
+    if(!map.hasLayer(fpGroup)) fpGroup.addTo(map);
+  }else map.removeLayer(fpGroup);
 }
 
 /* ---------- тепловая карта грунтов (IDW-интерполяция по объектам, глубины 3–15 м) ---------- */
@@ -3802,8 +3836,10 @@ document.getElementById('sSave').onclick=()=>{
 
 /* ---------- РАСЧЕТЫ: нормативный агент + калькуляторы ---------- */
 const NORMS_KB=[
- {n:'СП 25.13330.2020 «Основания и фундаменты на вечномерзлых грунтах»',
+ {n:'СП 25.13330.2020 «Основания и фундаменты на вечномерзлых грунтах» (с Изм. № 1, 2, 3)',
   p:['Принципы использования мерзлоты: I — сохранение мёрзлого состояния, II — с допущением оттаивания (п. 5.4)',
+     'Прил. Г: нормативная глубина сезонного оттаивания d_th,n (ф-лы Г.3–Г.8) и промерзания d_f,n (Г.9–Г.10); расчётные глубины d_th = k_h·d_th,n и d_f = k_h·d_f,n, k_h по табл. Г.2 (Г.11–Г.12); k_m по табл. Г.1; теплофизика грунтов — прил. Б',
+     'Изм. № 3: глубину сезонно-талого слоя определяют с учётом повышения температуры приземного воздуха и климатических изменений — в калькуляторе реализовано климатическим сценарием (+10/+25 лет по тренду среднегодовой температуры воздуха метеобазы)',
      'Глубина нулевых годовых колебаний (НГК) — граница сезонных колебаний температуры грунта',
      'Несущая способность вмороженной сваи: Q = q_s·U·L_м + q_p·A_p (сила смерзания по боковой поверхности + сопротивление торца); q_s, q_p — по таблицам СП в зависимости от температуры грунта и его вида',
      'Подполье: проветривание, теплоизоляция пола, водоотвод (разд. 13)']},
@@ -3906,12 +3942,57 @@ function renderNormTables(){
   <details style="margin:3px 0; font-size:12.2px"><summary style="cursor:pointer; font-weight:600">СП 25.13330.2020, прил. В, табл. В.1 — R под нижним концом сваи, кПа</summary>${miniTab(['Вид грунта','Заглубление'].concat(TB_T.map(String)), rRows)}</details>
   <details style="margin:3px 0; font-size:12.2px"><summary style="cursor:pointer; font-weight:600">СНиП 2.02.04-88, табл. 9 — касательная сила морозного пучения τ_fh, кПа</summary>${miniTab(['Грунт / состояние','d_th = 1 м','2 м','3 м'], tfhRows)}</details>
   <details style="margin:3px 0; font-size:12.2px"><summary style="cursor:pointer; font-weight:600">СП 25.13330.2020, прил. Б — температура начала замерзания грунта T_M</summary>${miniTab(['Грунт','T_M, °C'], Object.entries(TB_TM).map(([g,v])=>[g,String(v)]))}</details>
+  <details style="margin:3px 0; font-size:12.2px"><summary style="cursor:pointer; font-weight:600">СП 25.13330.2020, прил. Г, табл. Г.1 — коэффициент k_m для глинистых грунтов</summary>${miniTab(['T̄, °C \\ C_f, Дж/(м³·°C)'].concat(SPG_KM_CF.map(c=>(c/1e6).toFixed(1)+'·10⁶')), SPG_KM.map((row,i)=>[String(SPG_KM_T[i])].concat(row.map(String))))}<div class="note">Для песчаных грунтов k_m = 1,0. T̄ — по формуле Г.8; промежуточные значения — билинейная интерполяция.</div></details>
+  <details style="margin:3px 0; font-size:12.2px"><summary style="cursor:pointer; font-weight:600">СП 25.13330.2020, прил. Г, табл. Г.2 — коэффициент теплового влияния k_h (здания с холодным подпольем)</summary>${miniTab(['Расположение','k_h'], SPG_KH.map(r=>[r[0],String(r[1])]))}</details>
   <details style="margin:3px 0; font-size:12.2px"><summary style="cursor:pointer; font-weight:600">СП 22.13330.2011, прил. Д — предельные деформации основания</summary>${miniTab(['Тип здания','(Δs/L)u','Предельная осадка, см'], TB_DEF.map(r=>[r[0],String(r[1]),String(r[2])]))}</details>
   <details style="margin:3px 0; font-size:12.2px"><summary style="cursor:pointer; font-weight:600">СП 22.13330.2011, прил. Ж — предельные дополнительные деформации существующих зданий</summary>${miniTab(['Тип','Категория техсостояния','(Δs/L)u','s_ad,max, см'], TB_DEF_EX.map(r=>r.map(String)))}</details>`;
 }
 
+/* --- СП 25.13330.2020, прил. Г: нормативная глубина сезонного оттаивания/промерзания --- */
+const SPG_KM_T=[-1,-2,-4,-6,-8,-10];            // табл. Г.1 — шкала средней температуры грунта T̄, °C
+const SPG_KM_CF=[1.3e6,1.7e6,2.1e6,2.5e6];      // табл. Г.1 — шкала C_f, Дж/(м³·°C)
+const SPG_KM=[[6.8,5.9,5.3,5.0],[5.2,4.5,4.0,3.7],[3.7,3.2,2.8,2.5],[3.0,2.6,2.3,2.1],[2.5,2.2,1.9,1.6],[1.8,1.6,1.4,1.2]]; // табл. Г.1 — k_m (глинистые)
+const SPG_KH=[['у наружных стен, отмостка с асфальтовым покрытием',1.2],['у наружных стен, отмостка без асфальтового покрытия',1.0],['у внутренних опор',0.8]]; // табл. Г.2 — k_h (здания с холодным подпольем)
+const SPG_SOIL={ // ориентировочная теплофизика по прил. Б СП 25.13330.2020 (поля редактируются)
+ 'суглинки и глины':{lamTh:1.45,lamF:1.65,rhoD:1500,wTot:0.25,wW:0.10,tbf:-0.20,clay:true},
+ 'супеси':{lamTh:1.35,lamF:1.55,rhoD:1500,wTot:0.22,wW:0.06,tbf:-0.15,clay:true},
+ 'пески мелкие и пылеватые':{lamTh:1.45,lamF:1.70,rhoD:1500,wTot:0.20,wW:0.05,tbf:-0.10,clay:false},
+ 'пески крупной и средней крупности':{lamTh:1.60,lamF:1.85,rhoD:1550,wTot:0.18,wW:0.04,tbf:-0.10,clay:false},
+ 'крупнообломочные':{lamTh:2.00,lamF:2.30,rhoD:1800,wTot:0.10,wW:0.02,tbf:0.00,clay:false}};
+function spgKm(Tbar, CfJ){ // билинейная интерполяция табл. Г.1 (Tbar °C; CfJ Дж/(м³·°C))
+  const T=SPG_KM_T, C=SPG_KM_CF;
+  let i=0; while(i<T.length-2 && Tbar<=T[i+1]) i++;
+  let j=0; while(j<C.length-2 && CfJ>=C[j+1]) j++;
+  const kt=Math.max(0,Math.min(1,(Tbar-T[i])/(T[i+1]-T[i])));
+  const kc=Math.max(0,Math.min(1,(CfJ-C[j])/(C[j+1]-C[j])));
+  const a=SPG_KM[i][j]+(SPG_KM[i+1][j]-SPG_KM[i][j])*kt;
+  const b=SPG_KM[i][j+1]+(SPG_KM[i+1][j+1]-SPG_KM[i][j+1])*kt;
+  return a+(b-a)*kc;
+}
+function spThawFreeze(p){
+  /* Прил. Г СП 25.13330.2020. Согласованные единицы: время — ч; λ — Вт/(м·°C); C, q, L_v — Вт·ч/(м³·°C), Вт·ч/м³.
+     Обязательные: lamTh,lamF,rhoD,wTot,wW,tbf,t0,tThM,ttThM,tFM,tFMh,clay.
+     Опциональные переопределения: Tthc, ttthc (Г.6/Г.7), Cth, Cf, Lv (Вт·ч), kmFixed, kh. */
+  const t1=3600, t2=7500; // ч
+  const Lv=(p.Lv!==undefined)?p.Lv:3.35e5*Math.max(0,(p.wTot-p.wW))*p.rhoD/3600;
+  const Cth=(p.Cth!==undefined)?p.Cth:(0.75e3+4.19e3*p.wTot)*p.rhoD/3600;
+  const Cf=(p.Cf!==undefined)?p.Cf:(0.75e3+4.19e3*p.wW+2.1e3*Math.max(0,(p.wTot-p.wW)))*p.rhoD/3600;
+  const Tthc=(p.Tthc!==undefined)?p.Tthc:1.4*p.tThM+2.4;                   // Г.6
+  const ttthc=(p.ttthc!==undefined)?p.ttthc:Math.round(1.15*p.ttThM+360); // Г.7 (0,1·t1 = 360 ч)
+  const Tbar=(p.t0-p.tbf)*(ttthc/t1-0.22);                                // Г.8
+  const km=(p.kmFixed!==undefined)?p.kmFixed:(p.clay?spgKm(Tbar,Cf*3600):1.0);
+  const Q=(0.25-ttthc/t1)*(p.t0-p.tbf)*km*Math.sqrt(p.lamF*Cf*ttthc);     // Г.4
+  const q1=Lv+(ttthc/t2-0.1)*(Cth*(Tthc-p.tbf)-Cf*(p.t0-p.tbf));          // Г.5
+  const dthn=Math.sqrt(2*p.lamTh*(Tthc-p.tbf)*ttthc/q1+(Q/(2*q1))*(Q/(2*q1)))-Q/(2*q1); // Г.3
+  const q2=Lv-0.5*Cf*(p.tFM-p.tbf);                                       // Г.10
+  const dfn=Math.sqrt(2*p.lamF*(p.tbf-p.tFM)*p.tFMh/q2);                  // Г.9
+  const kh=(p.kh!==undefined)?p.kh:1.0;
+  return {Lv,Cth,Cf,Tthc,ttthc,Tbar,km,Q,q1,dthn,q2,dfn,kh,dth:kh*dthn,df:kh*dfn};
+}
+
 const CALCS=[
  {id:'pile', name:'Несущая способность вмороженной сваи — Q = q_s·U·L + q_p·A (СП 25.13330)'},
+ {id:'thaw', name:'Глубина сезонного оттаивания и промерзания — СП 25.13330.2020, прил. Г (с Изм. № 3)'},
  {id:'vent', name:'Модуль вентилирования подполья — тепловой баланс (СП 25.13330, разд. 13)'},
  {id:'tprog', name:'Прогноз температуры основания по тренду — год выхода на порог'},
  {id:'ngc', name:'Температурный запас на уровне НГК против расчётной температуры'},
@@ -3927,6 +4008,13 @@ function calcAutoFill(o){
     set('ci_Ap', pl.Ap||0.1225); set('ci_Lpile', pl.L||o.md||'');
     const qs=document.getElementById('ci_qs'), qp=document.getElementById('ci_qp');
     if(qs) qs.value=''; if(qp) qp.value=''; // очистка — сработают нормативные таблицы
+  }
+  if(curCalc==='thaw'){
+    const gg2=gruntGuess(o), sk=(gg2&&SPG_SOIL[gg2])?gg2:'суглинки и глины';
+    const sel=document.getElementById('ci_gsoil'); if(sel){ sel.value=sk; if(sel.onchange) sel.onchange(); }
+    const sp3=window.meteoSP?window.meteoSP():null;
+    if(sp3){ set('ci_tthm',sp3.Ttc); set('ci_ttthm',sp3.ttc); set('ci_tfm2',sp3.Tfm); set('ci_tfmh',sp3.tfm); }
+    if(o.prof){ try{ const s10=objDepthSeries(o,10); if(s10.ys.length) set('ci_t0',s10.ys[s10.ys.length-1]); }catch(e){} }
   }
   if(curCalc==='vent'){
     set('ci_A', ci.areaPod||(dm&&dm.A)); set('ci_P', dm&&dm.P); set('ci_F0', pv.F0);
@@ -4030,6 +4118,79 @@ function tabCalc(o, el){
         <tr><td>Допускаемая (коэфф. запаса 2)</td><td><b>${Qd.toFixed(1)} кН</b> ≈ ${(Qd/9.81).toFixed(1)} тс</td></tr>
         ${srcs.length?'<tr><td>Автоподстановка</td><td>'+srcs.join('<br>')+'</td></tr>':''}
         <tr><td>Примечание</td><td>Raf — для бетонной поверхности (γ_af=1,0; для металла 0,7); коэффициент запаса 2 — рабочее значение, уточняется проектом.</td></tr></table>`);
+    };
+  }
+  if(curCalc==='thaw'){
+    const gg=gruntGuess(o);
+    const soilKey=(gg&&SPG_SOIL[gg])?gg:'суглинки и глины';
+    const sd=SPG_SOIL[soilKey];
+    const sp=(window.meteoSP?window.meteoSP():null);
+    let t0def='', t0note='нет геотермики — принять по аналогам/ИГИ (типично −1…−3 °C)';
+    if(o.prof){ try{ const s10=objDepthSeries(o,10); if(s10.ys.length){ t0def=s10.ys[s10.ys.length-1]; t0note='t грунта на 10 м, замер '+s10.xs[s10.xs.length-1]+' — усреднение по скважинам объекта'; } }catch(e){} }
+    body.innerHTML=`<div class="sect">Нормативная глубина сезонного оттаивания и промерзания (прил. Г)</div>
+    <table class="kv">
+      <tr><td>Грунт основания</td><td><select id="ci_gsoil" ${ro?'disabled':''}>${Object.keys(SPG_SOIL).map(k=>'<option'+(k===soilKey?' selected':'')+'>'+k+'</option>').join('')}</select> <span class="note">${gg?('по ИГИ/паспорту: '+esc(gg)):'не распознан — выберите'}</span></td></tr>
+      ${F('lamth','λ_th — теплопроводность талого грунта','Вт/(м·°C)', sd.lamTh,'прил. Б')}
+      ${F('lamf','λ_f — теплопроводность мерзлого грунта','Вт/(м·°C)', sd.lamF,'прил. Б')}
+      ${F('rhod','ρ_d — плотность скелета грунта','кг/м³', sd.rhoD,'')}
+      ${F('wtot','W_tot — суммарная влажность','д.е.', sd.wTot,'')}
+      ${F('ww','W_w — незамерзшая вода','д.е.', sd.wW,'прил. Б')}
+      ${F('tbf','T_bf — температура начала замерзания','°C', sd.tbf,'прил. Б (T_M)')}
+      ${F('t0','T₀ — среднегодовая t ММГ','°C', t0def, t0note)}
+      <tr><td colspan="2" style="background:#f4f7fb"><b>Метеопараметры</b> <span class="note">${sp?('метеобаза, период '+esc(sp.period)+' — подставлено автоматически; можно править'):'метеобаза недоступна — введите вручную'}</span></td></tr>
+      ${F('tthm','T_th,m — средняя t воздуха периода t>0','°C', sp?sp.Ttc:'','СП 131.13330 / метеобаза')}
+      ${F('ttthm','t_th,m — продолжительность периода t>0','ч', sp?sp.ttc:'','')}
+      ${F('tfm2','T_f,m — средняя t воздуха периода t<0','°C', sp?sp.Tfm:'','')}
+      ${F('tfmh','t_f,m — продолжительность периода t<0','ч', sp?sp.tfm:'','')}
+      <tr><td>Коэффициент 0,9 (подрайон IБ/IГ)</td><td><label style="font-size:12px"><input type="checkbox" id="ci_sub09" checked ${ro?'disabled':''}> применять к T_th,m и t_th,m</label> <span class="note">Норильск — подрайон IБ</span></td></tr>
+      <tr><td>Климатический сценарий (Изм. № 3)</td><td><select id="ci_hor" ${ro?'disabled':''}><option value="0">норматив (многолетний)</option><option value="10">+10 лет по тренду МГТ</option><option value="25">+25 лет по тренду МГТ</option></select></td></tr>
+      <tr><td>Расположение (k_h, табл. Г.2)</td><td><select id="ci_kh" ${ro?'disabled':''}>${SPG_KH.map(k=>'<option value="'+k[1]+'">'+esc(k[0])+' — '+k[1]+'</option>').join('')}</select></td></tr>
+      <tr><td colspan="2" style="background:#f4f7fb"><b>Ручное переопределение теплофизики</b> <span class="note">пусто = авто по прил. Б</span></td></tr>
+      ${F('cth','C_th — теплоёмкость талого','Вт·ч/(м³·°C)','','авто: (0,75+4,19·W)·ρ_d, кДж')}
+      ${F('cf','C_f — теплоёмкость мерзлого','Вт·ч/(м³·°C)','','авто: формула Б.8')}
+      ${F('lv','L_v — теплота таяния','Вт·ч/м³','','авто: 3,35·10⁵·(W−W_w)·ρ_d')}
+    </table>
+    <button class="addrow" id="calcGo" style="border-style:solid">Вычислить</button>
+    <div id="calcOut"></div>`;
+    const selG=document.getElementById('ci_gsoil');
+    selG.onchange=()=>{ const s2=SPG_SOIL[selG.value]; const put=(id,v)=>{const e=document.getElementById('ci_'+id); if(e) e.value=v;};
+      put('lamth',s2.lamTh); put('lamf',s2.lamF); put('rhod',s2.rhoD); put('wtot',s2.wTot); put('ww',s2.wW); put('tbf',s2.tbf); };
+    document.getElementById('calcGo').onclick=()=>{
+      const g=id=>parseFloat(document.getElementById('ci_'+id).value);
+      const sk2=document.getElementById('ci_gsoil').value, sd2=SPG_SOIL[sk2]||SPG_SOIL['суглинки и глины'];
+      const vals={lamth:g('lamth'),lamf:g('lamf'),rhod:g('rhod'),wtot:g('wtot'),ww:g('ww'),tbf:g('tbf'),t0:g('t0'),tthm:g('tthm'),ttthm:g('ttthm'),tfm2:g('tfm2'),tfmh:g('tfmh')};
+      if(Object.values(vals).some(v=>isNaN(v))){ out('<div class="note">Заполните все исходные поля (грунт, T₀, метео).</div>'); return; }
+      const k09=document.getElementById('ci_sub09').checked?0.9:1.0;
+      const H=parseInt((document.getElementById('ci_hor')||{}).value||'0');
+      let kC=0; if(H>0){ try{ const yA=mtYearAgg(mtData(),'t'); const ln=mtLin(yA.map(a=>a.y),yA.map(a=>a.v)); kC=ln?ln.k:0; }catch(e){} }
+      const p={lamTh:vals.lamth,lamF:vals.lamf,rhoD:vals.rhod,wTot:vals.wtot,wW:vals.ww,tbf:vals.tbf,t0:vals.t0,
+        tThM:vals.tthm*k09+kC*H, ttThM:vals.ttthm*k09, tFM:vals.tfm2+kC*H, tFMh:vals.tfmh,
+        clay:sd2.clay, kh:parseFloat(document.getElementById('ci_kh').value)};
+      if(g('cth')>0) p.Cth=g('cth'); if(g('cf')>0) p.Cf=g('cf'); if(g('lv')>0) p.Lv=g('lv');
+      const r=spThawFreeze(p);
+      const fm=(x,d)=>(+x).toFixed(d===undefined?2:d);
+      const q1s=fm(r.q1,0), Qs=fm(r.Q,0);
+      const rows=[];
+      const ngcH=o.ngc?o.ngc.h:null, pl2=parsePile(o);
+      if(ngcH!==null) rows.push('НГК объекта '+ngcH+' м: d_th '+fm(r.dth,2)+' м — '+(r.dth>ngcH?'<b style="color:#a86400">сезонное оттаивание глубже НГК — контроль теплового режима обязателен</b>':'выше НГК — нормальное соотношение'));
+      if(pl2.L) rows.push('длина сваи '+pl2.L+' м: вмороженная часть ниже d_th = '+fm(pl2.L-r.dth,1)+' м'+(pl2.L-r.dth<3?' <b style="color:var(--crit)">— МЕНЕЕ 3 м, проверить несущую способность</b>':''));
+      const cmp=rows.length?'<tr><td>Сопоставление с объектом</td><td>'+rows.join('<br>')+'</td></tr>':'';
+      out(`<table class="kv" style="background:#fff">
+        <tr><td colspan="2"><b>Промежуточные величины</b></td></tr>
+        <tr><td>T_th,c (Г.6)</td><td>1,4 × ${fm(p.tThM,1)} + 2,4 = <b>${fm(r.Tthc,1)} °C</b></td></tr>
+        <tr><td>t_th,c (Г.7)</td><td>1,15 × ${fm(p.ttThM,0)} + 360 = <b>${r.ttthc} ч</b></td></tr>
+        <tr><td>T̄ (Г.8) → k_m</td><td>(${fm(p.t0,1)} − (${fm(p.tbf,2)})) × (${r.ttthc}/3600 − 0,22) = ${fm(r.Tbar,2)} °C → k_m = <b>${fm(r.km,2)}</b> ${sd2.clay?'(табл. Г.1, глинистые)':'(песчаные/крупнообломочные — 1,0)'}</td></tr>
+        <tr><td>L_v</td><td>${p.Lv!==undefined?'задано вручную':'3,35·10⁵ × ('+p.wTot+' − '+p.wW+') × '+p.rhoD+' = '+(r.Lv*3600).toExponential(2)+' Дж/м³'} = <b>${fm(r.Lv,0)} Вт·ч/м³</b></td></tr>
+        <tr><td>C_th / C_f</td><td><b>${fm(r.Cth,0)} / ${fm(r.Cf,0)} Вт·ч/(м³·°C)</b> (${(p.Cth!==undefined||p.Cf!==undefined)?'задано вручную':'формулы прил. Б'})</td></tr>
+        <tr><td>Q (Г.4)</td><td>(0,25 − ${r.ttthc}/3600) × (${fm(p.t0,1)} − (${fm(p.tbf,2)})) × ${fm(r.km,2)} × √(${p.lamF} × ${fm(r.Cf,0)} × ${r.ttthc}) = <b>${Qs} Вт·ч/м³</b></td></tr>
+        <tr><td>q₁ (Г.5)</td><td>${fm(r.Lv,0)} + (${r.ttthc}/7500 − 0,1) × [${fm(r.Cth,0)} × ${fm(r.Tthc-p.tbf,1)} − ${fm(r.Cf,0)} × ${fm(p.t0-p.tbf,1)}] = <b>${q1s} Вт·ч/м³</b></td></tr>
+        <tr><td colspan="2"><b>Результаты</b></td></tr>
+        <tr><td><b>d_th,n</b> (Г.3)</td><td>√(2 × ${p.lamTh} × ${fm(r.Tthc-p.tbf,1)} × ${r.ttthc} / ${q1s} + (${Qs}/(2 × ${q1s}))²) − ${Qs}/(2 × ${q1s}) = <b style="font-size:14px">${fm(r.dthn,2)} м</b></td></tr>
+        <tr><td><b>d_f,n</b> (Г.9)</td><td>√(2 × ${p.lamF} × ${fm(p.tbf-p.tFM,1)} × ${p.tFMh} / ${fm(r.q2,0)}) = <b style="font-size:14px">${fm(r.dfn,2)} м</b>, q₂ = ${fm(r.q2,0)} Вт·ч/м³ (Г.10)</td></tr>
+        <tr><td>Расчётные (Г.11–Г.12)</td><td>k_h = ${r.kh} → <b>d_th = ${fm(r.dth,2)} м; &nbsp; d_f = ${fm(r.df,2)} м</b></td></tr>
+        ${cmp}
+        <tr><td>Метеооснова</td><td>${sp?('период '+esc(sp.period)+' ('+sp.nY+' полных лет)'):'ручной ввод'}${k09<1?'; подрайон IБ — ×0,9 к T_th,m и t_th,m':''}${H>0?('; сценарий Изм. № 3: +'+H+' лет, тренд МГТ '+(kC>=0?'+':'')+(kC*10).toFixed(2)+' °C/10 лет → ΔT = +'+(kC*H).toFixed(2)+' °C'):''}</td></tr>
+        <tr><td>Примечание</td><td>Теплофизика — ориентировочная по прил. Б (уточняется по ИГИ объекта); единицы согласованы (часы, Вт·ч). Для проектных решений — по фактическим характеристикам грунтов.</td></tr></table>`);
     };
   }
   if(curCalc==='vent'){
@@ -5727,8 +5888,8 @@ setTimeout(()=>{ try{
 }catch(e){} }, 5000); // тихое ежедневное пополнение метеоряда при открытии приложения
 
 };
-const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",ivD:"iDDubdhI1TsG9RIQ"};
-const BUILD="9c2fb80e";
+const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",ivD:"q76EXoJB2lfOVgCi"};
+const BUILD="d031fc01";
 function enterApp(role){ sessionStorage.setItem("ngk_role",role); document.body.classList.add("authed","role-"+role); document.getElementById("loginModal").style.display="none"; document.getElementById("roleBadge").textContent=role==="edit"?"оператор":"наблюдатель"; }
 const _b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 async function _unwrap(pw,saltB,ivB,wrapB){
