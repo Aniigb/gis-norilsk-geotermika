@@ -419,7 +419,7 @@
       <button class="ghost" id="uplClear" style="border-color:var(--crit); color:var(--crit)">Очистить мои загрузки</button>
     </div>
     <div style="margin-top:12px; border-top:1px dashed var(--line); padding-top:10px">
-      <b>Объектная ведомость геотермики — шаблон ООО «НПО «Фундамент»</b> <span class="note">(файл вида «Геотермика &lt;адрес&gt;.xlsx»: лист «Замеры», глубины по столбцам, строка = скважина × дата)</span><br>
+      <b>Объектная ведомость геотермики — шаблон ООО «НПО «Фундамент»</b> <span class="note">(файл вида «Геотермика &lt;адрес&gt;.xlsx»: лист «Замеры», глубины по столбцам, строка = скважина × дата). Раскладка распознаётся автоматически и запоминается для каждой организации; недостающая t наружного воздуха догружается из метеоархива на дату замера, t воздуха подполья — по корреляции с наружной</span><br>
       <button id="uplObjPick" style="margin-top:6px">Выбрать объектную ведомость (xlsx)…</button>
       <input type="file" id="uplObjFile" accept=".xlsx,.xls" style="display:none">
       <span class="note"> Адрес берётся из имени файла. Расшифровка извлечения показывается полностью (скважины, даты, точки, дубли).</span>
@@ -518,8 +518,10 @@ function saveCARD(){ try{ localStorage.setItem('ngk_card_v1', JSON.stringify(CAR
 function cardOf(a){ return CARD[a]||(CARD[a]={}); }
 
 /* ---------- пользовательские замеры (загрузка по шаблону) ---------- */
-let USERDATA = JSON.parse(localStorage.getItem('ngk_userdata')||'[]');  // [{a,w,date,dep,pts:[[d,t]..],src}]
+let USERDATA = JSON.parse(localStorage.getItem('ngk_userdata')||'[]');  // [{a,w,date,dep,pts:[[d,t]..],src,tOut,tSa}]
 function saveUSERDATA(){ localStorage.setItem('ngk_userdata', JSON.stringify(USERDATA)); }
+const AIR4={}; // 'адрес|скважина|дата' → {tOut,tSa,src,est} — температура наружного воздуха / воздуха подполья на дату замера
+function air4Set(a,w,dt,x){ AIR4[a+'|'+w+'|'+dt]={tOut:(x.tOut!=null?x.tOut:null), tSa:(x.tSa!=null?x.tSa:null), src:x.tOutSrc||null, est:!!x.tSaEst}; }
 
 /* ---------- управляющие компании ---------- */
 const UK_LIST = ['УК «ЖКС-Норильск»','УК «Город»','ООО «Нордсервис»','ООО «СеверныйБыт»','ООО «СеверныйУправдом»','ООО «Заполярный жилищный трест»','ООО «Будущее»'];
@@ -1268,7 +1270,7 @@ function drawGostProfile(cv, o, wliter){
     pts.forEach(p=>{ctx.beginPath();ctx.arc(px(p[1]),py(p[0]),2.4,0,7);ctx.fill();});
     ctx.lineWidth=1;
   });
-  // легенда дат
+  // легенда дат (+ t наружного воздуха / воздуха подполья на дату замера, если известны)
   ctx.textAlign='left'; ctx.font='10.5px "Times New Roman",serif';
   wd.s.forEach(([dt],si)=>{
     const col=DATE_COLORS[si%DATE_COLORS.length];
@@ -1277,6 +1279,13 @@ function drawGostProfile(cv, o, wliter){
     ctx.beginPath();ctx.moveTo(x,y-3);ctx.lineTo(x+16,y-3);ctx.stroke();
     ctx.fillStyle='#000'; ctx.fillText(dt, x+20, y);
     ctx.lineWidth=1;
+    const a4=AIR4[o.a+'|'+wliter+'|'+dt];
+    if(a4&&(a4.tOut!==null||a4.tSa!==null)){
+      const s=(a4.tOut!==null?('возд '+a4.tOut.toFixed(1)+'°'):'')+(a4.tOut!==null&&a4.tSa!==null?' · ':'')+(a4.tSa!==null?('подп '+a4.tSa.toFixed(1)+'°'+(a4.est?'*':'')):'');
+      ctx.fillStyle='#555'; ctx.font='8.5px "Times New Roman",serif';
+      ctx.fillText(s, x+20, y+10);
+      ctx.fillStyle='#000'; ctx.font='10.5px "Times New Roman",serif';
+    }
   });
 }
 
@@ -2556,7 +2565,7 @@ function refreshObjStats(o){
 function applyUserData(){
   if(!USERDATA.length) return;
   const touched=new Set();
-  USERDATA.forEach(rec=>{ if(mergeUserRec(rec)) touched.add(normAddrKey(rec.a)); });
+  USERDATA.forEach(rec=>{ if(mergeUserRec(rec)){ touched.add(normAddrKey(rec.a)); if(rec.tOut!=null||rec.tSa!=null) air4Set(rec.a, rec.w, rec.date, rec); } });
   touched.forEach(k=>refreshObjStats(DB.objects[addrIndex[k]]));
 }
 function parseDateCell(v){
@@ -2663,6 +2672,189 @@ function resolveObjAddr(fa){
   });
   return best!==null?DB.objects[addrIndex[best]]:null;
 }
+/* ---------- интеллектуальное распознавание объектных ведомостей геотермики (память шаблонов по организациям) ---------- */
+function gtplAll(){ try{ return JSON.parse(localStorage.getItem('ngk_tpl_geo')||'{}'); }catch(e){ return {}; } }
+function gtplSave(org,tpl){ try{ const a=gtplAll(); a[org]=tpl; localStorage.setItem('ngk_tpl_geo', JSON.stringify(a)); }catch(e){} }
+function gtColName(j){ let s=''; j++; while(j>0){ const m=(j-1)%26; s=String.fromCharCode(65+m)+s; j=(j-1-m)/26; } return s; }
+function gtDetectOrg(wb){
+  for(const sn of wb.SheetNames){
+    const rr=XLSX.utils.sheet_to_json(wb.Sheets[sn], {header:1, raw:true, defval:''});
+    for(const row of rr.slice(0,20)) for(const v of row){
+      if(typeof v!=='string') continue;
+      const m=v.match(/(ООО|АО|ЗАО|ПАО)\s*[«"'][^»"']{2,40}[»"']/);
+      if(m) return m[0];
+    }
+  }
+  return 'ведомость геотермики';
+}
+function gtScanLayout(rows){ // структурный анализ ведомости: строка меток, столбцы скважина/дата/воздух/подполье, строка глубин
+  const T=v=>String(v===null||v===undefined?'':v).replace(/\s+/g,'').toLowerCase();
+  let labelRow=-1, wellCol=-1, dateCol=-1, depCol=-1;
+  for(let i=0;i<Math.min(rows.length,40);i++){
+    const r=rows[i]||[];
+    let w=-1, d=-1, g=-1;
+    for(let j=0;j<r.length;j++){
+      const t=T(r[j]);
+      if(w<0&&/литер|скважин/.test(t)) w=j;
+      if(d<0&&/датазамера|^дата$|датаизмерен/.test(t)) d=j;
+      if(g<0&&/^глубина(скважины)?$/.test(t)) g=j;
+    }
+    if(w>=0&&d>=0){ labelRow=i; wellCol=w; dateCol=d; depCol=(g>=0&&g<w?g:-1); break; }
+  }
+  if(labelRow<0) return null;
+  let toutCol=-1, tsaCol=-1;
+  const jLo=Math.max(0,wellCol-4), jHi=dateCol+8; // воздух/подполье — всегда рядом со скважиной и датой
+  for(let i=labelRow;i<=Math.min(labelRow+2,rows.length-1);i++){
+    const r=rows[i]||[];
+    for(let j=jLo;j<=Math.min(jHi,r.length-1);j++){
+      const t=T(r[j]);
+      if(toutCol<0&&/t?out|твоздуха|воздуха|наружн/.test(t)&&!/подполь|подвал/.test(t)) toutCol=j;
+      if(tsaCol<0&&/тса|tca/.test(t)) tsaCol=j;
+    }
+  }
+  if(tsaCol<0){ // запасной вариант: столбец помечен «подполье/подвал»
+    for(let i=labelRow;i<=Math.min(labelRow+2,rows.length-1)&&tsaCol<0;i++){
+      const r=rows[i]||[];
+      for(let j=jLo;j<=Math.min(jHi,r.length-1);j++){
+        const t=T(r[j]);
+        if(/подполь|подвал/.test(t)&&!/температур|глубин/.test(t)){ tsaCol=j; break; }
+      }
+    }
+  }
+  const keyMax=Math.max(wellCol,dateCol,toutCol,tsaCol,depCol);
+  let depthRow=-1, depths=null;
+  for(let i=labelRow;i<=Math.min(labelRow+3,rows.length-1);i++){
+    const r=rows[i]||[];
+    let best=null, cur=null;
+    for(let j=keyMax+1;j<r.length;j++){
+      const v=parseNum(r[j]);
+      const ok=v!==null&&v>=0&&v<=60;
+      if(ok&&cur&&v>=cur.v[cur.v.length-1]){ cur.v.push(v); continue; }
+      if(cur&&cur.v.length>=(best?best.v.length:5)) best=cur;
+      cur=ok?{s:j, v:[v]}:null;
+      if(!ok&&best&&j>best.s+best.v.length+2) break; // серия завершена, дальше — вспомогательные столбцы
+    }
+    if(cur&&cur.v.length>=(best?best.v.length:5)) best=cur;
+    if(best&&best.v.length>=5){
+      if(depthRow<0||best.v.length>depths.v.length){ depthRow=i; depths=best; }
+      if(depths.v[0]<1) break; // серия с 0 / 0,5 м — каноническая; ниже идёт нумерация столбцов
+    }
+  }
+  if(depthRow<0) return null;
+  const dcols={};
+  depths.v.forEach((v,k)=>{ dcols[depths.s+k]=v; });
+  return {labelRow, depthRow, wellCol, dateCol, toutCol, tsaCol, depCol, depths:dcols};
+}
+function gtFromTpl(rows,tpl){ // быстрый путь: раскладка из памяти шаблонов, проверяется на файле
+  if(!tpl||tpl.depthRow===undefined) return null;
+  const r=rows[tpl.depthRow]; if(!r) return null;
+  const cols=Object.keys(tpl.depths||{}).map(Number).sort((a,b)=>a-b);
+  let ok=0, prev=-1;
+  const dcols={};
+  cols.forEach(j=>{
+    const v=parseNum(r[j]);
+    if(v!==null&&v>=0&&v<=60&&v>=prev){ dcols[j]=v; prev=v; ok++; }
+  });
+  if(ok<5) return null;
+  return {labelRow:tpl.labelRow, depthRow:tpl.depthRow, wellCol:tpl.wellCol, dateCol:tpl.dateCol,
+    toutCol:(tpl.toutCol!==undefined?tpl.toutCol:-1), tsaCol:(tpl.tsaCol!==undefined?tpl.tsaCol:-1),
+    depCol:(tpl.depCol!==undefined?tpl.depCol:-1), depths:dcols};
+}
+function gtExtract(rows,lay,today){ // извлечение замеров по раскладке
+  const wells={}, airRows=[];
+  let rowsSeen=0, rowsBadDate=0, rowsFew=0, rowsNote=0;
+  for(let i=lay.depthRow+1;i<rows.length;i++){
+    const r=rows[i]||[];
+    const w=String(r[lay.wellCol]===null||r[lay.wellCol]===undefined?'':r[lay.wellCol]).trim();
+    if(!w||/литер|скважин/i.test(w)) continue;
+    if(w.length>25||(!/\d/.test(w)&&/\s/.test(w))){ rowsNote++; continue; } // строки-примечания
+    const iso=parseDateCell(r[lay.dateCol]);
+    if(!iso) continue;
+    if(iso<'1950-01-01'||iso>today){ rowsBadDate++; continue; } // проектные/расчётные строки
+    const pts={};
+    Object.entries(lay.depths).forEach(([j,dep])=>{
+      const t=parseNum(r[j]);
+      if(t!==null&&t>-60&&t<60) pts[dep]=t;
+    });
+    if(Object.keys(pts).length<2){ rowsFew++; continue; }
+    rowsSeen++;
+    let dep=lay.depCol>=0?parseNum(r[lay.depCol]):null;
+    if(dep!==null&&(dep<1||dep>100)) dep=null;
+    const wd=(wells[w]=wells[w]||{dates:{}, dep:null});
+    if(dep!==null) wd.dep=dep;
+    const dd=(wd.dates[iso]=wd.dates[iso]||{});
+    Object.assign(dd, pts);
+    let tOut=lay.toutCol>=0?parseNum(r[lay.toutCol]):null;
+    let tSa=lay.tsaCol>=0?parseNum(r[lay.tsaCol]):null;
+    if(tOut!==null&&(tOut<=-60||tOut>=60)) tOut=null;
+    if(tSa!==null&&(tSa<=-60||tSa>=60)) tSa=null;
+    airRows.push({w, iso, tOut, tSa});
+  }
+  return {wells, airRows, rowsSeen, rowsBadDate, rowsFew, rowsNote};
+}
+async function gtAirBackfill(airRows,log){ // t наружного воздуха: файл → метеобаза (помесячно) → Open-Meteo ERA5; t подполья — по корреляции
+  log=log||function(){};
+  const res={filledM:0, filledD:0, model:null, pairs:0, est:0};
+  const needM=new Set(); airRows.forEach(r=>{ if(r.tOut===null) needM.add(r.iso.slice(0,7)); });
+  if(!needM.size) return res;
+  let d=mtData();
+  const cov=ym=>{
+    if(!d) return false;
+    const i=d.years.indexOf(+ym.slice(0,4)); if(i<0) return false;
+    const v=((d.m.t||[])[i]||[])[+ym.slice(5,7)-1];
+    return v!==null&&v!==undefined;
+  };
+  const missing=[...needM].filter(ym=>!cov(ym));
+  if(missing.length&&typeof navigator!=='undefined'&&navigator.onLine!==false&&typeof fetch==='function'){
+    const archEnd=new Date(Date.now()-6*864e5).toISOString().slice(0,10);
+    const yrs=[...new Set(missing.map(ym=>+ym.slice(0,4)))].filter(y=>y>=1950&&y<=+archEnd.slice(0,4)).sort((a,b)=>a-b);
+    if(yrs.length) log('t наружного воздуха: догрузка метеоархива Open-Meteo (ERA5), '+yrs[0]+'–'+yrs[yrs.length-1]+' …');
+    const st=mtStore();
+    for(let k=0;k<yrs.length;k+=5){
+      const y0=yrs[k], y1=yrs[Math.min(k+4,yrs.length-1)];
+      let e1=y1+'-12-31'; if(e1>archEnd) e1=archEnd;
+      const s0=y0+'-01-01'; if(s0>e1) continue;
+      try{
+        const dl=await mtFetchDaily('https://archive-api.open-meteo.com/v1/archive?latitude=69.355&longitude=88.20&timezone=Asia%2FKrasnoyarsk&start_date='+s0+'&end_date='+e1+'&daily=temperature_2m_mean');
+        if(dl&&dl.time){
+          const acc={};
+          dl.time.forEach((tm,i2)=>{
+            const v=(dl.temperature_2m_mean||[])[i2]; if(v===null||v===undefined) return;
+            const ym=tm.slice(0,7); (acc[ym]=acc[ym]||[]).push(v);
+          });
+          Object.entries(acc).forEach(([ym,arr])=>{
+            const y=ym.slice(0,4), mo=+ym.slice(5,7)-1;
+            st.add[y]=st.add[y]||{};
+            const rec=st.add[y];
+            ['t','rh','p','w','pr','sn','sd'].forEach(p=>{ rec[p]=rec[p]||new Array(12).fill(null); });
+            if(rec.t[mo]===null||rec.t[mo]===undefined){ rec.t[mo]=+(arr.reduce((s,v)=>s+v,0)/arr.length).toFixed(2); res.filledD++; }
+          });
+        }
+      }catch(e){ log('метеоархив: пропуск '+s0.slice(0,4)+'–'+e1.slice(0,4)+' ('+e.message+')'); }
+    }
+    if(res.filledD){ try{ localStorage.setItem('ngk_meteo', JSON.stringify(st)); }catch(e){} d=mtData(); }
+  }
+  airRows.forEach(r=>{ // заполнение по помесячной метеобазе
+    if(r.tOut!==null) return;
+    const ym=r.iso.slice(0,7);
+    if(cov(ym)){
+      r.tOut=d.m.t[d.years.indexOf(+ym.slice(0,4))][+ym.slice(5,7)-1];
+      r.tOutSrc='метеобаза (помесячно)';
+      res.filledM++;
+    }
+  });
+  const xs=[], ys=[]; // корреляция t подполья от наружной
+  airRows.forEach(r=>{ if(r.tOut!==null&&r.tSa!==null){ xs.push(r.tOut); ys.push(r.tSa); } });
+  res.pairs=xs.length;
+  if(xs.length>=5){
+    const reg=mtLin(xs,ys);
+    if(reg&&reg.r2>0.15){
+      res.model=reg;
+      airRows.forEach(r=>{ if(r.tSa===null&&r.tOut!==null){ r.tSa=+(reg.k*r.tOut+reg.b).toFixed(1); r.tSaEst=true; res.est++; } });
+    }
+  }
+  return res;
+}
 async function handleObjUpload(file){
   if(!document.body.classList.contains('role-edit')){ alert('Загрузка данных доступна только уровню «оператор».'); return; }
   const log=document.getElementById('uplLog'); log.style.display='block';
@@ -2698,73 +2890,69 @@ async function handleObjUpload(file){
   if(!obj){ log.textContent=L.join('\n'); return; }
   const sn=wb.SheetNames.includes('Замеры')?'Замеры':wb.SheetNames[0];
   const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn], {header:1, raw:true, defval:''});
-  L.push('Лист: «'+sn+'» · строк: '+rows.length);
-  // шапка: строка с «скважин» в колонке K (индекс 10)
-  let hdr=-1, depths={};
-  rows.forEach((r,i)=>{
-    if(hdr<0 && String(r[10]||'').trim()==='скважин'){
-      hdr=i;
-      for(let j=14;j<r.length;j++){
-        const v=parseNum(r[j]);
-        if(v!==null&&v>=0&&v<=60) depths[j]=v;
-        else if(Object.keys(depths).length) break;
-      }
+  const org=gtDetectOrg(wb);
+  L.push('Лист: «'+sn+'» · строк: '+rows.length+' · организация: '+org);
+  // распознавание структуры: сначала память шаблонов (по организации), затем структурный анализ
+  const tpls=gtplAll();
+  let lay=tpls[org]?gtFromTpl(rows,tpls[org]):null;
+  if(lay) L.push('Структура распознана по сохранённому шаблону «'+org+'».');
+  if(!lay){
+    lay=gtScanLayout(rows);
+    if(lay){
+      gtplSave(org,{labelRow:lay.labelRow, depthRow:lay.depthRow, wellCol:lay.wellCol, dateCol:lay.dateCol, toutCol:lay.toutCol, tsaCol:lay.tsaCol, depCol:lay.depCol, depths:lay.depths});
+      L.push('Структура распознана анализом и СОХРАНЕНА как шаблон «'+org+'» — следующие файлы этой организации разберутся автоматически.');
     }
-  });
-  if(hdr<0){ L.push('ОШИБКА: не найдена строка шапки («скважин» в колонке K) — формат не распознан.'); log.textContent=L.join('\n'); return; }
-  L.push('Шапка: строка '+(hdr+1)+' · глубинных столбцов: '+Object.keys(depths).length+' ('+Math.min(...Object.values(depths))+'…'+Math.max(...Object.values(depths))+' м)');
-  // данные
-  const today=new Date().toISOString().slice(0,10);
-  const wells={}; let rowsSeen=0, rowsBadDate=0, rowsFew=0;
-  for(let i=hdr+1;i<rows.length;i++){
-    const r=rows[i];
-    const w=String(r[10]||'').trim();
-    if(!w||w==='литер'||w==='скважин'||w.length>22||/\s/.test(w)||!/\d/.test(w)) continue;
-    const dv=r[11];
-    let iso=null;
-    if(dv instanceof Date) iso=dv.toISOString().slice(0,10);
-    else iso=parseDateCell(dv);
-    if(!iso) continue;
-    if(iso<'1980-01-01'||iso>today){ rowsBadDate++; continue; }
-    const pts={};
-    Object.entries(depths).forEach(([j,dep])=>{
-      const t=parseNum(r[j]);
-      if(t!==null&&t>-60&&t<60) pts[dep]=t;
-    });
-    if(Object.keys(pts).length<2){ rowsFew++; continue; }
-    rowsSeen++;
-    const wd=(wells[w]=wells[w]||{dates:{}, dep:parseNum(r[9])});
-    const dd=(wd.dates[iso]=wd.dates[iso]||{});
-    Object.assign(dd, pts);
-    if(wd.dep===null) wd.dep=parseNum(r[9]);
   }
-  L.push('Строк-замеров принято: '+rowsSeen+(rowsBadDate?(' · отклонено по дате (проектные/расчётные): '+rowsBadDate):'')+(rowsFew?(' · пропущено (<2 температур): '+rowsFew):''));
+  if(!lay){ L.push('ОШИБКА: структура ведомости не распознана (нет строки меток «литер/скважина» + «дата замера» или серии глубин).'); log.textContent=L.join('\n'); return; }
+  const dCols=Object.entries(lay.depths).map(([j,v])=>[+j,v]).sort((a,b)=>a[0]-b[0]);
+  L.push('Раскладка: метки — строка '+(lay.labelRow+1)+'; глубины — строка '+(lay.depthRow+1)+', столбцы '+gtColName(dCols[0][0])+'…'+gtColName(dCols[dCols.length-1][0])+' ('+dCols.length+' шт: '+dCols[0][1]+'…'+dCols[dCols.length-1][1]+' м); скважина — ст. '+gtColName(lay.wellCol)+'; дата — ст. '+gtColName(lay.dateCol)+(lay.toutCol>=0?('; t воздуха — ст. '+gtColName(lay.toutCol)):'')+(lay.tsaCol>=0?('; t подполья — ст. '+gtColName(lay.tsaCol)):'')+(lay.depCol>=0?('; глубина скв. — ст. '+gtColName(lay.depCol)):''));
+  const today=new Date().toISOString().slice(0,10);
+  const ex=gtExtract(rows,lay,today);
+  const wells=ex.wells;
+  L.push('Строк-замеров принято: '+ex.rowsSeen+(ex.rowsBadDate?(' · отклонено по дате (проектные/расчётные): '+ex.rowsBadDate):'')+(ex.rowsFew?(' · пропущено (<2 температур): '+ex.rowsFew):'')+(ex.rowsNote?(' · отфильтровано примечаний: '+ex.rowsNote):''));
   L.push('Скважин распознано: '+Object.keys(wells).length);
   let totPts=0;
   Object.entries(wells).forEach(([w,wd])=>{
     const ds=Object.keys(wd.dates).sort();
-    const np=ds.reduce((s,d)=>s+Object.keys(wd.dates[d]).length,0);
+    const np=ds.reduce((s,dd)=>s+Object.keys(wd.dates[dd]).length,0);
     totPts+=np;
     L.push('  · '+w+': дат '+ds.length+' ('+ds[0]+' … '+ds[ds.length-1]+'), точек '+np+(wd.dep?(', глубина '+wd.dep+' м'):''));
   });
   L.push('Всего точек измерения: '+totPts);
+  if(!totPts){ L.push('ОШИБКА: не извлечено ни одного замера — проверьте файл.'); log.textContent=L.join('\n'); return; }
+  // t наружного воздуха / воздуха подполья: из файла; недостающее — метеобаза на дату замера; подполье — корреляция
+  const air=await gtAirBackfill(ex.airRows, m=>L.push(m));
+  const airBy={}; ex.airRows.forEach(r=>{ airBy[r.w+'|'+r.iso]=r; });
+  const nOut=ex.airRows.filter(r=>r.tOut!==null).length, nSa=ex.airRows.filter(r=>r.tSa!==null).length;
+  L.push('t наружного воздуха: покрыто '+nOut+' из '+ex.airRows.length+' замеров'+(air.filledM||air.filledD?(' (догружено из метеобазы: '+(air.filledM+air.filledD)+')'):''));
+  L.push('t воздуха подполья: '+nSa+' из '+ex.airRows.length+(air.model?(' · в т.ч. оценено по корреляции tподп = '+air.model.k.toFixed(2)+'·tнар '+(air.model.b>=0?'+ ':'− ')+Math.abs(air.model.b).toFixed(1)+' (R²='+air.model.r2+', пар: '+air.pairs+'): '+air.est):''));
   // запись через тот же конвейер USERDATA
   let n=0;
   Object.entries(wells).forEach(([w,wd])=>{
     Object.entries(wd.dates).forEach(([iso,pts])=>{
-      USERDATA.push({a:obj.a, w, date:iso, dep:wd.dep, pts:Object.entries(pts).map(([d,t])=>[+d,t])});
+      const a4=airBy[w+'|'+iso]||{};
+      const rec={a:obj.a, w, date:iso, dep:wd.dep, pts:Object.entries(pts).map(([dd,t])=>[+dd,t])};
+      if(a4.tOut!==null&&a4.tOut!==undefined){ rec.tOut=a4.tOut; if(a4.tOutSrc) rec.tOutSrc=a4.tOutSrc; }
+      if(a4.tSa!==null&&a4.tSa!==undefined){ rec.tSa=a4.tSa; if(a4.tSaEst) rec.tSaEst=true; }
+      USERDATA.push(rec);
+      air4Set(obj.a, w, iso, rec);
       n++;
     });
   });
   USERDATA.forEach(rec=>mergeUserRec(rec));
   { const entries=[];
-    Object.entries(wells).forEach(([w,wd])=>Object.entries(wd.dates).forEach(([iso,pts])=>entries.push({w,date:iso,dep:wd.dep,pts})));
-    stgPush('geotherm_obj', obj.a, {entries}, file.name, 'ООО «НПО «Фундамент»'); }
+    Object.entries(wells).forEach(([w,wd])=>Object.entries(wd.dates).forEach(([iso,pts])=>{
+      const a4=airBy[w+'|'+iso]||{};
+      entries.push({w,date:iso,dep:wd.dep,pts,
+        tOut:(a4.tOut!==null&&a4.tOut!==undefined?a4.tOut:null),
+        tSa:(a4.tSa!==null&&a4.tSa!==undefined?a4.tSa:null)});
+    }));
+    stgPush('geotherm_obj', obj.a, {entries}, file.name, org); }
   refreshObjStats(obj);
   saveUSERDATA();
   drawMarkers(); renderStats(); renderList();
   if(curObj) renderDetail(curObj);
-  L.push('— Записано рядов (скважина×дата): '+n+'. Данные сохранены в браузере и учтены в графиках и статусах.');
+  L.push('— Записано рядов (скважина×дата): '+n+'. Данные сохранены и учтены в графиках и статусах.');
   log.textContent=L.join('\n');
 }
 document.getElementById('uplObjPick').onclick=()=>document.getElementById('uplObjFile').click();
