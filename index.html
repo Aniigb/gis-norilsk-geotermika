@@ -462,6 +462,7 @@ let TH = Object.assign({}, DEF_TH, JSON.parse(localStorage.getItem('ngk_th')||'{
 function saveTH(){ localStorage.setItem('ngk_th', JSON.stringify(TH)); }
 
 /* ---------- миграция ключей localStorage по карте переименований адресов (канонизация) ---------- */
+document.title='M1';
 (function(){
   const R=(window.DB&&DB.renames)||{}; if(!Object.keys(R).length) return;
   const mig=(k)=>{
@@ -490,6 +491,7 @@ function saveTH(){ localStorage.setItem('ngk_th', JSON.stringify(TH)); }
 })();
 
 /* ---------- расчётные температуры (ввод пользователя, по адресу) ---------- */
+document.title='M2';
 let TCALC = JSON.parse(localStorage.getItem('ngk_tcalc')||'{}');
 function saveTCALC(){ localStorage.setItem('ngk_tcalc', JSON.stringify(TCALC)); }
 
@@ -503,6 +505,7 @@ let USERDATA = JSON.parse(localStorage.getItem('ngk_userdata')||'[]');  // [{a,w
 function saveUSERDATA(){ localStorage.setItem('ngk_userdata', JSON.stringify(USERDATA)); }
 
 /* ---------- управляющие компании ---------- */
+document.title='M3';
 const UK_LIST = ['УК «ЖКС-Норильск»','УК «Город»','ООО «Нордсервис»','ООО «СеверныйБыт»','ООО «СеверныйУправдом»','ООО «Заполярный жилищный трест»','ООО «Будущее»'];
 function effectiveUK(o){ if(o.br==='skb') return o.podr||'Администрация г. Норильска';
   const c=CARD[o.a]; return (c&&c.uk!==undefined&&c.uk!=='')?c.uk:(o.uk||'Не определена'); }
@@ -526,6 +529,7 @@ let addrIndex=null;
 try{ applyUserData(); }catch(e){ console.error('applyUserData:', e); }
 
 /* ---------- аналитика ---------- */
+document.title='M4';
 function interp(pts, d){ // линейная интерполяция профиля [[d,t]...] на глубину d
   if(!pts.length) return null;
   if(d<=pts[0][0]) return pts[0][1];
@@ -649,6 +653,7 @@ function statusDetail(o){ // статус + причины (какие прав�
 function statusOf(o){ return statusDetail(o).status; }
 
 /* ---------- карта ---------- */
+document.title='M5';
 const map = L.map('map',{zoomControl:true}).setView([69.355,88.20], 12);
 window.addEventListener('resize', ()=>map.invalidateSize());
 window.addEventListener('orientationchange', ()=>{ map.invalidateSize(); if(curObj) renderDetail(curObj); });
