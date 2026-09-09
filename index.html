@@ -454,6 +454,9 @@ const SCOL = {"НОРМА":"#2e7d32","РИСК":"#e08a00","КРИТИЧНО":"#c
 const DB = window.DB;
 
 /* ---------- пороги ---------- */
+/* временная диагностика ошибок инициализации */
+window.addEventListener('error', e=>{ try{ const d=document.createElement('div'); d.id='jserr'; d.style.cssText='position:fixed;left:8px;top:8px;z-index:9999;background:#c8372d;color:#fff;padding:6px 10px;font-size:12px;border-radius:4px'; d.textContent='JS: '+e.message+' @'+(e.filename||'').split('/').pop()+':'+e.lineno; document.body.appendChild(d); }catch(_){} });
+
 const DEF_TH = {tcrit:-0.5, depth:3, trend:0.10, trendDepth:10, above:0.5, geodRiskSpeed:10, geodCritSpeed:20, geodCritTotal:100, bearRisk:0.91, bearCrit:0.77};
 let TH = Object.assign({}, DEF_TH, JSON.parse(localStorage.getItem('ngk_th')||'{}'));
 function saveTH(){ localStorage.setItem('ngk_th', JSON.stringify(TH)); }
