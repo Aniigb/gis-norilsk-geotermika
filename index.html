@@ -891,6 +891,7 @@ function markerColor(o){ const st=statusOf(o); return st?SCOL[st]:'#8a97a3'; }
 function drawMarkers(){
   const kpYear=String(new Date().getFullYear());
   DB.objects.forEach((o,i)=>{
+    try{
     if(o.lat===null||o.lat===undefined) return;   // без координат — только в списке
     const has=!!o.prof;
     const kp=window.kpOn&&(o.krp||[]).some(k=>String(k.year||'').includes(kpYear));
@@ -902,6 +903,7 @@ function drawMarkers(){
     m.bindTooltip(o.a+(statusOf(o)?' · '+statusOf(o):'')+(kp?' · КП '+kpYear:''),{direction:'top',offset:[0,-6]});
     m.on('click',()=>select(i));
     markers[i]=m;
+    }catch(e){ const d=document.createElement('div'); d.id='jserr'; d.style.cssText='position:fixed;left:8px;top:8px;z-index:9999;background:#c8372d;color:#fff;padding:6px 10px;font-size:12px;border-radius:4px;max-width:90vw'; d.textContent='DM#'+i+' '+o.a+' :: '+e.message+' :: '+((e.stack||'').split('\n')[1]||''); document.body.appendChild(d); throw e; }
   });
   applyFilter();
 }
