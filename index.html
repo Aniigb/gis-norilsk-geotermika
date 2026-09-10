@@ -2317,8 +2317,38 @@ function renderBearing(o){
    СП 497.1325800.2020: разд. 4 (осмотры), разд. 9, табл. 9.1 — периодичность измерений. */
 const GTM_COL={ok:'#1a7f37', warn:'#a86400', bad:'#b3261e', na:'#667'};
 function gtmBadge(st){
-  const c=st.s==='НОРМА'?GTM_COL.ok:(st.s==='НЕДОСТАТОЧНО'?GTM_COL.warn:(st.s==='—'?GTM_COL.na:GTM_COL.bad));
+  const c=st.s==='НОРМА'?GTM_COL.ok:((st.s==='НЕДОСТАТОЧНО'||st.s==='РИСК')?GTM_COL.warn:(st.s==='—'?GTM_COL.na:GTM_COL.bad));
   return `<b style="color:${c}">${st.s}</b>`;
+}
+/* Климатический триггер: снежный покров последней завершённой зимы vs нормативная h_sn.
+   Высокий снег — теплоизолятор: снижает промерзание грунта под подпольем → риск протаивания
+   под свайным полем (СП 25.13330.2020, разд. 6.3, 13.2). Данные — раздел «Метеоданные» (ERA5). */
+function snowCheck(){
+  try{
+    if(typeof mtData!=='function'||typeof mtSP!=='function') return null;
+    const d=mtData(); if(!d||!d.m||!d.m.sn) return null;
+    const sp=mtSP(d); if(!sp||sp.snH===undefined) return null;
+    const yidx={}; d.years.forEach((y,i)=>yidx[y]=i);
+    const nowY=new Date().getFullYear();
+    let last=null;
+    for(let y=nowY; y>=nowY-3; y--){ // последняя зима с полным окном окт–апр
+      const i0=yidx[y-1], i1=yidx[y];
+      if(i0===undefined||i1===undefined) continue;
+      const r0=d.m.sn[i0]||[], r1=d.m.sn[i1]||[];
+      const seq=[r0[9],r0[10],r0[11],r1[0],r1[1],r1[2],r1[3]]; // окт, ноя, дек / ян, фев, мар, апр
+      if(seq.every(v=>v!==null&&v!==undefined)){
+        last={season:(y-1)+'/'+String(y).slice(2), v:+Math.max.apply(null,seq).toFixed(1)}; break;
+      }
+    }
+    if(!last) return null;
+    const exc=+(last.v-sp.snH).toFixed(1);
+    const ratio=sp.snH>0?+(last.v/sp.snH).toFixed(2):null;
+    const exceeded=last.v>sp.snH;
+    return {snH:sp.snH, snPeriod:sp.snPeriod, season:last.season, v:last.v, exc, ratio, exceeded,
+      st: exceeded
+        ? {s:'РИСК', d:`превышение на ${exc} см (${ratio}× нормы) — снижение промерзания грунта, триггер риска протаивания под свайным полем`}
+        : {s:'НОРМА', d:`в пределах климатической нормы (запас ${Math.abs(exc)} см)`}};
+  }catch(e){ return null; }
 }
 function gtmCalc(o){
   const curY=new Date().getFullYear();
@@ -2372,12 +2402,14 @@ function gtmCalc(o){
 function tabGtm(o, el){
   const g=gtmCalc(o);
   const vc=ventCheck(o);
+  const sc=snowCheck();
   const ro=!document.body.classList.contains('role-edit');
-  const WORST={'ТРЕБУЕТСЯ ДООСНАСТКА':4,'НЕ ПРОВОДЯТСЯ':3,'НЕДОСТАТОЧНО':2,'НОРМА':1,'—':0};
+  const WORST={'ТРЕБУЕТСЯ ДООСНАСТКА':4,'НЕ ПРОВОДЯТСЯ':3,'НЕДОСТАТОЧНО':2,'РИСК':2,'НОРМА':1,'—':0};
   const all=[g.eqWells,g.eqMarks,g.eqHgw,g.frTemp,g.frGeod,g.frOsmT,g.frOsmS,vc.st];
+  if(sc) all.push(sc.st);
   const worst=all.reduce((a,b)=>WORST[b.s]>WORST[a.s]?b:a);
-  const recs=gtmRecs(g, vc);
-  const conclCol=worst.s==='НОРМА'?GTM_COL.ok:(worst.s==='НЕДОСТАТОЧНО'?GTM_COL.warn:GTM_COL.bad);
+  const recs=gtmRecs(g, vc, sc);
+  const conclCol=worst.s==='НОРМА'?GTM_COL.ok:((worst.s==='НЕДОСТАТОЧНО'||worst.s==='РИСК')?GTM_COL.warn:GTM_COL.bad);
   el.innerHTML=`
   <div class="normref">СП 25.13330.2020 «Основания и фундаменты на вечномерзлых грунтах» (действующая редакция с Изм. № 1, 2, 3), разд. 15, прил. М (табл. М.1 — состав сети наблюдений); СП 497.1325800.2020 «…Правила эксплуатации», разд. 4 (осмотры) и разд. 9, табл. 9.1 (периодичность измерений в период эксплуатации); Правила № 170, п. 4.1.4 (продухи подполья). Данные о фактическом оснащении и циклах наблюдений синхронизированы с разделами «Геотермика», «Геодезия», «Цокольное ограждение» и журналом осмотров (📋).</div>
   <div class="sect">Исходные данные ${ro?'<span class="note">(редактирование — в режиме оператора)</span>':''}</div>
@@ -2427,6 +2459,18 @@ function tabGtm(o, el){
       <td>${vc.F0!==null?((vc.n!==null?vc.n+' продух(а), ':'')+'ΣS = '+vc.F0.toFixed(2)+' м²'):(vc.n!==null?vc.n+' продух(а)':'—')}</td>
       <td>${gtmBadge(vc.st)} <span class="note">${esc(vc.st.d)}</span></td></tr>
   </tbody></table>
+  ${sc?`
+  <div class="sect">Климатический триггер: снежный покров последней зимы <span class="note">(синхрон.: раздел «Метеоданные»)</span></div>
+  <table class="rows static"><thead><tr>
+    <th>Показатель</th><th style="width:32%">Нормативное (климатическое) значение</th><th style="width:16%">Факт — зима ${sc.season}</th><th style="width:22%">Заключение</th>
+  </tr></thead><tbody>
+    <tr><td>Максимальная помесячная высота снежного покрова, см</td>
+      <td>h<sub>sn</sub> = ${sc.snH} см — средняя из максимальных зимних высот за ${sc.snPeriod} (метеоряд ERA5, узел Норильск)</td>
+      <td><b>${sc.v}</b></td>
+      <td>${gtmBadge(sc.st)} <span class="note">${esc(sc.st.d)}</span></td></tr>
+  </tbody></table>
+  <div class="note">Высокий снежный покров — теплоизолятор: снижает промерзание грунта под проветриваемым подпольем и в приограждающей зоне и является превентивным триггером риска протаивания под свайным полем (СП 25.13330.2020, разд. 6.3, 13.2).${sc.exceeded?' Рекомендации — в заключении ниже.':''}</div>
+  `:''}
   <div style="margin:10px 0; padding:9px 12px; border-radius:6px; background:#f6f7f9; border-left:4px solid ${conclCol}">
     <b>Заключение по обеспеченности мониторингом: <span style="color:${conclCol}">${worst.s==='НОРМА'?'ОБЕСПЕЧЕН (НОРМА)':worst.s}</span></b>
     ${recs.length?`<ul style="margin:6px 0 2px 18px">${recs.map(r=>`<li style="margin:2px 0">${esc(r)}</li>`).join('')}</ul>`:'<div class="note">Сеть наблюдений и периодичность соответствуют требованиям СП 25.13330.2020 (прил. М) и СП 497.1325800.2020 (табл. 9.1).</div>'}
@@ -2446,7 +2490,7 @@ function tabGtm(o, el){
 }
 
 /* Рекомендации по приведению мониторинга к нормам (общие для вкладки ГТМ и «Программы ГТМ») */
-function gtmRecs(g, vc){
+function gtmRecs(g, vc, sc){
   const recs=[];
   if(g.eqWells.s==='ТРЕБУЕТСЯ ДООСНАСТКА') recs.push(`оборудовать термометрические скважины в количестве не менее ${g.wellsReq} (не менее 2 % общего числа свай) — СП 25.13330.2020, прил. М, табл. М.1`);
   else if(g.eqWells.s==='НЕДОСТАТОЧНО') recs.push(`оборудовать дополнительно ${g.wellsReq-g.wellsFact} термометрич. скважин(у) до нормативных ${g.wellsReq} — СП 25.13330.2020, прил. М, табл. М.1`);
@@ -2457,13 +2501,14 @@ function gtmRecs(g, vc){
   if(g.frGeod.s!=='НОРМА') recs.push(`восстановить геодезические наблюдения за осадками: требуется ${g.geodReq} раз(а) в год — СП 497.1325800.2020, табл. 9.1`);
   if(g.frOsmS.s!=='НОРМА') recs.push('провести сезонные (весенний и осенний) осмотры — СП 497.1325800.2020, п. 4.7');
   if(vc.st.s==='НЕДОСТАТОЧНО'||vc.st.s==='ТРЕБУЕТСЯ ДООСНАСТКА') recs.push(`привести вентиляцию подполья в соответствие с нормами (${vc.st.d}) — Правила № 170, п. 4.1.4; СП 25.13330.2020, разд. 6.3, прил. Д`);
+  if(sc&&sc.exceeded) recs.push(`зима ${sc.season}: снежный покров ${sc.v} см превысил нормативную h_sn = ${sc.snH} см (${sc.snPeriod}) — выполнить внеочередной цикл термометрии в конце летнего периода, усилить контроль температуры воздуха в подполье и организовать снегоуборку в приограждающей зоне — СП 497.1325800.2020, разд. 4; СП 25.13330.2020, разд. 6.3, 13.2`);
   return recs;
 }
 
 /* «Программа ГТМ» — docx-отчёт по объекту (СП 25.13330.2020 прил. М, разд. 15; СП 497.1325800.2020 разд. 4/9; ГОСТ 25358-2020; ГОСТ 24846-2019) */
 async function exportGtmProg(o){
   if(!window.docx){ alert('Библиотека Word не загрузилась (нужен интернет). Попробуйте ещё раз.'); return; }
-  const g=gtmCalc(o), vc=ventCheck(o), recs=gtmRecs(g, vc);
+  const g=gtmCalc(o), vc=ventCheck(o), sc=snowCheck(), recs=gtmRecs(g, vc, sc);
   const sd=statusDetail(o), p=o.pf2||{};
   const thaw=o.prof?Object.keys(o.prof).map(w=>({w, m:wellThawMax(o.prof[w])})).filter(x=>x.m):[];
   const thawMax=thaw.length?thaw.reduce((a,b)=>(b.m.z>a.m.z||(b.m.z===a.m.z&&b.m.date>a.m.date)?b:a)):null;
@@ -2513,6 +2558,7 @@ async function exportGtmProg(o){
     T(`Текущий статус объекта (превентивный): ${sd.status||'нет данных'}.`),
     ...sd.reasons.map(r=>T(`— ${r.text}`)),
     T(`Максимальная глубина оттаивания грунтов по замерам (изотерма 0 °C — ГОСТ 25358-2020, прил. Д): ${thawMax?((thawMax.m.gt?'> ':'')+thawMax.m.z.toFixed(2)+' м (скв. '+thawMax.w+', замер '+thawMax.m.date+')'):'нет данных'}.`),
+    ...(sc?[T(`Климатический триггер — снежный покров последней зимы (${sc.season}): максимальная помесячная высота ${sc.v} см при нормативной h_sn = ${sc.snH} см (средняя из максимальных зимних высот за ${sc.snPeriod}, метеоряд ERA5). Заключение: ${sc.st.s} — ${sc.st.d}.`)]:[]),
     H('5. Методика измерений и оформления результатов'),
     T('Термометрия грунтов — по ГОСТ 25358-2020: замеры в термометрических скважинах с оформлением графика распределения температуры по глубине (прил. Д, рис. Д.1) и графика термоизоплет (прил. Д, рис. Д.2); глубина сезонного оттаивания — по изотерме 0 °C.'),
     T('Геодезические наблюдения за осадками фундаментов — по ГОСТ 24846-2019 с оценкой средней скорости и суммарной осадки по каждой марке.'),
