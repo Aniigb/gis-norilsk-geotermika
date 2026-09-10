@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#132533"/>
+      <stop offset="1" stop-color="#0f1c26"/>
+    </linearGradient>
+    <linearGradient id="pin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8fd6ec"/>
+      <stop offset="0.55" stop-color="#3f8fc4"/>
+      <stop offset="1" stop-color="#2f6fb2"/>
+    </linearGradient>
+  </defs>
+  <!-- плашка в цвет шапки сайта -->
+  <rect x="0" y="0" width="64" height="64" rx="14" fill="url(#bg)"/>
+  <!-- картографический маркер -->
+  <path d="M32 10.5 A15.5 15.5 0 1 1 20.6 41.6 L32 54 L43.4 41.6 A15.5 15.5 0 0 1 32 10.5 Z" fill="url(#pin)"/>
+  <!-- термометр: колба и резервуар -->
+  <path d="M32 17.2 c-2.1 0 -3.4 1.4 -3.4 3.2 v9.6 c-1.9 1.1 -3 2.9 -3 5 a6.4 6.4 0 1 0 12.8 0 c0 -2.1 -1.1 -3.9 -3 -5 v-9.6 c0 -1.8 -1.3 -3.2 -3.4 -3.2 Z" fill="#f4f7f9"/>
+  <!-- столбик ртути — статусный красный -->
+  <path d="M32 23.5 a1.7 1.7 0 0 0 -1.7 1.7 v7.6 a3.9 3.9 0 1 0 3.4 0 v-7.6 a1.7 1.7 0 0 0 -1.7 -1.7 Z" fill="#c8372d"/>
+</svg>
