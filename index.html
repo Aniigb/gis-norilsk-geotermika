@@ -1771,7 +1771,7 @@ function tabCokOgr(o, el){
   </table>
   <div style="margin:8px 0; padding:8px 12px; border-radius:6px; background:#f6f7f9; border-left:4px solid ${vcCol}">
     <b>Заключение по продухам: <span style="color:${vcCol}">${vc.st.s}</span></b>
-    ${vc.Sreq!==null?`<div style="margin-top:4px">Требуемая суммарная площадь: S/400 = ${vc.S} / 400 = <b>${vc.Sreq.toFixed(2)} м²</b>; фактическая: ${vc.n!==null?(vc.n+' продух(а) × '+vc.w+' × '+vc.h+' м = <b>'+vc.F0.toFixed(2)+' м²</b>'):'—'}; минимум по числу: 2 × ${vc.nSec} секц. = ${vc.Nmin} шт${vc.Nreq!==null&&vc.Nreq>vc.Nmin?(' (с учётом площади — не менее <b>'+vc.Nreq+' шт</b>)'):''}.</div>`:''}
+    ${vc.Sreq!==null?`<div style="margin-top:4px">Требуемая суммарная площадь: S/400 = ${vc.S} / 400 = <b>${vc.Sreq.toFixed(2)} м²</b>; фактическая: ${vc.F0!==null?('<b>'+vc.F0.toFixed(2)+' м²</b> <span class="note">('+esc(vc.F0src)+')</span>'):'—'}; минимум по числу: 2 × ${vc.nSec} секц. = ${vc.Nmin} шт${vc.Nreq!==null&&vc.Nreq>vc.Nmin?(' (с учётом площади — не менее <b>'+vc.Nreq+' шт</b>)'):''}.</div>`:''}
     <div class="note" style="margin-top:4px">${esc(vc.st.d)}</div>
     <div class="note" style="margin-top:4px">Для зданий на ММГ по принципу I число и площадь продухов уточняются теплотехническим расчётом проветриваемого подполья — СП 25.13330.2020, разд. 6.3, прил. Д (см. «РАСЧЕТЫ → Вентиляция подполья»); проверка 1/400 — обязательный минимум Правил № 170. Требование t ≥ +5 °C (разд. 4.1 Правил № 170) относится к подвалам жилых домов и к холодным проветриваемым подпольям на ММГ не применяется. Заключение синхронизировано с «Паспортом ГТМ».</div>
   </div>
@@ -2384,7 +2384,7 @@ function tabGtm(o, el){
       <td colspan="2">${inp(o,'gtm','air_fact','')} <span class="note">— замеров за 12 мес. (ручной учёт)</span></td></tr>
     <tr><td>Состояние вентиляции подполья (продухи) <span class="note">(синхрон.: «Цокольное ограждение»)</span></td>
       <td>исправны, открыты; ΣS ≈ 1/400 S пола; ≥ 2 на секцию; противоположные стены — Правила № 170, п. 4.1.4; СП 25.13330.2020, прил. Д</td>
-      <td>${vc.n!==null?(vc.n+' продух(а), ΣS = '+(vc.F0!==null?vc.F0.toFixed(2):'—')+' м²'):'—'}</td>
+      <td>${vc.F0!==null?((vc.n!==null?vc.n+' продух(а), ':'')+'ΣS = '+vc.F0.toFixed(2)+' м²'):(vc.n!==null?vc.n+' продух(а)':'—')}</td>
       <td>${gtmBadge(vc.st)} <span class="note">${esc(vc.st.d)}</span></td></tr>
   </tbody></table>
   <div style="margin:10px 0; padding:9px 12px; border-radius:6px; background:#f6f7f9; border-left:4px solid ${conclCol}">
@@ -3929,8 +3929,8 @@ function parseDims(o){ const t=((o.pf2||{}).dims||'');
 }
 function parseVent(o){ const t=((o.pf2||{}).vent||'');
   let F0=null, n=null;
-  const m=t.match(/(\d+)\s*(?:воздухозаборн\w*\s+)?продух/i); if(m) n=+m[1];
-  const ms=t.match(/сечени\w*\s*([\d,]+)\s*[×xх*]\s*([\d,]+)/i);
+  const m=t.match(/(\d+)\s*(?:воздухозаборн[а-яё]*\s+)?продух/i); if(m) n=+m[1];
+  const ms=t.match(/сечени[а-яё]*\s*([\d,]+)\s*[×xх*]\s*([\d,]+)/i);
   if(n&&ms) F0=+(n*parseFloat(ms[1].replace(',','.'))*parseFloat(ms[2].replace(',','.'))).toFixed(2);
   const m2=t.match(/общей площадью[^\d]*([\d,]+)/i);
   if(m2) F0=parseFloat(m2[1].replace(',','.'));
@@ -3938,7 +3938,8 @@ function parseVent(o){ const t=((o.pf2||{}).vent||'');
 }
 /* --- нормативная проверка продухов: Правила № 170, п. 4.1.4 (ΣS ≈ 1/400 S пола подполья;
        противоположные стены; ≥ 2 на секцию) + СП 25.13330.2020, разд. 6.3, прил. Д (уточнение расчётом).
-       Источники факта: ручной ввод в «Цокольном ограждении» → паспорт/отчёт (parseVent) → габариты (parseDims). --- */
+       Источники факта: ручной ввод в «Цокольном ограждении» → паспорт/отчёт (parseVent: число,
+       сечение, общая площадь) → габариты в осях (parseDims). --- */
 function ventCheck(o){
   const pv=parseVent(o), dm=parseDims(o);
   const sRaw=parseFloat(edVal(o,'cok','vs',''));
@@ -3946,29 +3947,38 @@ function ventCheck(o){
   const nSec=parseInt(edVal(o,'cok','vsec',''))||1;
   const nRaw=parseInt(edVal(o,'cok','vn',''));
   const n=!isNaN(nRaw)?nRaw:(pv.n!==null?pv.n:null);
-  const w=parseFloat(edVal(o,'cok','vw',''))||0.25;
-  const h=parseFloat(edVal(o,'cok','vh',''))||0.25;
+  const wMan=edVal(o,'cok','vw',''), hMan=edVal(o,'cok','vh','');
+  const w=parseFloat(wMan)||0.25, h=parseFloat(hMan)||0.25;
   const opp=edVal(o,'cok','vopp','');
   const F1=+(w*h).toFixed(4);
-  const F0=(n!==null)?+(n*F1).toFixed(3):null;
+  // фактическая суммарная площадь: ручное сечение → паспортная общая площадь → число × сечение (типовое)
+  let F0=null, F0src='';
+  if(n!==null&&(wMan!==''||hMan!=='')){ F0=+(n*F1).toFixed(3); F0src=n+' × '+w+' × '+h+' м'; }
+  else if(pv.F0!==null){ F0=+pv.F0; F0src='паспорт/отчёт: общая площадь вентилирования'; }
+  else if(n!==null){ F0=+(n*F1).toFixed(3); F0src=n+' × '+w+' × '+h+' м (типовое сечение)'; }
   const Sreq=(S!==null)?+(S/400).toFixed(2):null;
   const Nmin=2*nSec;
   const Nreq=(Sreq!==null&&F1>0)?Math.max(Nmin,Math.ceil(Sreq/F1-1e-9)):null;
   const det=[];
-  let st={s:'—', d:'нет данных — задайте площадь подполья и число продухов (вкладка «Цокольное ограждение»)'};
-  if(S===null||n===null){ /* остаётся «нет данных» */ }
-  else if(n===0){ st={s:'ТРЕБУЕТСЯ ДООСНАСТКА', d:'продухи отсутствуют (0 шт)'}; }
-  else{
-    const areaOK=F0>=Sreq-1e-9, countOK=n>=Nmin;
-    if(!areaOK) det.push('дефицит площади: '+F0.toFixed(2)+' м² из '+Sreq.toFixed(2)+' м² (добавить ≈ '+Math.max(0,Nreq-n)+' продух(а) '+w+' × '+h+' м)');
-    if(!countOK) det.push('число продухов '+n+' меньше минимальных '+Nmin+' (≥ 2 на секцию × '+nSec+' секц.)');
-    if(opp==='нет') det.push('продухи не на противоположных стенах — сквозное проветривание не обеспечено');
-    if(opp==='') det.push('размещение по фасадам не зафиксировано — подтвердить при осмотре');
-    if(areaOK&&countOK&&opp==='да') st={s:'НОРМА', d:n+' продух(а), ΣS = '+F0.toFixed(2)+' м² ≥ '+Sreq.toFixed(2)+' м²; размещение на противоположных стенах'};
-    else if(areaOK&&countOK&&opp==='') st={s:'НОРМА', d:n+' продух(а), ΣS = '+F0.toFixed(2)+' м² ≥ '+Sreq.toFixed(2)+' м²; размещение уточнить при осмотре'};
-    else st={s:'НЕДОСТАТОЧНО', d:det.join('; ')};
+  const base={S:S,nSec:nSec,n:n,w:w,h:h,F1:F1,F0:F0,F0src:F0src,Sreq:Sreq,Nmin:Nmin,Nreq:Nreq,opp:opp,det:det};
+  if(S===null||(F0===null&&n===null)){
+    base.st={s:'—',d:'нет данных — задайте площадь подполья и число продухов (вкладка «Цокольное ограждение»)'};
+    return base;
   }
-  return {S:S, nSec:nSec, n:n, w:w, h:h, F1:F1, F0:F0, Sreq:Sreq, Nmin:Nmin, Nreq:Nreq, opp:opp, st:st, det:det};
+  if(n===0){ base.st={s:'ТРЕБУЕТСЯ ДООСНАСТКА',d:'продухи отсутствуют (0 шт)'}; return base; }
+  const areaOK=(F0!==null&&Sreq!==null)?(F0>=Sreq-1e-9):null;
+  const countOK=(n!==null)?(n>=Nmin):null;
+  if(areaOK===false) det.push('дефицит площади: '+F0.toFixed(2)+' м² из '+Sreq.toFixed(2)+' м²'+(n!==null&&Nreq!==null?(' (добавить ≈ '+Math.max(0,Nreq-n)+' продух(а) '+w+' × '+h+' м)'):''));
+  if(countOK===false) det.push('число продухов '+n+' меньше минимальных '+Nmin+' (≥ 2 на секцию × '+nSec+' секц.)');
+  if(countOK===null) det.push('число продухов не задано — контроль «≥ 2 на секцию» невозможен');
+  if(opp==='нет') det.push('продухи не на противоположных стенах — сквозное проветривание не обеспечено');
+  if(opp==='') det.push('размещение по фасадам не зафиксировано — подтвердить при осмотре');
+  const fails=(areaOK===false)||(countOK===false);
+  const factStr=(n!==null?n+' продух(а), ':'')+'ΣS = '+(F0!==null?F0.toFixed(2):'—')+' м² ≥ '+Sreq.toFixed(2)+' м²';
+  if(!fails&&opp==='да') base.st={s:'НОРМА',d:factStr+'; размещение на противоположных стенах'};
+  else if(!fails) base.st={s:'НОРМА',d:factStr+(det.length?'; '+det.join('; '):'')};
+  else base.st={s:'НЕДОСТАТОЧНО',d:det.join('; ')};
+  return base;
 }
 function parsePile(o){ const t=((o.pf2||{}).fund||'');
   let U=null, Ap=null, L=null, note='';
