@@ -2,7 +2,7 @@
 
 г. Норильск · АНО «АНИИГБ» им. М.В. Кима
 
-**Открыть:** https://alikerimov65.github.io/gis-norilsk-geotermika/
+**Открыть:** https://aniigb.github.io/gis-norilsk-geotermika/ (старый адрес alikerimov65.github.io — автоматическая переадресация)
 
 - 661 объект (Центральный 505 · Талнах 74 · Кайеркан 81)
 - 70 434 записи замеров температуры грунта, 2004–2026
