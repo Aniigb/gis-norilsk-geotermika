@@ -6646,6 +6646,13 @@ async function _decrypt(rawK){
     grid.appendChild(b);
   });
   lm.style.display="flex";
+  (function(){ // правовая модалка доступна и до входа (футер приветственного окна)
+    const lg=document.getElementById("legalModal");
+    const op=e=>{ if(e) e.preventDefault(); lg.style.display="block"; };
+    ["legalOpen1","legalOpen2"].forEach(id=>{ const x=document.getElementById(id); if(x) x.onclick=op; });
+    document.getElementById("legalClose").onclick=()=>{ lg.style.display="none"; };
+    lg.addEventListener("click",e=>{ if(e.target===lg) lg.style.display="none"; });
+  })();
   document.getElementById("loginForm").onsubmit=async ev=>{
     ev.preventDefault(); errEl.textContent="";
     if(!picked){ errEl.textContent="Сначала выберите роль по статусу"; return; }
