@@ -21,7 +21,7 @@
   }
   *{box-sizing:border-box; margin:0; padding:0}
   html,body{height:100%; font:14px/1.45 "Segoe UI","PT Sans",-apple-system,"Helvetica Neue",Arial,sans-serif; color:var(--ink)}
-  #app{display:grid; grid-template-columns:330px 1fr 420px; grid-template-rows:56px auto 1fr; height:100vh}
+  #app{display:grid; grid-template-columns:330px 1fr 420px; grid-template-rows:56px auto 1fr auto; height:100vh}
   header{grid-column:1/4; background:var(--bg); color:#eef2f6; display:flex; align-items:center; gap:18px; padding:0 18px}
   header h1{font-size:16px; font-weight:600; letter-spacing:.3px; white-space:nowrap}
   header .sub{font-size:12px; color:#9fb0bf}
@@ -274,6 +274,7 @@
   #legalModal p{margin:4px 0}
   .footline{font-size:10.6px; color:#4e5763; border-top:1px solid #b3a98f; padding:6px 12px; line-height:1.5; background:#cfc7b0}
   .footline a{color:#4e5763}
+  #pageFoot{grid-column:1/4; order:4; text-align:center}
   /* ---------- дежурный метеоконтроль: постоянная полоса + окно ---------- */
   #warnStrip{grid-column:1/4; font-size:12px; padding:4px 16px; cursor:pointer; border-bottom:1px solid var(--line); display:flex; align-items:center; white-space:nowrap; overflow:hidden}
   #warnStrip>span{overflow:hidden; text-overflow:ellipsis}
@@ -374,7 +375,6 @@
     </div>
     <input id="search" placeholder="Поиск по адресу…">
     <div id="list"></div>
-    <div class="footline">© 2013–2026 АНО «АНИИГБ» им. М.В. Кима · Все права защищены<br>ИНН 2457195433 · ОГРН 1132468035072<br><a href="#" id="legalOpen1">Правовая информация и охрана базы данных</a></div>
   </div>
   <div id="map">
     <div class="legend">
@@ -389,6 +389,7 @@
     <div id="gtmCov" title="Охват объектов геотехническим мониторингом: термометрические скважины, геодезические марки, осмотры за 12 мес. Обновляется при изменении данных."><canvas id="gtmCovC" width="248" height="126"></canvas></div>
   </div>
   <div id="detail"><div class="empty">Выберите объект на карте или в списке слева</div></div>
+  <footer id="pageFoot" class="footline">© 2013–2026 АНО «АНИИГБ» им. М.В. Кима · Все права защищены<br>ИНН 2457195433 · ОГРН 1132468035072<br><a href="#" id="legalOpen1">Правовая информация и охрана базы данных</a></footer>
 </div>
 
 <div id="settings">
