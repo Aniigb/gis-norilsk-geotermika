@@ -228,6 +228,12 @@
   #loginModal input{width:100%; padding:9px 12px; border:1px solid var(--line); border-radius:6px; font-size:14px; margin-bottom:10px}
   #loginModal button[type=submit]{width:100%; padding:9px; background:var(--bg); color:#fff; border:none; border-radius:6px; font-size:14px; cursor:pointer}
   #loginModal button[type=submit]:hover{background:#1b2c3a}
+  #loginModal button[type=submit][disabled]{opacity:.5; cursor:default}
+  #roleGrid{display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px}
+  #roleGrid .rl{padding:7px 8px; font-size:11.8px; border:1px solid var(--line); border-radius:6px; background:#fff; cursor:pointer; text-align:center; line-height:1.25}
+  #roleGrid .rl:hover{border-color:var(--bg); background:#f2f5f8}
+  #roleGrid .rl.on{background:var(--bg); color:#fff; border-color:var(--bg)}
+  #roleDesc{font-size:11.5px; color:var(--mut); background:#f4f7fa; border:1px solid var(--line); border-radius:6px; padding:7px 9px; margin-bottom:10px; line-height:1.4}
   #loginModal .lerr{color:var(--crit); font-size:12.5px; min-height:17px; margin-top:8px}
   #loginModal .lnote{font-size:11.3px; color:var(--mut); margin-top:10px; border-top:1px solid var(--line); padding-top:10px}
   #logoutBtn{background:none; border:1px solid #3a4c5c; color:#cdd8e2; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:13px}
@@ -490,10 +496,12 @@
   <form class="lbox" id="loginForm">
     <h2>ГИС-база геотехнического мониторинга зданий</h2>
     <div class="sub2">г. Норильск · АНО «АНИИГБ» им. М.В. Кима</div>
-    <input type="password" id="loginPw" placeholder="Пароль" autocomplete="current-password" autofocus>
-    <button type="submit">Войти</button>
+    <div id="roleGrid"></div>
+    <div id="roleDesc" style="display:none"></div>
+    <input type="password" id="loginPw" placeholder="Пароль для выбранной роли" autocomplete="current-password" style="display:none">
+    <button type="submit" id="loginGo" disabled>Войти</button>
     <div class="lerr" id="loginErr"></div>
-    <div class="lnote">Уровни доступа: <b>наблюдатель</b> — просмотр базы и графиков; <b>оператор</b> — просмотр, загрузка замеров, ведение карточек объектов.</div>
+    <div class="lnote">Вход в два шага: ① выберите роль по вашему статусу → ② введите пароль роли. Содержание доступа показано под выбранной ролью.</div>
   </form>
 </div>
 <script>window.__initApp=function(){
@@ -5923,25 +5931,56 @@ async function exportInspWord(o, cur){
   a2.click();
 }
 const PWH={view:'e25263815248915f93d27213a93195cf2b11e94e51171099fb6a5c6954cc040a',
-           edit:'2fc5b5a616cdbc8e4081158340a5d424d05a2be0a4df7aa968c04868103f89cc'};
+           edit:'2fc5b5a616cdbc8e4081158340a5d424d05a2be0a4df7aa968c04868103f89cc',
+           uk:'2f56d6dd0ce51f5bd7bf0c5e466ac484408b628ed183e31074ff5d86630dad59',
+           nadzor:'86551b783a42adbab63463e091b77083bc72cd51b9a77fb8a8e8c3d3c9b5d25a',
+           stroy:'994445b831a0bbbdb6ba57329d4dc64d50ed7347623b71c7e68cfb4a184f9bb0',
+           admin:'25df946f4e8c02b48c8ccae674590c40365d04c158260d0aa2ff7b71c393894c'};
+const ROLES={
+ view:{name:'Наблюдатель', edit:false, tg:false, desc:'Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты.'},
+ edit:{name:'Оператор', edit:true, tg:true, desc:'Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров.'},
+ uk:{name:'Управляющая компания', edit:false, tg:true, desc:'Просмотр базы + раздел предписаний и текущих осмотров по объектам (без дополнительного пароля); карточки УК с планами ремонтов и рекомендациями модели.'},
+ nadzor:{name:'Организация, ведущая мерзлотный надзор', edit:false, tg:true, desc:'Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров.'},
+ stroy:{name:'Служба строительного надзора и жилищного контроля', edit:false, tg:true, desc:'Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ.'},
+ admin:{name:'Администрация города Норильска', edit:true, tg:true, desc:'Полный доступ, включая надзорные разделы, реестры и планы ремонтов.'}
+};
+const ROLE_ORDER=['view','edit','uk','nadzor','stroy','admin'];
 async function sha256Hex(s){ const b=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 function enterApp(role){
+  const cfg=ROLES[role]||ROLES.view;
   sessionStorage.setItem('ngk_role', role);
-  document.body.classList.add('authed', 'role-'+role);
+  document.body.classList.add('authed', cfg.edit?'role-edit':'role-view');
+  if(cfg.tg) sessionStorage.setItem('ngk_tg_ok','1');
   document.getElementById('loginModal').style.display='none';
-  document.getElementById('roleBadge').textContent=role==='edit'?'оператор':'наблюдатель';
+  const rb=document.getElementById('roleBadge'); rb.textContent=cfg.name; rb.title=cfg.desc;
 }
 (function initAuth(){
-  document.getElementById('logoutBtn').onclick=()=>{ sessionStorage.removeItem('ngk_role'); sessionStorage.removeItem('ngk_k'); location.reload(); };
+  document.getElementById('logoutBtn').onclick=()=>{ sessionStorage.removeItem('ngk_role'); sessionStorage.removeItem('ngk_k'); sessionStorage.removeItem('ngk_tg_ok'); location.reload(); };
   const role=sessionStorage.getItem('ngk_role');
-  if(role==='view'||role==='edit'){ enterApp(role); return; }
+  if(role&&ROLES[role]){ enterApp(role); return; }
+  let picked=null;
+  const grid=document.getElementById('roleGrid');
+  ROLE_ORDER.forEach(k=>{
+    const b=document.createElement('button');
+    b.type='button'; b.className='rl'; b.textContent=ROLES[k].name;
+    b.onclick=()=>{
+      picked=k;
+      grid.querySelectorAll('.rl').forEach(x=>x.classList.toggle('on', x===b));
+      const pw=document.getElementById('loginPw'); pw.style.display='block'; pw.focus();
+      const go=document.getElementById('loginGo'); go.disabled=false;
+      const rd=document.getElementById('roleDesc'); rd.style.display='block';
+      rd.innerHTML='<b>'+ROLES[k].name+'</b> — '+ROLES[k].desc;
+      document.getElementById('loginErr').textContent='';
+    };
+    grid.appendChild(b);
+  });
   document.getElementById('loginModal').style.display='flex';
   document.getElementById('loginForm').onsubmit=async ev=>{
     ev.preventDefault();
+    if(!picked){ document.getElementById('loginErr').textContent='Сначала выберите роль по статусу'; return; }
     const h=await sha256Hex(document.getElementById('loginPw').value);
-    if(h===PWH.edit) enterApp('edit');
-    else if(h===PWH.view) enterApp('view');
-    else document.getElementById('loginErr').textContent='Неверный пароль';
+    if(h===PWH[picked]) enterApp(picked);
+    else document.getElementById('loginErr').textContent='Неверный пароль для роли «'+ROLES[picked].name+'»';
   };
 })();
 
