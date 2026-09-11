@@ -6265,7 +6265,17 @@ function mtData(){ // базовый ряд (db.js) + пополнение Open-
       return r;
     });
   });
-  return {years, m, src:b.src||'', station:b.station||''};
+  /* контроль качества: высота снежного покрова в июле–августе при среднемесячной t > +3 °C физически невозможна
+     (устойчивый покров в Норильске сходит в июне); такие значения — артефакты ячейки реанализа ERA5, обнуляются */
+  let qcSn=0;
+  years.forEach((y,i)=>{
+    [6,7].forEach(mo=>{
+      const v=m.sn&&m.sn[i]?m.sn[i][mo]:null;
+      const tv=m.t&&m.t[i]?m.t[i][mo]:null;
+      if(v!==null&&v!==undefined&&v>0&&(tv===null||tv===undefined||tv>3)){ m.sn[i][mo]=0; qcSn++; }
+    });
+  });
+  return {years, m, src:b.src||'', station:b.station||'', qcSn};
 }
 function mtYearAgg(d,k){ // годовые: среднее (≥10 мес.); осадки — сумма; снег: высота — максимум, плотность — среднее зимних
   const out=[];
@@ -6430,7 +6440,7 @@ function mtRender(d){
   const updInfo=st.ts?('пополнение Open-Meteo: '+new Date(st.ts).toLocaleDateString('ru-RU')):'пополнение не выполнялось';
   bd.innerHTML=`
   <h2 style="font-size:16px">Метеоданные · г. Норильск <span style="font-size:11.5px; color:var(--mut); font-weight:400">${esc(d.station)} · ряд ${d.years[0]}–${d.years[d.years.length-1]}</span></h2>
-  <div class="normref">Источник: ${esc(d.src)}. ${esc(updInfo)}. Аномалии — по z-оценке относительно месячной климатологии ряда (|z| ≥ 2,5); тренды — линейная регрессия МНК; прогноз — сезонная климатология + годовой тренд с полосой ±1,96σ.</div>
+  <div class="normref">Источник: ${esc(d.src)}. ${esc(updInfo)}. Аномалии — по z-оценке относительно месячной климатологии ряда (|z| ≥ 2,5); тренды — линейная регрессия МНК; прогноз — сезонная климатология + годовой тренд с полосой ±1,96σ.${d.qcSn?' Контроль качества: обнулены <b>'+d.qcSn+'</b> артефактных значения высоты снежного покрова в июле–августе (при среднемесячной t > +3 °C устойчивый покров невозможен — артефакты ячейки реанализа ERA5).':''}</div>
   <div class="mt-kpi">
     <div class="k"><span>МГТ за ${lastT?lastT.y:'—'} г.${normV!==null?' (норма 1961–1990: '+normV.toFixed(1)+' °C)':''}</span><b>${lastT?lastT.v.toFixed(1)+' °C':'—'}${lastT&&normV!==null?` <small style="color:${(lastT.v-normV)>0?'#c8372d':'#2e7d32'}">(${(lastT.v-normV)>=0?'+':''}${(lastT.v-normV).toFixed(1)})</small>`:''}</b></div>
     <div class="k"><span>Тренд МГТ за ${tAgg.length?tAgg[0].y+'–'+tAgg[tAgg.length-1].y:'—'} (R²=${lin?lin.r2:'—'})</span><b>${lin?(lin.k*10>=0?'+':'')+(lin.k*10).toFixed(2)+' °C/10 лет':'—'}</b></div>
