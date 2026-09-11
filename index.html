@@ -267,13 +267,13 @@
   #meteoModal{display:none; position:fixed; inset:0; z-index:1150; background:rgba(15,28,38,.6)}
   #meteoModal .box{background:var(--panel); width:1020px; max-width:96vw; max-height:94vh; margin:2.5vh auto; border-radius:10px; padding:18px 24px; box-shadow:0 10px 40px rgba(0,0,0,.4); overflow-y:auto}
   #legalModal{display:none; position:fixed; inset:0; z-index:1300; background:rgba(15,28,38,.6)}
-  #legalModal .box{background:var(--panel); width:760px; max-width:94vw; max-height:88vh; overflow-y:auto; margin:5vh auto; border-radius:10px; padding:22px 28px; box-shadow:0 10px 40px rgba(0,0,0,.4); font-size:13px; line-height:1.55}
+  #legalModal .box{background:#d9d1bd; width:760px; max-width:94vw; max-height:88vh; overflow-y:auto; margin:5vh auto; border-radius:10px; padding:22px 28px; box-shadow:0 10px 40px rgba(0,0,0,.4); font-size:13px; line-height:1.55}
   #legalModal .close{float:right; border:none; background:none; font-size:20px; cursor:pointer; color:var(--mut)}
   #legalModal h2{font-size:16px; margin:0 0 8px}
   #legalModal h3{font-size:13.5px; margin:14px 0 4px}
   #legalModal p{margin:4px 0}
-  .footline{font-size:10.6px; color:var(--mut); border-top:1px solid var(--line); padding:6px 12px; line-height:1.5}
-  .footline a{color:var(--mut)}
+  .footline{font-size:10.6px; color:#4e5763; border-top:1px solid #b3a98f; padding:6px 12px; line-height:1.5; background:#cfc7b0}
+  .footline a{color:#4e5763}
   .mt-kpi{display:flex; gap:10px; flex-wrap:wrap; margin:8px 0}
   .mt-kpi .k{flex:1; min-width:150px; border:1px solid var(--line); border-radius:8px; padding:7px 10px; background:#eef2f5}
   .mt-kpi .k b{display:block; font-size:15.5px; margin-top:2px}
@@ -6656,7 +6656,7 @@ setTimeout(()=>{ try{
 };
 const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"4WYeKU9t6vhlSW4y"};
 const BUILD="8c06d503";
-const BUILD_DATE="11.09.2026 20:07";
+const BUILD_DATE="11.09.2026 20:15";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
