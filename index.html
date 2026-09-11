@@ -121,6 +121,22 @@
   .photos figcaption{font-size:10.5px; padding:3px 6px; color:var(--mut); display:flex; justify-content:space-between; align-items:center}
   .ukgroup{position:sticky; top:0; background:#e4ded2; padding:5px 14px; font-size:11.5px; font-weight:700; letter-spacing:.4px; color:#5a5346; border-bottom:1px solid var(--line); z-index:5}
   .ukgroup .n{font-weight:400; color:var(--mut); margin-left:6px}
+  /* --- блок управляющих компаний в левой панели --- */
+  .ukblk{margin:0 12px 8px; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:#fbf9f4}
+  .ukblk-h{padding:6px 10px; font-size:12.5px; font-weight:700; color:#4a4234; background:#efe9dc; cursor:pointer; user-select:none; display:flex; justify-content:space-between; align-items:center}
+  .ukblk-h:hover{background:#e7dfcd}
+  .ukblk-h .n{font-weight:400; color:var(--mut); font-size:11px}
+  .ukblk-h::before{content:'▸'; margin-right:6px; font-size:10px; color:var(--mut)}
+  .ukblk.open>.ukblk-h::before{content:'▾'}
+  .ukblk-b{display:none; max-height:280px; overflow:auto}
+  .ukblk.open>.ukblk-b{display:block}
+  .ukrow{padding:5px 10px; font-size:12px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:6px; border-top:1px solid #eee7d8}
+  .ukrow:hover{background:#f1ebdd}
+  .ukrow.sel{background:#dce8fb}
+  .ukrow .nm{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .ukrow .n{color:var(--mut); font-size:11px; white-space:nowrap}
+  .ukrow .dots{display:inline-flex; gap:3px; margin-left:6px; vertical-align:middle}
+  .ukrow .dots i{width:8px; height:8px; border-radius:50%; display:inline-block}
   /* --- аккордеон по улицам (полный реестр МКД) --- */
   .acc-h{padding:7px 14px; font-size:12.5px; font-weight:700; color:#4a4234; background:#efe9dc; border-bottom:1px solid var(--line); cursor:pointer; user-select:none; display:flex; justify-content:space-between; align-items:center}
   .acc-h:hover{background:#e7dfcd}
@@ -304,6 +320,10 @@
     <select id="ukFilter" style="margin:0 12px 6px; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; width:calc(100% - 24px)"></select>
     <label style="margin:0 12px 8px; font-size:11.8px; color:var(--mut); display:flex; gap:6px; align-items:center; cursor:pointer"><input type="checkbox" id="ukGroup"> группировать список по УК</label>
     <label style="margin:0 12px 8px; font-size:11.8px; color:#5b4a7a; display:flex; gap:6px; align-items:center; cursor:pointer" title="Фиолетовые маркеры на карте — дома в краткосрочном плане ремонтов текущего года (Power BI регоператора)"><input type="checkbox" id="kpYr"> 🔧 КП <span id="kpYrNum"></span> на карте</label>
+    <div class="ukblk open" id="ukBlk">
+      <div class="ukblk-h" id="ukBlkH"><span>🏢 Управляющие компании</span><span class="n" id="ukBlkN"></span></div>
+      <div class="ukblk-b" id="ukBlkB"></div>
+    </div>
     <input id="search" placeholder="Поиск по адресу…">
     <div id="list"></div>
   </div>
@@ -529,9 +549,35 @@ const AIR4={}; // 'адрес|скважина|дата' → {tOut,tSa,src,est} 
 function air4Set(a,w,dt,x){ AIR4[a+'|'+w+'|'+dt]={tOut:(x.tOut!=null?x.tOut:null), tSa:(x.tSa!=null?x.tSa:null), src:x.tOutSrc||null, est:!!x.tSaEst}; }
 
 /* ---------- управляющие компании ---------- */
-const UK_LIST = ['УК «ЖКС-Норильск»','УК «Город»','ООО «Нордсервис»','ООО «СеверныйБыт»','ООО «СеверныйУправдом»','ООО «Заполярный жилищный трест»','ООО «Будущее»'];
+const UK_LIST = ['УК «ЖКС-Норильск»','УК «Город»','ООО «Нордсервис»','ООО «СеверныйБыт»','ООО «СеверныйУправдом»','ООО «Заполярный жилищный трест»','ООО «Талнахбыт»','ООО «Будущее»'];
+function ukCanon(s){ // канонизация наименований УК: любые варианты написания → единое имя
+  if(!s) return 'Не определена';
+  let x=String(s).toLowerCase().replace(/ё/g,'е').replace(/[«»„“]/g,'"').replace(/\s+/g,' ').trim();
+  let prev; do{ prev=x; x=x.replace(/^(управляющая компания|ооо|ао|муп|гку|мку|ук)(?=[\s"']|$)[\s"']*/,'').replace(/[\s"']+$/,''); }while(x!==prev);
+  const M={'жкс-норильск':'УК «ЖКС-Норильск»','жкс':'УК «ЖКС-Норильск»','жилкомсервис':'УК «ЖКС-Норильск»',
+    'город':'УК «Город»','нордсервис':'ООО «Нордсервис»','северныйбыт':'ООО «СеверныйБыт»',
+    'северныйуправдом':'ООО «СеверныйУправдом»','северный управдом':'ООО «СеверныйУправдом»',
+    'заполярный жилищный трест':'ООО «Заполярный жилищный трест»','зжт':'ООО «Заполярный жилищный трест»',
+    'талнахбыт':'ООО «Талнахбыт»','будущее':'ООО «Будущее»','уютный дом':'ООО «Уютный дом»'};
+  return M[x]||String(s);
+}
 function effectiveUK(o){ if(o.br==='skb') return o.podr||'Администрация г. Норильска';
-  const c=CARD[o.a]; return (c&&c.uk!==undefined&&c.uk!=='')?c.uk:(o.uk||'Не определена'); }
+  const c=CARD[o.a]; return ukCanon((c&&c.uk!==undefined&&c.uk!=='')?c.uk:(o.uk||'Не определена')); }
+const UK_INFO={ // справочник из открытых источников: ЕГРЮЛ, официальные сайты УК, Администрация г. Норильска (норильск.рф)
+ 'УК «ЖКС-Норильск»':{full:'ООО УК «ЖКС-Норильск»',inn:'2457077736',ogrn:'1142457001610',reg:'30.10.2014',addr:'663305, г. Норильск, ул. Талнахская, 5',dir:'Калинин В. А.',site:'jks24.ru',siteUrl:'https://jks24.ru',phone:'+7 (3919) 42-92-98',mail:'uk@jks24.ru',lic:'лицензия ГЖИ Красноярского края, № уточняется по реестру',note:'100 % муниципальное участие (Администрация г. Норильска)'},
+ 'УК «Город»':{full:'ООО УК «Город»',inn:'2457070804',ogrn:'1102457001503',reg:'21.10.2010',addr:'663302, г. Норильск, ул. Завенягина, 7а',dir:'Шевель Л. И.',site:'goroduk.ru',siteUrl:'https://goroduk.ru',phone:'+7 (3919) 46-63-65, дисп. 42-52-72',mail:'office@goroduk.ru',lic:'лицензия ГЖИ Красноярского края, № уточняется по реестру',note:'100 % муниципальное участие; по данным УК — 168 домов, 1 021 631,74 м²'},
+ 'ООО «Нордсервис»':{full:'ООО «Нордсервис»',inn:'2457046449',ogrn:'1022401625905',reg:'07.09.1999',addr:'г. Норильск, ул. Комсомольская, 41а',dir:'Ассанаев Ш. М.',site:'ooo-nordservis.ru',siteUrl:'https://ooo-nordservis.ru',phone:'+7 (3919) 46-56-02, дисп. 46-63-85',mail:'ooo-nordservis@mail.ru',lic:'лицензия ГЖИ Красноярского края, № уточняется по реестру'},
+ 'ООО «СеверныйБыт»':{full:'ООО «СеверныйБыт»',inn:'2457072713',ogrn:'1112457001898',reg:'03.10.2011',addr:'663332, г. Норильск, ул. Игарская, 18',dir:'Яковлев А. А.',site:'северныйбыт.рф',siteUrl:'https://северныйбыт.рф',phone:'+7 (3919) 45-58-90',mail:'ykseverbyt@mail.ru',lic:'лицензия ГЖИ Красноярского края, № уточняется по реестру'},
+ 'ООО «СеверныйУправдом»':{full:'ООО «СеверныйУправдом»',inn:'2457079518',ogrn:'1152457001509',reg:'13.11.2015',addr:'663340, г. Норильск, ул. Норильская, 24-62 (почт.: ул. Школьная, 7)',dir:'Тетиевский К. В.',site:'северныйуправдом.рф',siteUrl:'https://северныйуправдом.рф',phone:'+7 (3919) 41-80-80',mail:'—',lic:'лицензия ГЖИ Красноярского края, № уточняется по реестру'},
+ 'ООО «Заполярный жилищный трест»':{full:'ООО «Заполярный жилищный трест»',inn:'2457055612',ogrn:'—',reg:'',addr:'663302, г. Норильск, ул. Комсомольская, 26А',dir:'Арапова О. Б.',site:'жт-норильск.рф',siteUrl:'https://жт-норильск.рф',phone:'+7 (3919) 46-72-88',mail:'jil_trest@mail.ru',lic:'лицензия ГЖИ Красноярского края, № уточняется по реестру'},
+ 'ООО «Талнахбыт»':{full:'ООО «Талнахбыт»',inn:'2457047435',ogrn:'1022401623892',reg:'05.05.2000',addr:'663333, г. Норильск, ул. Первопроходцев, 16',dir:'',site:'talnahbyt.ru',siteUrl:'https://talnahbyt.ru',phone:'',mail:'',lic:'лицензия ГЖИ Красноярского края, № уточняется по реестру'},
+ 'ООО «Будущее»':{full:'ООО «Будущее»',inn:'2457087325',ogrn:'1202400023209',reg:'05.10.2020',addr:'663205, г. Норильск, ул. Севастопольская, 8/3-95',dir:'Арапова О. Б.',site:'жт-норильск.рф/by-disinfo/',siteUrl:'https://жт-норильск.рф/by-disinfo/',phone:'+7 (3919) 46-72-88',mail:'ooo_budushee@mail.ru',lic:'лицензия ГЖИ Красноярского края, № уточняется по реестру'}
+};
+let UKPLANS={}; try{ UKPLANS=JSON.parse(localStorage.getItem('ngk_ukplans')||'{}'); }catch(e){ UKPLANS={}; }
+function saveUKPLANS(){ localStorage.setItem('ngk_ukplans', JSON.stringify(UKPLANS)); }
+let UKMETA={}; try{ UKMETA=JSON.parse(localStorage.getItem('ngk_ukmeta')||'{}'); }catch(e){ UKMETA={}; }
+function saveUKMETA(){ localStorage.setItem('ngk_ukmeta', JSON.stringify(UKMETA)); }
+let curUKCard=null, curUkTab='info';
 function normAddrKey(s){
   s=(s||'').toLowerCase().replace(/ё/g,'е');
   s=s.replace(/\([^)]*\)/g,' ');
@@ -1154,6 +1200,7 @@ const ukSel=document.getElementById('ukFilter');
   }).join('');
   ukSel.onchange=()=>{curUK=ukSel.value; renderList();};
   document.getElementById('ukGroup').onchange=e=>{groupUK=e.target.checked; renderList();};
+  document.getElementById('ukBlkH').onclick=()=>document.getElementById('ukBlk').classList.toggle('open');
   /* --- подсветка КП текущего года на карте --- */
   const kpY=String(new Date().getFullYear());
   document.getElementById('kpYrNum').textContent=kpY;
@@ -1188,7 +1235,7 @@ function streetOf(o){ let s=o.a;
   s=s.replace(/[.\s,]+/g,'');
   const fix={'бхмельницкого':'богданахмельницкого','мкравца':'михаилакравца','лауретов':'лауреатов','комсомольсая':'комсомольская','московскаяд':'московская'};
   return fix[s]||s; }
-function stubUK(s){ return s.uk||'Не определена'; }
+function stubUK(s){ return ukCanon(s.uk||'Не определена'); }
 function stubPass(s){ return !covFilter&&curBranch==='mkd'&&(curD==='Все'||s.d===curD)&&(curUK==='Все'||stubUK(s)===curUK)&&(!curQ||s.a.toLowerCase().includes(curQ)); }
 function renderList(){
   const list=document.getElementById('list'); list.innerHTML='';
@@ -1249,6 +1296,7 @@ function stubItem(s,si){
 function selectStub(si){
   const s=(DB.stubs||[])[si]; if(!s) return;
   curObj=null;
+  curUKCard=null; document.querySelectorAll('.ukrow.sel').forEach(e=>e.classList.remove('sel'));
   document.querySelectorAll('.item').forEach(e=>e.classList.remove('sel'));
   const li=document.getElementById('st'+si); if(li){ li.classList.add('sel'); }
   if(s.lat!=null) map.panTo([s.lat,s.lon]);
@@ -1267,12 +1315,189 @@ function selectStub(si){
   if(window.matchMedia('(max-width:900px)').matches)
     setTimeout(()=>document.getElementById('detail').scrollIntoView({behavior:'smooth'}),150);
 }
+/* ---------- блок УК: интерактивный список + карточка управляющей компании ---------- */
+function ukObjects(uk){ return DB.objects.map((o,i)=>[o,i]).filter(([o])=>effectiveUK(o)===uk); }
+function ukStats(uk){
+  const arr=ukObjects(uk); let nN=0,nR=0,nC=0,nMon=0;
+  arr.forEach(([o])=>{ const st=statusOf(o); if(st){ nMon++; if(st==='КРИТИЧНО')nC++; else if(st==='РИСК')nR++; else nN++; } });
+  const nStub=(DB.stubs||[]).filter(s=>stubUK(s)===uk).length;
+  return {n:arr.length, nMon, nN, nR, nC, nStub};
+}
+function renderUKBlock(){
+  const bb=document.getElementById('ukBlkB'); if(!bb) return;
+  const set=new Set(UK_LIST);
+  DB.objects.forEach(o=>{ if(o.br!=='skb') set.add(effectiveUK(o)); });
+  (DB.stubs||[]).forEach(s=>set.add(stubUK(s)));
+  const uks=[...set].filter(u=>u!=='Не определена'&&u!=='Администрация г. Норильска').sort((a,b)=>a.localeCompare(b,'ru'));
+  bb.innerHTML='';
+  uks.forEach(u=>{
+    const st=ukStats(u); if(!st.n&&!st.nStub) return;
+    const r=document.createElement('div');
+    r.className='ukrow'+(curUKCard===u?' sel':'');
+    const dots=(st.nC?`<i style="background:#c8372d" title="КРИТИЧНО: ${st.nC}"></i>`:'')+(st.nR?`<i style="background:#e08a00" title="РИСК: ${st.nR}"></i>`:'')+(st.nN?`<i style="background:#2e7d32" title="НОРМА: ${st.nN}"></i>`:'');
+    r.innerHTML=`<span class="nm">${esc(u)}<span class="dots">${dots}</span></span><span class="n">${st.n?st.n+' об.':''}${st.nStub?(st.n?'+':'')+st.nStub+' рее.':''}</span>`;
+    r.onclick=()=>selectUK(u);
+    bb.appendChild(r);
+  });
+  const nEl=document.getElementById('ukBlkN'); if(nEl) nEl.textContent=uks.length+' УК';
+}
+function selectUK(uk){
+  curUKCard=uk; curObj=null;
+  document.querySelectorAll('.item').forEach(e=>e.classList.remove('sel'));
+  renderUKBlock();
+  const d=document.getElementById('detail');
+  const st=ukStats(uk);
+  d.innerHTML=`
+    <h2>${esc(uk)}<span class="badge b-card">управляющая компания</span></h2>
+    <div class="rayon">Объектов в базе: <b>${st.n}</b> (с мониторингом: ${st.nMon}; НОРМА&nbsp;${st.nN} · РИСК&nbsp;${st.nR} · КРИТИЧНО&nbsp;${st.nC})${st.nStub?` · реестр МКД: <b>${st.nStub}</b>`:''} · г. Норильск</div>
+    <div class="tabs" id="ukTabs"></div>
+    <div id="ukTabBody"></div>`;
+  const UKTABS=[['info','Основные сведения'],['current','Планы текущих ремонтов'],['capital','Планы капитальных ремонтов'],['reco','Рекомендованные моделью']];
+  const tb=document.getElementById('ukTabs');
+  UKTABS.forEach(([k,label])=>{
+    const b=document.createElement('button');
+    if(k===curUkTab) b.className='on';
+    b.textContent=label;
+    b.onclick=()=>{ curUkTab=k; selectUK(uk); };
+    tb.appendChild(b);
+  });
+  const el=document.getElementById('ukTabBody');
+  if(curUkTab==='info') ukTabInfo(uk,el);
+  else if(curUkTab==='current') ukTabPlans(uk,el,'current');
+  else if(curUkTab==='capital') ukTabPlans(uk,el,'capital');
+  else ukTabReco(uk,el);
+  if(window.matchMedia('(max-width:900px)').matches)
+    setTimeout(()=>d.scrollIntoView({behavior:'smooth'}),150);
+}
+function ukCoverageTable(uk){
+  const arr=ukObjects(uk); const byD={};
+  arr.forEach(([o])=>{ const dd=o.d||'не определён'; if(!byD[dd]) byD[dd]={n:0,mon:0}; byD[dd].n++; if(statusOf(o)) byD[dd].mon++; });
+  return `<table class="rows static"><thead><tr><th>Район</th><th style="width:22%">Объектов</th><th style="width:26%">Охвачено ГТМ</th></tr></thead><tbody>${
+    Object.keys(byD).sort().map(dd=>`<tr><td>${esc(dd)}</td><td>${byD[dd].n}</td><td>${byD[dd].mon} (${Math.round(byD[dd].mon/byD[dd].n*100)} %)</td></tr>`).join('')}</tbody></table>`;
+}
+function ukTabInfo(uk, el){
+  const base=UK_INFO[uk]||{}, ov=UKMETA[uk]||{};
+  const g=k=>ov[k]!==undefined?ov[k]:(base[k]||'');
+  const ro=!document.body.classList.contains('role-edit');
+  const F=[['full','Полное наименование'],['inn','ИНН'],['ogrn','ОГРН'],['reg','Дата регистрации'],['addr','Юридический адрес'],['dir','Руководитель'],['phone','Телефон'],['mail','E-mail'],['lic','Лицензия на управление МКД'],['note','Примечание']];
+  const rows=F.map(([k,lab])=>`<tr><td>${lab}</td><td>${ro?esc(g(k)||'—'):`<input data-ukm="${k}" value="${esc(g(k))}" style="width:100%; padding:3px 6px; border:1px solid var(--line); border-radius:4px; font-size:12.5px">`}</td></tr>`).join('');
+  const site=g('site'), siteUrl=g('siteUrl')||base.siteUrl;
+  el.innerHTML=`
+  <div class="normref">Сведения из открытых источников: ЕГРЮЛ, официальные сайты УК, Администрация г. Норильска (норильск.рф). Номер лицензии сверяется с реестром лицензий ГЖИ Красноярского края. ${ro?'':'<b>Режим оператора:</b> поля редактируемые, сохранение автоматическое (локально в браузере).'}</div>
+  <table class="kv">${rows}
+    <tr><td>Официальный сайт</td><td>${site?`<a href="${esc(siteUrl||('https://'+site))}" target="_blank" rel="noopener">${esc(site)}</a>`:'—'}</td></tr>
+  </table>
+  <div class="sect">Охват управления (по базе мониторинга)</div>
+  ${ukCoverageTable(uk)}`;
+  if(!ro) el.querySelectorAll('input[data-ukm]').forEach(inp=>{
+    inp.onchange=()=>{ (UKMETA[uk]=UKMETA[uk]||{})[inp.dataset.ukm]=inp.value.trim(); saveUKMETA(); };
+  });
+}
+function ukTabPlans(uk, el, kind){
+  const ro=!document.body.classList.contains('role-edit');
+  const list=((UKPLANS[uk]||{})[kind])||[];
+  const title=kind==='current'?'План текущих ремонтов':'План капитальных ремонтов';
+  let auto='';
+  if(kind==='current'){
+    const rows=[]; ukObjects(uk).forEach(([o,i])=>{ (o.krp||[]).forEach(k=>rows.push(Object.assign({i,a:o.a},k))); });
+    if(rows.length){
+      const byYear={}; rows.forEach(r=>{ const y=(String(r.year||'').match(/\d{4}/)||['—'])[0]; (byYear[y]=byYear[y]||[]).push(r); });
+      auto='<div class="sect">Автоматически: краткосрочный план регоператора (Power BI) · обновлено '+esc(DB.krp_upd||'—')+'</div>';
+      Object.keys(byYear).sort().reverse().forEach(y=>{
+        const rs=byYear[y]; const byGrp={};
+        rs.forEach(r=>{ (byGrp[r.grp||r.work||'прочее']=byGrp[r.grp||r.work||'прочее']||[]).push(r); });
+        auto+=`<div style="margin:8px 0 2px; font-weight:700; font-size:12.5px">${y} г. · позиций: ${rs.length}</div>`;
+        Object.keys(byGrp).sort().forEach(g2=>{
+          auto+=`<div style="margin:3px 0 1px; font-weight:600; font-size:12px; color:var(--mut)">${esc(g2)}</div>
+          <table class="rows static"><thead><tr><th>Адрес</th><th>Вид работ</th><th style="width:10%">Начало</th><th style="width:10%">Завершение</th><th style="width:9%">Факт</th><th style="width:14%">Подрядчик</th></tr></thead><tbody>${
+            byGrp[g2].map(r=>`<tr><td><a href="#" data-ukobj="${r.i}">${esc(r.a)}</a></td><td>${esc(r.work)}</td><td>${esc(r.start||'—')}</td><td>${esc(r.end||'—')}</td><td>${r.pct!=null?r.pct+' %':'—'}</td><td>${esc(r.contractor||'—')}</td></tr>`).join('')}</tbody></table>`;
+        });
+      });
+    } else auto='<div class="note" style="margin:8px 0">Позиции краткосрочного плана (Power BI) по объектам этой УК отсутствуют.</div>';
+  }
+  const srcNote=kind==='capital'
+    ?'Источники: официальные сайты УК (разделы «Раскрытие информации» / «Капитальный ремонт») и региональная программа капремонта Красноярского края; загружается оператором вручную или из xlsx-шаблона.'
+    :'Автоматическая сводка — из краткосрочного плана регоператора (вкладка «План ремонтов МКД» карточек объектов). Ручной блок — для планов с официальных сайтов УК.';
+  el.innerHTML=`
+  <div class="normref">${title}: <b>${esc(uk)}</b>. ${srcNote}</div>
+  ${auto}
+  <div class="sect">Загружено вручную · позиций: ${list.length}</div>
+  ${list.length?`<table class="rows static"><thead><tr><th style="width:8%">Год</th><th>Адрес</th><th>Вид работ</th><th style="width:24%">Примечание / источник</th>${ro?'':'<th style="width:4%"></th>'}</tr></thead><tbody>${
+    list.map((r,ri)=>`<tr><td>${esc(r.y||'')}</td><td>${esc(r.a||'')}</td><td>${esc(r.w||'')}</td><td>${esc(r.n||'')}</td>${ro?'':`<td><a href="#" data-ukpdel="${ri}" title="Удалить строку">✕</a></td>`}</tr>`).join('')}</tbody></table>`
+    :'<div class="note" style="margin:6px 0">Ручных позиций пока нет.</div>'}
+  ${ro?'':`<div class="sect">Добавить позицию</div>
+  <div style="display:flex; gap:6px; flex-wrap:wrap; margin:6px 0">
+    <input id="ukpY" placeholder="Год" style="width:70px; padding:4px 6px; border:1px solid var(--line); border-radius:4px">
+    <input id="ukpA" placeholder="Адрес (ул. …, д. …)" style="flex:2; min-width:170px; padding:4px 6px; border:1px solid var(--line); border-radius:4px">
+    <input id="ukpW" placeholder="Вид работ" style="flex:2; min-width:150px; padding:4px 6px; border:1px solid var(--line); border-radius:4px">
+    <input id="ukpN" placeholder="Примечание / источник" style="flex:2; min-width:150px; padding:4px 6px; border:1px solid var(--line); border-radius:4px">
+    <button class="wbtn" id="ukpAdd">＋ Добавить</button>
+  </div>
+  <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:4px 0 10px">
+    <input type="file" id="ukpFile" accept=".xlsx,.xls,.csv" style="font-size:12px">
+    <span class="note">xlsx-шаблон: колонки «год | адрес | вид работ | примечание» (без строки заголовка)</span>
+  </div>`}`;
+  el.querySelectorAll('[data-ukobj]').forEach(a=>a.onclick=e=>{ e.preventDefault(); select(+a.dataset.ukobj,true); });
+  if(!ro){
+    el.querySelectorAll('[data-ukpdel]').forEach(a=>a.onclick=e=>{ e.preventDefault();
+      UKPLANS[uk][kind].splice(+a.dataset.ukpdel,1); saveUKPLANS(); selectUK(uk); });
+    el.querySelector('#ukpAdd').onclick=()=>{
+      const r={y:el.querySelector('#ukpY').value.trim(), a:el.querySelector('#ukpA').value.trim(), w:el.querySelector('#ukpW').value.trim(), n:el.querySelector('#ukpN').value.trim(), src:'вручную'};
+      if(!r.a&&!r.w){ alert('Заполните хотя бы адрес или вид работ'); return; }
+      UKPLANS[uk]=UKPLANS[uk]||{}; UKPLANS[uk][kind]=UKPLANS[uk][kind]||[]; UKPLANS[uk][kind].push(r);
+      saveUKPLANS(); selectUK(uk);
+    };
+    el.querySelector('#ukpFile').onchange=ev=>{
+      const f=ev.target.files[0]; if(!f) return;
+      const rd=new FileReader();
+      rd.onload=()=>{ try{
+        const wb=XLSX.read(rd.result,{type:'array'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const aoa=XLSX.utils.sheet_to_json(ws,{header:1, defval:''});
+        let n=0;
+        UKPLANS[uk]=UKPLANS[uk]||{}; UKPLANS[uk][kind]=UKPLANS[uk][kind]||[];
+        aoa.forEach(row=>{ if(!row.some(c=>String(c).trim())) return;
+          UKPLANS[uk][kind].push({y:String(row[0]||'').trim(), a:String(row[1]||'').trim(), w:String(row[2]||'').trim(), n:String(row[3]||'').trim(), src:f.name}); n++; });
+        saveUKPLANS(); selectUK(uk); alert('Загружено позиций: '+n);
+      }catch(err){ alert('Не удалось прочитать файл: '+err.message); } };
+      rd.readAsArrayBuffer(f);
+    };
+  }
+}
+function ukTabReco(uk, el){
+  const cur=new Map(), cap=new Map();
+  const put=(m,a,i,level,rec,reason)=>{ if(!m.has(a)) m.set(a,{i,a,level,recs:new Set(),reasons:[]}); const e=m.get(a); e.recs.add(rec); e.reasons.push(reason); };
+  ukObjects(uk).forEach(([o,i])=>{
+    const sd=statusDetail(o); if(!sd.status||sd.status==='НОРМА') return;
+    sd.reasons.forEach(r=>{
+      const t=r.text;
+      if(/несущая способность сваи/.test(t)) put(cap,o.a,i,sd.status,'Усиление свайного основания / термостабилизация грунтов основания; при КРИТИЧНО — внеочередное обследование и ограничение эксплуатационных нагрузок (СП 25.13330.2020, п. 7.3)',t);
+      else if(/тренд потепления|≥ порога|выше расчётной/.test(t)) put(cur,o.a,i,sd.status,'Внеплановый контрольный замер температур; утепление и герметизация цоколя/отмостки; организация отвода талых вод от фундаментов; снегозадержание по регламенту (СП 497.1325800.2020)',t);
+      else if(/осадк/.test(t)) put(cur,o.a,i,sd.status,'Усиление геодезического контроля (частота циклов ≥ 2 в год); проверка водоотведения и исправности цокольного ограждения',t);
+      else put(cur,o.a,i,sd.status,'Плановое обследование по СП 497.1325800.2020',t);
+    });
+  });
+  const bcol={КРИТИЧНО:'crit',РИСК:'risk'};
+  const block=(m,title)=>{
+    const rows=[...m.values()].sort((a,b)=>(a.level===b.level?a.a.localeCompare(b.a,'ru'):(a.level==='КРИТИЧНО'?-1:1)));
+    return `<div class="sect">${title} · объектов: ${rows.length}</div>`+(rows.length
+      ?`<table class="rows static"><thead><tr><th style="width:22%">Адрес</th><th style="width:10%">Статус</th><th>Рекомендуемые мероприятия</th><th style="width:32%">Основание (карточка объекта)</th></tr></thead><tbody>${
+        rows.map(e=>`<tr><td><a href="#" data-ukobj="${e.i}">${esc(e.a)}</a></td><td><span class="badge b-${bcol[e.level]}">${e.level}</span></td><td style="font-size:12px">${[...e.recs].map(r=>esc(r)).join('<br>')}</td><td style="font-size:11px; color:var(--mut)">${e.reasons.map(r=>esc(r)).join('<br>')}</td></tr>`).join('')}</tbody></table>`
+      :'<div class="note" style="margin:6px 0">Объектов с рекомендациями нет — все в статусе НОРМА или без данных мониторинга.</div>');
+  };
+  el.innerHTML=`
+  <div class="normref">Рекомендации формируются автоматически из карточек объектов (причины статусов РИСК / КРИТИЧНО) по СП 25.13330.2020 и СП 497.1325800.2020. Клик по адресу открывает карточку объекта.</div>
+  ${block(cur,'Рекомендованные текущие мероприятия (эксплуатационные)')}
+  ${block(cap,'Рекомендованные капитальные мероприятия')}`;
+  el.querySelectorAll('[data-ukobj]').forEach(a=>a.onclick=e=>{ e.preventDefault(); select(+a.dataset.ukobj,true); });
+}
 function applyFilter(){
   DB.objects.forEach((o,i)=>{
     const m=markers[i]; if(!m) return;
     if(passF(o)){ if(!map.hasLayer(m)) m.addTo(map); }
     else if(map.hasLayer(m)) map.removeLayer(m);
   });
+  renderUKBlock();
 }
 renderList();
 
@@ -1641,6 +1866,7 @@ const TABS=[['passport','Паспорт объекта'],['gtm','Паспорт 
 
 function select(i,fromList){
   const o=DB.objects[i]; curObj=o;
+  curUKCard=null; document.querySelectorAll('.ukrow.sel').forEach(e=>e.classList.remove('sel'));
   document.querySelectorAll('.item').forEach(e=>e.classList.remove('sel'));
   const li=document.getElementById('it'+i); if(li){li.classList.add('sel'); li.scrollIntoView({block:'nearest'});}
   if(o.lat!=null){
