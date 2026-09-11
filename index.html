@@ -239,6 +239,7 @@
   #logoutBtn{background:none; border:1px solid #3a4c5c; color:#cdd8e2; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:13px}
   #logoutBtn:hover{background:#1b2c3a}
   body.role-view #uploadBtn, body.role-view .addrow, body.role-view .delrow{display:none !important}
+  body.role-uksc #brSkb, body.role-uksc #ukFilter{display:none !important}
   body:not(.role-edit) #geoPosBtn{display:none}
   body.role-view input.ed, body.role-view select.ed, body.role-view textarea.ed{pointer-events:none; border-color:transparent !important; background:transparent !important}
   /* причины статуса */
@@ -498,6 +499,7 @@
     <div class="sub2">г. Норильск · АНО «АНИИГБ» им. М.В. Кима</div>
     <div id="roleGrid"></div>
     <div id="roleDesc" style="display:none"></div>
+    <select id="ukScopeSel" style="display:none; width:100%; padding:8px 10px; margin-bottom:10px; border:1px solid var(--line); border-radius:6px; font-size:13px"></select>
     <input type="password" id="loginPw" placeholder="Пароль для выбранной роли" autocomplete="current-password" style="display:none">
     <button type="submit" id="loginGo" disabled>Войти</button>
     <div class="lerr" id="loginErr"></div>
@@ -587,6 +589,8 @@ function saveUKPLANS(){ localStorage.setItem('ngk_ukplans', JSON.stringify(UKPLA
 let UKMETA={}; try{ UKMETA=JSON.parse(localStorage.getItem('ngk_ukmeta')||'{}'); }catch(e){ UKMETA={}; }
 function saveUKMETA(){ localStorage.setItem('ngk_ukmeta', JSON.stringify(UKMETA)); }
 let curUKCard=null, curUkTab='info';
+let UK_SCOPE=sessionStorage.getItem('ngk_uk_scope')||null; // роль «Управляющая компания»: изоляция — видны только объекты своей УК
+function scopePass(o){ return !UK_SCOPE||effectiveUK(o)===UK_SCOPE; }
 function normAddrKey(s){
   s=(s||'').toLowerCase().replace(/ё/g,'е');
   s=s.replace(/\([^)]*\)/g,' ');
@@ -1106,7 +1110,7 @@ drawMarkers();
 /* --- живая диаграмма охвата ГТМ (нижний левый угол карты) --- */
 function gtmCovDraw(){
   const cv=document.getElementById('gtmCovC'); if(!cv) return;
-  const objs=DB.objects.filter(o=>branchOf(o)===curBranch);
+  const objs=DB.objects.filter(o=>branchOf(o)===curBranch&&scopePass(o));
   const since=new Date(); since.setFullYear(since.getFullYear()-1);
   const iso=since.toISOString().slice(0,10);
   let osmRef={}; try{ osmRef=OSM; }catch(e){}  // OSM объявлен ниже (let) — защита от TDZ при первой отрисовке
@@ -1216,8 +1220,8 @@ const ukSel=document.getElementById('ukFilter');
   window.kpOn=false;
   document.getElementById('kpYr').onchange=e=>{ window.kpOn=e.target.checked; drawMarkers(); };
 }
-function passF(o){ const inBr=curBranch==='mkd'?(o.br||'mkd')==='mkd':o.br==='skb';
-  return inBr&&(curD==='Все'||o.d===curD)&&(curUK==='Все'||effectiveUK(o)===curUK)&&(!curQ||o.a.toLowerCase().includes(curQ))&&covPass(o); }
+function passF(o){ const inBr=UK_SCOPE?(o.br||'mkd')==='mkd':(curBranch==='mkd'?(o.br||'mkd')==='mkd':o.br==='skb');
+  return inBr&&scopePass(o)&&(curD==='Все'||o.d===curD)&&(curUK==='Все'||effectiveUK(o)===curUK)&&(!curQ||o.a.toLowerCase().includes(curQ))&&covPass(o); }
 /* --- переключатель веток: МКД / объекты соцкультбыта Администрации --- */
 function branchOf(o){ return o.br||'mkd'; }
 function podrList(){ const s=new Set(); DB.objects.forEach(o=>{ if(o.br==='skb') s.add(o.podr||'Администрация г. Норильска'); }); return [...s].sort(); }
@@ -1245,7 +1249,7 @@ function streetOf(o){ let s=o.a;
   const fix={'бхмельницкого':'богданахмельницкого','мкравца':'михаилакравца','лауретов':'лауреатов','комсомольсая':'комсомольская','московскаяд':'московская'};
   return fix[s]||s; }
 function stubUK(s){ return ukCanon(s.uk||'Не определена'); }
-function stubPass(s){ return !covFilter&&curBranch==='mkd'&&(curD==='Все'||s.d===curD)&&(curUK==='Все'||stubUK(s)===curUK)&&(!curQ||s.a.toLowerCase().includes(curQ)); }
+function stubPass(s){ return !covFilter&&curBranch==='mkd'&&(curD==='Все'||s.d===curD)&&(curUK==='Все'||stubUK(s)===curUK)&&(!UK_SCOPE||stubUK(s)===UK_SCOPE)&&(!curQ||s.a.toLowerCase().includes(curQ)); }
 function renderList(){
   const list=document.getElementById('list'); list.innerHTML='';
   if(groupUK){
@@ -1304,6 +1308,7 @@ function stubItem(s,si){
 }
 function selectStub(si){
   const s=(DB.stubs||[])[si]; if(!s) return;
+  if(UK_SCOPE&&stubUK(s)!==UK_SCOPE) return; // изоляция
   curObj=null;
   curUKCard=null; document.querySelectorAll('.ukrow.sel').forEach(e=>e.classList.remove('sel'));
   document.querySelectorAll('.item').forEach(e=>e.classList.remove('sel'));
@@ -1339,7 +1344,7 @@ function renderUKBlock(){
   const set=new Set(skb?[]:UK_LIST);
   DB.objects.forEach(o=>{ if((o.br==='skb')===skb) set.add(effectiveUK(o)); });
   if(!skb) (DB.stubs||[]).forEach(s=>set.add(stubUK(s)));
-  const uks=[...set].filter(u=>u!=='Не определена'&&(skb||u!=='Администрация г. Норильска')).sort((a,b)=>a.localeCompare(b,'ru'));
+  const uks=[...set].filter(u=>u!=='Не определена'&&(skb||u!=='Администрация г. Норильска')&&(!UK_SCOPE||u===UK_SCOPE)).sort((a,b)=>a.localeCompare(b,'ru'));
   bb.innerHTML='';
   uks.forEach(u=>{
     const st=ukStats(u); if(!st.n&&!st.nStub) return;
@@ -1353,6 +1358,7 @@ function renderUKBlock(){
   const nEl=document.getElementById('ukBlkN'); if(nEl) nEl.textContent=uks.length+(skb?' подразд.':' УК');
 }
 function selectUK(uk){
+  if(UK_SCOPE&&uk!==UK_SCOPE) return; // изоляция: чужая УК недоступна
   curUKCard=uk; curObj=null;
   document.querySelectorAll('.item').forEach(e=>e.classList.remove('sel'));
   renderUKBlock();
@@ -1882,7 +1888,9 @@ let curObj=null, curWell=null, curDepths=new Set(), curTab='passport', fcDepth=5
 const TABS=[['passport','Паспорт объекта'],['gtm','Паспорт ГТМ'],['fund','Фундаменты'],['podpol','Подполье'],['cokper','Цокольное перекрытие'],['cokogr','Цокольное ограждение'],['geoterm','Геотермика'],['geod','Геодезия'],['calc','РАСЧЕТЫ'],['expl','Условия эксплуатации'],['plans','Планы'],['repairs','Ремонты'],['krplan','План ремонтов МКД'],['project','Проектная документация'],['igi','Инженерно-геологические условия'],['photo','Фотоматериалы'],['misc','Иное']];
 
 function select(i,fromList){
-  const o=DB.objects[i]; curObj=o;
+  const o=DB.objects[i];
+  if(UK_SCOPE&&!scopePass(o)) return; // изоляция: объект другой УК недоступен
+  curObj=o;
   curUKCard=null; document.querySelectorAll('.ukrow.sel').forEach(e=>e.classList.remove('sel'));
   document.querySelectorAll('.item').forEach(e=>e.classList.remove('sel'));
   const li=document.getElementById('it'+i); if(li){li.classList.add('sel'); li.scrollIntoView({block:'nearest'});}
@@ -4141,6 +4149,7 @@ function registryRows(){
   const fd=document.getElementById('regD').value, fuk=document.getElementById('regUK').value;
   const rows=[];
   DB.objects.forEach((o,i)=>{
+    if(!scopePass(o)) return;
     if(fd&&o.d!==fd) return;
     if(fuk&&effectiveUK(o)!==fuk) return;
     const sd=statusDetail(o);
@@ -4175,10 +4184,11 @@ function renderRegTable(){
   const nc=rows.filter(r=>r.sd.status==='КРИТИЧНО').length;
   const fd=document.getElementById('regD').value, fuk=document.getElementById('regUK').value;
   const covN=osmCoverage12m();
+  const scN=UK_SCOPE?DB.objects.filter(scopePass).length:DB.objects.length;
   document.getElementById('regSummary').textContent=
     `Сформирован ${new Date().toLocaleDateString('ru-RU')} · КРИТИЧНО: ${nc} · РИСК: ${rows.length-nc}`+
-    (fd?` · район: ${fd}`:'')+(fuk?` · УК: ${fuk}`:'')+` · всего объектов в базе: ${DB.objects.length}`+
-    ` · охват осмотрами за 12 мес.: ${covN} из ${DB.objects.length} (${Math.round(100*covN/DB.objects.length)}%). Пороги — текущие настройки «⚙ Пороги».`;
+    (fd?` · район: ${fd}`:'')+(fuk?` · УК: ${fuk}`:'')+(UK_SCOPE?` · изоляция: ${UK_SCOPE}`:'')+` · всего объектов в базе: ${scN}`+
+    ` · охват осмотрами за 12 мес.: ${covN} из ${scN} (${Math.round(100*covN/scN)}%). Пороги — текущие настройки «⚙ Пороги».`;
   const t=document.getElementById('regTable');
   t.innerHTML=`<thead><tr><th>№</th><th>Адрес</th><th>Район</th><th>УК</th><th>Статус</th><th>Причины (сработавшие правила)</th><th>Скв.</th><th>Период набл.</th><th>Осадка макс., мм</th><th>Скорость, мм/год</th><th>Последний осмотр</th></tr></thead><tbody>`+
     rows.map((r,n)=>{
@@ -4203,6 +4213,7 @@ function openRegistry(){
     ukSel.onchange=renderRegTable;
     document.getElementById('regD').onchange=renderRegTable;
   }
+  if(UK_SCOPE){ ukSel.value=UK_SCOPE; ukSel.disabled=true; }
   renderRegTable();
   regModal.style.display='block';
 }
@@ -5247,11 +5258,11 @@ function osmLine(o){
   const col=s.cat==='недопустимое'?'var(--crit)':(s.cat==='ограниченно работоспособное'?'#a86400':'var(--ok)');
   return `<div class="rayon">📋 Последний осмотр: <b>${esc(s.date)}</b> · категория: <b style="color:${col}">${esc(s.cat||'—')}</b>${s.viol?` · нарушений: <b>${s.viol}</b>`:''} · провёл: ${esc(s.by||'—')} (${esc(s.byOrg||'')})</div>`;
 }
-function osmCoverage12m(){ // охват осмотрами за последние 12 месяцев, вся база
+function osmCoverage12m(){ // охват осмотрами за последние 12 месяцев (с учётом изоляции УК)
   const since=new Date(); since.setFullYear(since.getFullYear()-1);
   const iso=since.toISOString().slice(0,10);
   let n=0;
-  DB.objects.forEach(o=>{ const s=osmLatest(o.a); if(s&&s.date>=iso) n++; });
+  DB.objects.forEach(o=>{ if(!scopePass(o)) return; const s=osmLatest(o.a); if(s&&s.date>=iso) n++; });
   return n;
 }
 async function loadOsmotry(){
@@ -5947,7 +5958,7 @@ const PWH={view:'e25263815248915f93d27213a93195cf2b11e94e51171099fb6a5c6954cc040
 const ROLES={
  view:{name:'Наблюдатель', edit:false, tg:false, desc:'Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты.'},
  edit:{name:'Оператор', edit:true, tg:true, desc:'Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров.'},
- uk:{name:'Управляющая компания', edit:false, tg:true, desc:'Просмотр базы + раздел предписаний и текущих осмотров по объектам (без дополнительного пароля); карточки УК с планами ремонтов и рекомендациями модели.'},
+ uk:{name:'Управляющая компания', edit:false, tg:true, desc:'Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели.'},
  nadzor:{name:'Организация, ведущая мерзлотный надзор', edit:false, tg:true, desc:'Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров.'},
  stroy:{name:'Служба строительного надзора и жилищного контроля', edit:false, tg:true, desc:'Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ.'},
  admin:{name:'Администрация города Норильска', edit:true, tg:true, desc:'Полный доступ, включая надзорные разделы, реестры и планы ремонтов.'}
@@ -5957,23 +5968,37 @@ async function sha256Hex(s){ const b=await crypto.subtle.digest('SHA-256', new T
 function enterApp(role){
   const cfg=ROLES[role]||ROLES.view;
   sessionStorage.setItem('ngk_role', role);
+  UK_SCOPE=role==='uk'?(sessionStorage.getItem('ngk_uk_scope')||null):null;
   document.body.classList.add('authed', cfg.edit?'role-edit':'role-view');
+  if(UK_SCOPE) document.body.classList.add('role-uksc');
   if(cfg.tg) sessionStorage.setItem('ngk_tg_ok','1');
   document.getElementById('loginModal').style.display='none';
-  const rb=document.getElementById('roleBadge'); rb.textContent=cfg.name; rb.title=cfg.desc;
+  const rb=document.getElementById('roleBadge'); rb.textContent=UK_SCOPE?(cfg.name+': '+UK_SCOPE):cfg.name; rb.title=cfg.desc;
+  if(UK_SCOPE&&curBranch==='skb') setBranch('mkd');
+  renderList();
 }
 (function initAuth(){
-  document.getElementById('logoutBtn').onclick=()=>{ sessionStorage.removeItem('ngk_role'); sessionStorage.removeItem('ngk_k'); sessionStorage.removeItem('ngk_tg_ok'); location.reload(); };
+  document.getElementById('logoutBtn').onclick=()=>{ sessionStorage.removeItem('ngk_role'); sessionStorage.removeItem('ngk_k'); sessionStorage.removeItem('ngk_tg_ok'); sessionStorage.removeItem('ngk_uk_scope'); location.reload(); };
   const role=sessionStorage.getItem('ngk_role');
-  if(role&&ROLES[role]){ enterApp(role); return; }
+  if(role&&ROLES[role]&&(role!=='uk'||sessionStorage.getItem('ngk_uk_scope'))){ enterApp(role); return; }
   let picked=null;
   const grid=document.getElementById('roleGrid');
+  const ss=document.getElementById('ukScopeSel');
+  function fillUkScope(){
+    if(ss.options.length) return;
+    const s=new Set(UK_LIST);
+    DB.objects.forEach(o=>{ if(o.br!=='skb') s.add(effectiveUK(o)); });
+    (DB.stubs||[]).forEach(x=>s.add(stubUK(x)));
+    s.delete('Не определена');
+    ss.innerHTML='<option value="">— выберите вашу управляющую компанию —</option>'+[...s].sort((a,b)=>a.localeCompare(b,'ru')).map(u=>`<option>${esc(u)}</option>`).join('');
+  }
   ROLE_ORDER.forEach(k=>{
     const b=document.createElement('button');
     b.type='button'; b.className='rl'; b.textContent=ROLES[k].name;
     b.onclick=()=>{
       picked=k;
       grid.querySelectorAll('.rl').forEach(x=>x.classList.toggle('on', x===b));
+      if(k==='uk'){ fillUkScope(); ss.style.display='block'; } else ss.style.display='none';
       const pw=document.getElementById('loginPw'); pw.style.display='block'; pw.focus();
       const go=document.getElementById('loginGo'); go.disabled=false;
       const rd=document.getElementById('roleDesc'); rd.style.display='block';
@@ -5986,6 +6011,10 @@ function enterApp(role){
   document.getElementById('loginForm').onsubmit=async ev=>{
     ev.preventDefault();
     if(!picked){ document.getElementById('loginErr').textContent='Сначала выберите роль по статусу'; return; }
+    if(picked==='uk'){
+      if(!ss.value){ document.getElementById('loginErr').textContent='Выберите вашу управляющую компанию из списка'; return; }
+      sessionStorage.setItem('ngk_uk_scope', ss.value);
+    } else sessionStorage.removeItem('ngk_uk_scope');
     const h=await sha256Hex(document.getElementById('loginPw').value);
     if(h===PWH[picked]) enterApp(picked);
     else document.getElementById('loginErr').textContent='Неверный пароль для роли «'+ROLES[picked].name+'»';
