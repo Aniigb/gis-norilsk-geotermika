@@ -15,9 +15,9 @@
 <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
 <style>
   :root{
-    --bg:#0f1c26; --panel:#f5f2ec; --ink:#1d2733; --mut:#6b7684;
+    --bg:#0b151d; --panel:#e7e2d4; --ink:#1d2733; --mut:#5b6572;
     --c-centr:#2f6fb2; --c-talnakh:#c05a2e; --c-kayerkan:#3d8a5a;
-    --ok:#2e7d32; --risk:#e08a00; --crit:#c8372d; --line:#d8d2c6;
+    --ok:#2e7d32; --risk:#e08a00; --crit:#c8372d; --line:#c3bba9;
   }
   *{box-sizing:border-box; margin:0; padding:0}
   html,body{height:100%; font:14px/1.45 "Segoe UI","PT Sans",-apple-system,"Helvetica Neue",Arial,sans-serif; color:var(--ink)}
@@ -33,22 +33,22 @@
 
   #side{background:var(--panel); border-right:1px solid var(--line); display:flex; flex-direction:column; min-height:0}
   .chips{display:flex; flex-wrap:wrap; gap:6px; padding:12px 12px 8px}
-  .brbtn{flex:1; border:1px solid var(--line); background:#fff; border-radius:6px; padding:6px 4px; font-size:11.8px; cursor:pointer; color:var(--mut); font-weight:600}
+  .brbtn{flex:1; border:1px solid var(--line); background:#f2eee4; border-radius:6px; padding:6px 4px; font-size:11.8px; cursor:pointer; color:var(--mut); font-weight:600}
   .brbtn.on{background:var(--bg); color:#fff; border-color:var(--bg)}
-  .chip{border:1px solid var(--line); background:#fff; border-radius:16px; padding:4px 12px; font-size:12.5px; cursor:pointer; user-select:none}
+  .chip{border:1px solid var(--line); background:#f2eee4; border-radius:16px; padding:4px 12px; font-size:12.5px; cursor:pointer; user-select:none}
   .chip.on{background:var(--bg); color:#fff; border-color:var(--bg)}
   .chip .n{color:var(--mut); margin-left:4px}
   .chip.on .n{color:#b9c6d2}
   #search{margin:4px 12px 10px; padding:7px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; width:calc(100% - 24px)}
   #list{overflow-y:auto; flex:1; border-top:1px solid var(--line)}
-  .item{padding:8px 14px; border-bottom:1px solid #e7e1d6; cursor:pointer; display:flex; justify-content:space-between; gap:8px; align-items:baseline}
-  .item:hover{background:#ece7dd}
-  .item.sel{background:#e2ecf6; border-left:3px solid var(--c-centr); padding-left:11px}
+  .item{padding:8px 14px; border-bottom:1px solid #d2cab8; cursor:pointer; display:flex; justify-content:space-between; gap:8px; align-items:baseline}
+  .item:hover{background:#dcd5c4}
+  .item.sel{background:#d2dfee; border-left:3px solid var(--c-centr); padding-left:11px}
   .item .a{font-size:13px}
   .item .a .sdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
   .item .t{font-size:11.5px; color:var(--mut); white-space:nowrap}
   .item .t.has{color:var(--crit); font-weight:600}
-  #map{background:#dfe6ea; position:relative}
+  #map{background:#cdd5db; position:relative}
   #map .leaflet-control-attribution{display:none} /* идентификация карты скрыта по требованию заказчика */
   .district-label{font-weight:700; font-size:13px; letter-spacing:1px; color:#33404d; background:rgba(255,255,255,.75); padding:2px 8px; border-radius:4px; border:none; box-shadow:none}
 
@@ -57,41 +57,41 @@
   #detail .rayon{font-size:12.5px; color:var(--mut); margin-bottom:10px}
   #detail .rayon b{font-weight:600}
   table.kv{width:100%; border-collapse:collapse; font-size:12.8px; margin-bottom:12px}
-  table.kv td{padding:4px 6px; border-bottom:1px solid #e7e1d6; vertical-align:top}
+  table.kv td{padding:4px 6px; border-bottom:1px solid #d2cab8; vertical-align:top}
   table.kv td:first-child{color:var(--mut); width:46%}
   .sect{font-size:11.5px; text-transform:uppercase; letter-spacing:1px; color:var(--mut); margin:16px 0 6px}
-  canvas.plot{width:100%; background:#fff; border:1px solid var(--line); border-radius:4px}
+  canvas.plot{width:100%; background:#f2eee4; border:1px solid var(--line); border-radius:4px}
   .srcs{font-size:11.5px; color:var(--mut)}
   .empty{color:var(--mut); font-size:13px; padding:20px 4px; text-align:center}
   .badge{display:inline-block; font-size:11px; padding:1px 8px; border-radius:10px; margin-left:6px; font-weight:600}
   .b-ok{background:#d8ecd9; color:var(--ok)}
   .b-risk{background:#fbe8c8; color:var(--risk)}
   .b-crit{background:#f7dcd7; color:var(--crit)}
-  .b-card{background:#e3e8ec; color:var(--mut)}
+  .b-card{background:#d3dbe1; color:var(--mut)}
   .legend{position:absolute; right:14px; bottom:38px; z-index:600; background:rgba(255,255,255,.92); border:1px solid var(--line); border-radius:6px; padding:8px 12px; font-size:12px}
   .legend div{margin:2px 0}
   /* ---------- бегущая строка статусов под картой ---------- */
-  #mapTicker{position:absolute; left:0; right:0; bottom:0; z-index:650; height:26px; overflow:hidden; display:flex; align-items:center; background:rgba(15,28,38,.92); color:#e8eef3; border-top:1px solid #3a4c5c}
+  #mapTicker{position:absolute; left:0; right:0; bottom:0; z-index:650; height:26px; overflow:hidden; display:flex; align-items:center; background:rgba(15,28,38,.92); color:#d8e0e7; border-top:1px solid #3a4c5c}
   #mapTicker .tk{display:flex; white-space:nowrap; animation:tkScroll 40s linear infinite; will-change:transform}
   #mapTicker .tk span{padding-right:90px; font-size:12.3px; letter-spacing:.02em}
   #mapTicker:hover .tk{animation-play-state:paused}
   #gtmCov{position:absolute; left:8px; bottom:34px; z-index:640; background:rgba(255,255,255,.93); border:1px solid var(--line); border-radius:8px; padding:6px 8px 4px; box-shadow:0 2px 10px rgba(20,30,40,.18)}
   @media (max-width:900px){ #gtmCov{transform:scale(.82); transform-origin:bottom left} }
-  #wxTicker{position:absolute; left:0; right:64px; top:0; z-index:650; height:24px; overflow:hidden; display:flex; align-items:center; background:rgba(15,28,38,.88); color:#dfe9f0; border-bottom:1px solid #3a4c5c}
+  #wxTicker{position:absolute; left:0; right:64px; top:0; z-index:650; height:24px; overflow:hidden; display:flex; align-items:center; background:rgba(15,28,38,.88); color:#cfdbe4; border-bottom:1px solid #3a4c5c}
   #wxTicker .tk{display:flex; white-space:nowrap; animation:tkScroll 46s linear infinite; will-change:transform}
   #wxTicker .tk span{padding-right:110px; font-size:12px; letter-spacing:.02em}
   #wxTicker:hover .tk{animation-play-state:paused}
   @keyframes tkScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
   .sw{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px}
   .wells{display:flex; flex-wrap:wrap; gap:5px; margin:6px 0 8px}
-  .wbtn{border:1px solid var(--line); background:#fff; border-radius:4px; padding:3px 10px; font-size:12px; cursor:pointer}
+  .wbtn{border:1px solid var(--line); background:#f2eee4; border-radius:4px; padding:3px 10px; font-size:12px; cursor:pointer}
   .wbtn.on{background:var(--c-centr); color:#fff; border-color:var(--c-centr)}
   .depths{display:flex; flex-wrap:wrap; gap:4px; margin:6px 0 8px}
-  .dbtn{border:1px solid var(--line); background:#fff; border-radius:4px; padding:2px 8px; font-size:11.5px; cursor:pointer}
+  .dbtn{border:1px solid var(--line); background:#f2eee4; border-radius:4px; padding:2px 8px; font-size:11.5px; cursor:pointer}
   .dbtn.on{color:#fff}
   .note{font-size:11.5px; color:var(--mut); margin-top:4px}
   .tcalc{width:70px; padding:2px 6px; border:1px solid var(--line); border-radius:4px; font-size:12.5px; text-align:right}
-  #settings{display:none; position:absolute; top:56px; right:0; z-index:900; background:#fff; border:1px solid var(--line); border-radius:0 0 0 8px; box-shadow:-4px 6px 18px rgba(0,0,0,.18); padding:16px; width:320px; font-size:13px}
+  #settings{display:none; position:absolute; top:56px; right:0; z-index:900; background:#f2eee4; border:1px solid var(--line); border-radius:0 0 0 8px; box-shadow:-4px 6px 18px rgba(0,0,0,.18); padding:16px; width:320px; font-size:13px}
   #settings h3{font-size:13px; margin-bottom:8px}
   #settings label{display:flex; justify-content:space-between; align-items:center; margin:6px 0; gap:8px}
   #settings input{width:70px; padding:3px 6px; border:1px solid var(--line); border-radius:4px; text-align:right}
@@ -104,53 +104,53 @@
   .tabs button:hover{color:var(--ink)}
   .tabs button.on:hover{color:#fff}
   table.kv input.ed, table.kv select.ed, table.kv textarea.ed{width:100%; padding:2px 6px; border:1px solid transparent; border-radius:4px; font-size:12.8px; background:transparent; font-family:inherit}
-  table.kv input.ed:hover, table.kv select.ed:hover, table.kv textarea.ed:hover{border-color:var(--line); background:#fff}
-  table.kv input.ed:focus, table.kv select.ed:focus, table.kv textarea.ed:focus{border-color:var(--c-centr); background:#fff; outline:none}
+  table.kv input.ed:hover, table.kv select.ed:hover, table.kv textarea.ed:hover{border-color:var(--line); background:#f2eee4}
+  table.kv input.ed:focus, table.kv select.ed:focus, table.kv textarea.ed:focus{border-color:var(--c-centr); background:#f2eee4; outline:none}
   table.rows{width:100%; border-collapse:collapse; font-size:12.3px; margin-bottom:8px}
-  table.rows th{background:#ece7dd; padding:4px 6px; text-align:left; font-weight:600; border:1px solid #ddd5c6; font-size:11.3px}
-  table.rows td{padding:3px 4px; border:1px solid #e7e1d6; vertical-align:top}
+  table.rows th{background:#dcd5c4; padding:4px 6px; text-align:left; font-weight:600; border:1px solid #ccc3ae; font-size:11.3px}
+  table.rows td{padding:3px 4px; border:1px solid #d2cab8; vertical-align:top}
   table.rows input, table.rows select{width:100%; border:1px solid transparent; background:transparent; padding:2px 4px; font-size:12.3px; font-family:inherit}
-  table.rows input:focus, table.rows select:focus{border-color:var(--c-centr); background:#fff; outline:none}
+  table.rows input:focus, table.rows select:focus{border-color:var(--c-centr); background:#f2eee4; outline:none}
   .addrow{border:1px dashed #b9ae9c; background:none; border-radius:4px; padding:4px 10px; font-size:12px; cursor:pointer; color:var(--mut); width:100%; margin-bottom:10px}
   .addrow:hover{color:var(--ink); border-color:var(--c-centr)}
   .delrow{border:none; background:none; color:var(--crit); cursor:pointer; font-size:13px; padding:0 4px}
   .normref{font-size:11px; color:#8a94a0; margin:0 0 10px; font-style:normal}
   .photos{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:10px}
-  .photos figure{border:1px solid var(--line); border-radius:4px; overflow:hidden; background:#fff}
+  .photos figure{border:1px solid var(--line); border-radius:4px; overflow:hidden; background:#f2eee4}
   .photos img{width:100%; height:90px; object-fit:cover; display:block; cursor:pointer}
   .photos figcaption{font-size:10.5px; padding:3px 6px; color:var(--mut); display:flex; justify-content:space-between; align-items:center}
-  .ukgroup{position:sticky; top:0; background:#e4ded2; padding:5px 14px; font-size:11.5px; font-weight:700; letter-spacing:.4px; color:#5a5346; border-bottom:1px solid var(--line); z-index:5}
+  .ukgroup{position:sticky; top:0; background:#d6cfbd; padding:5px 14px; font-size:11.5px; font-weight:700; letter-spacing:.4px; color:#5a5346; border-bottom:1px solid var(--line); z-index:5}
   .ukgroup .n{font-weight:400; color:var(--mut); margin-left:6px}
   /* --- блок управляющих компаний в левой панели --- */
-  .ukblk{margin:0 12px 8px; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:#fbf9f4}
-  .ukblk-h{padding:6px 10px; font-size:12.5px; font-weight:700; color:#4a4234; background:#efe9dc; cursor:pointer; user-select:none; display:flex; justify-content:space-between; align-items:center}
-  .ukblk-h:hover{background:#e7dfcd}
+  .ukblk{margin:0 12px 8px; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:#ede8da}
+  .ukblk-h{padding:6px 10px; font-size:12.5px; font-weight:700; color:#4a4234; background:#dfd7c3; cursor:pointer; user-select:none; display:flex; justify-content:space-between; align-items:center}
+  .ukblk-h:hover{background:#d2c9b2}
   .ukblk-h .n{font-weight:400; color:var(--mut); font-size:11px}
   .ukblk-h::before{content:'▸'; margin-right:6px; font-size:10px; color:var(--mut)}
   .ukblk.open>.ukblk-h::before{content:'▾'}
   .ukblk-b{display:none; max-height:280px; overflow:auto}
   .ukblk.open>.ukblk-b{display:block}
-  .ukrow{padding:5px 10px; font-size:12px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:6px; border-top:1px solid #eee7d8}
+  .ukrow{padding:5px 10px; font-size:12px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:6px; border-top:1px solid #dcd3be}
   .ukrow:hover{background:#f1ebdd}
-  .ukrow.sel{background:#dce8fb}
+  .ukrow.sel{background:#c9daf2}
   .ukrow .nm{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .ukrow .n{color:var(--mut); font-size:11px; white-space:nowrap}
   .ukrow .dots{display:inline-flex; gap:3px; margin-left:6px; vertical-align:middle}
   .ukrow .dots i{width:8px; height:8px; border-radius:50%; display:inline-block}
   /* --- раскрывающиеся внутренние подразделения (соцкультбыт) --- */
   .ukrow .car{flex:none; width:14px; color:var(--mut); font-size:10px; text-align:center; cursor:pointer}
-  .ukcat{padding:4px 10px 4px 26px; font-size:11.6px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:6px; border-top:1px dashed #eee7d8; color:#4a4234; background:#f6f2e8; user-select:none}
-  .ukcat:hover{background:#efe9da}
+  .ukcat{padding:4px 10px 4px 26px; font-size:11.6px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:6px; border-top:1px dashed #dcd3be; color:#4a4234; background:#e6dfd0; user-select:none}
+  .ukcat:hover{background:#ded5c0}
   .ukcat .n{color:var(--mut); font-size:10.5px}
   .ukcat::before{content:'▸'; margin-right:5px; font-size:9px; color:var(--mut)}
   .ukcat.open::before{content:'▾'}
-  .ukobj{display:block; padding:3px 10px 3px 40px; font-size:11.4px; cursor:pointer; border-top:1px dotted #f0ead9; background:#fdfcf8; color:var(--fg); text-decoration:none}
-  .ukobj:hover{background:#e8eff9}
+  .ukobj{display:block; padding:3px 10px 3px 40px; font-size:11.4px; cursor:pointer; border-top:1px dotted #e0d7c2; background:#f2eee2; color:var(--fg); text-decoration:none}
+  .ukobj:hover{background:#d7e2f2}
   .ukobj .oa{display:block; color:var(--mut); font-size:10.3px}
   .ukobj .sdot{display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:4px}
   /* --- аккордеон по улицам (полный реестр МКД) --- */
-  .acc-h{padding:7px 14px; font-size:12.5px; font-weight:700; color:#4a4234; background:#efe9dc; border-bottom:1px solid var(--line); cursor:pointer; user-select:none; display:flex; justify-content:space-between; align-items:center}
-  .acc-h:hover{background:#e7dfcd}
+  .acc-h{padding:7px 14px; font-size:12.5px; font-weight:700; color:#4a4234; background:#dfd7c3; border-bottom:1px solid var(--line); cursor:pointer; user-select:none; display:flex; justify-content:space-between; align-items:center}
+  .acc-h:hover{background:#d2c9b2}
   .acc-h .n{font-weight:400; color:var(--mut); font-size:11px}
   .acc-h::before{content:'▸'; margin-right:6px; font-size:10px; color:var(--mut)}
   .acc.open>.acc-h::before{content:'▾'}
@@ -166,18 +166,18 @@
   #uplModal .box{background:var(--panel); width:720px; max-width:94vw; max-height:88vh; overflow-y:auto; margin:5vh auto; border-radius:10px; padding:22px 26px; box-shadow:0 10px 40px rgba(0,0,0,.35)}
   #uplModal h2{font-size:16px; margin-bottom:4px}
   #uplModal .close{float:right; border:none; background:none; font-size:20px; cursor:pointer; color:var(--mut)}
-  #uplModal .cols{font-size:12px; background:#fff; border:1px solid var(--line); border-radius:6px; padding:10px 12px; margin:8px 0}
+  #uplModal .cols{font-size:12px; background:#f2eee4; border:1px solid var(--line); border-radius:6px; padding:10px 12px; margin:8px 0}
   #uplModal .cols b{font-size:11.5px}
   #uplModal .acts{display:flex; gap:10px; flex-wrap:wrap; margin:12px 0}
   #uplModal .acts button, #uplModal .acts a.btn{border:1px solid var(--c-centr); background:var(--c-centr); color:#fff; border-radius:6px; padding:6px 14px; font-size:12.5px; cursor:pointer; text-decoration:none}
-  #uplModal .acts button.ghost, #uplModal .acts a.ghost{background:#fff; color:var(--c-centr)}
-  #uplLog{font-size:12px; max-height:180px; overflow-y:auto; background:#fff; border:1px solid var(--line); border-radius:6px; padding:8px 10px; margin-top:8px; display:none; white-space:pre-wrap}
+  #uplModal .acts button.ghost, #uplModal .acts a.ghost{background:#f2eee4; color:var(--c-centr)}
+  #uplLog{font-size:12px; max-height:180px; overflow-y:auto; background:#f2eee4; border:1px solid var(--line); border-radius:6px; padding:8px 10px; margin-top:8px; display:none; white-space:pre-wrap}
   /* ---------- сводный отчёт ---------- */
   #repModal{display:none; position:fixed; inset:0; z-index:1000; background:rgba(15,28,38,.55)}
   #repModal .box{background:var(--panel); width:900px; max-width:95vw; max-height:90vh; margin:4vh auto; border-radius:10px; padding:20px 26px; box-shadow:0 10px 40px rgba(0,0,0,.35); display:flex; flex-direction:column}
   #repModal .close{float:right; border:none; background:none; font-size:20px; cursor:pointer; color:var(--mut)}
   #repModal label.task{display:block; font-size:12.8px; padding:3px 0; cursor:pointer}
-  #repOut{overflow:auto; flex:1; background:#fff; border:1px solid var(--line); border-radius:6px; padding:18px 22px; margin-top:10px; font-size:12.8px; display:none}
+  #repOut{overflow:auto; flex:1; background:#f2eee4; border:1px solid var(--line); border-radius:6px; padding:18px 22px; margin-top:10px; font-size:12.8px; display:none}
   #repOut h1{font-size:17px; text-align:center} #repOut h2{font-size:14px; margin:14px 0 4px; border-bottom:1px solid #999; padding-bottom:2px}
   #repOut table{border-collapse:collapse; width:100%; font-size:12px; margin:6px 0}
   #repOut td,#repOut th{border:1px solid #999; padding:3px 7px; text-align:left}
@@ -189,11 +189,11 @@
   #regModal .box{background:var(--panel); width:1100px; max-width:96vw; max-height:90vh; margin:4vh auto; border-radius:10px; padding:20px 24px; box-shadow:0 10px 40px rgba(0,0,0,.35); display:flex; flex-direction:column}
   #regModal h2{font-size:16px}
   #regModal .close{float:right; border:none; background:none; font-size:20px; cursor:pointer; color:var(--mut)}
-  #regWrap{overflow:auto; flex:1; margin-top:10px; border:1px solid var(--line); border-radius:6px; background:#fff}
+  #regWrap{overflow:auto; flex:1; margin-top:10px; border:1px solid var(--line); border-radius:6px; background:#f2eee4}
   table.reg{width:100%; border-collapse:collapse; font-size:12.2px}
-  table.reg th{position:sticky; top:0; background:#e4ded2; padding:6px 8px; text-align:left; border-bottom:2px solid var(--line); font-size:11.5px; z-index:2}
-  table.reg td{padding:5px 8px; border-bottom:1px solid #eee7da; vertical-align:top}
-  table.reg tr:hover td{background:#f2ede3}
+  table.reg th{position:sticky; top:0; background:#d6cfbd; padding:6px 8px; text-align:left; border-bottom:2px solid var(--line); font-size:11.5px; z-index:2}
+  table.reg td{padding:5px 8px; border-bottom:1px solid #ddd4c1; vertical-align:top}
+  table.reg tr:hover td{background:#e2dcc9}
   table.reg tr.crit td:first-child{border-left:4px solid var(--crit)}
   table.reg tr.risk td:first-child{border-left:4px solid var(--risk)}
   table.reg tr{cursor:pointer}
@@ -218,7 +218,7 @@
     table.kv{font-size:12px}
     table.kv td{display:block; width:100% !important; border-bottom:none; padding:2px 4px}
     table.kv td:first-child{color:var(--mut); padding-top:6px}
-    table.kv tr{border-bottom:1px solid #e7e1d6; display:block}
+    table.kv tr{border-bottom:1px solid #d2cab8; display:block}
     table.rows, table.reg{display:block; overflow-x:auto; font-size:11.5px}
     table.rows tbody, table.rows thead, table.reg tbody, table.reg thead{display:table; min-width:560px; width:100%}
     .photos{grid-template-columns:repeat(2,1fr)}
@@ -241,10 +241,10 @@
   #loginModal button[type=submit]:hover{background:#1b2c3a}
   #loginModal button[type=submit][disabled]{opacity:.5; cursor:default}
   #roleGrid{display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px}
-  #roleGrid .rl{padding:7px 8px; font-size:11.8px; border:1px solid var(--line); border-radius:6px; background:#fff; cursor:pointer; text-align:center; line-height:1.25}
-  #roleGrid .rl:hover{border-color:var(--bg); background:#f2f5f8}
+  #roleGrid .rl{padding:7px 8px; font-size:11.8px; border:1px solid var(--line); border-radius:6px; background:#f2eee4; cursor:pointer; text-align:center; line-height:1.25}
+  #roleGrid .rl:hover{border-color:var(--bg); background:#e3e9ef}
   #roleGrid .rl.on{background:var(--bg); color:#fff; border-color:var(--bg)}
-  #roleDesc{font-size:11.5px; color:var(--mut); background:#f4f7fa; border:1px solid var(--line); border-radius:6px; padding:7px 9px; margin-bottom:10px; line-height:1.4}
+  #roleDesc{font-size:11.5px; color:var(--mut); background:#e6ebf2; border:1px solid var(--line); border-radius:6px; padding:7px 9px; margin-bottom:10px; line-height:1.4}
   #loginModal .lerr{color:var(--crit); font-size:12.5px; min-height:17px; margin-top:8px}
   #loginModal .lnote{font-size:11.3px; color:var(--mut); margin-top:10px; border-top:1px solid var(--line); padding-top:10px}
   #logoutBtn{background:none; border:1px solid #3a4c5c; color:#cdd8e2; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:13px}
@@ -254,7 +254,7 @@
   body:not(.role-edit) #geoPosBtn{display:none}
   body.role-view input.ed, body.role-view select.ed, body.role-view textarea.ed{pointer-events:none; border-color:transparent !important; background:transparent !important}
   /* причины статуса */
-  .reasons{margin:6px 0 4px; border:1px solid var(--line); border-radius:6px; background:#fff; padding:6px 10px}
+  .reasons{margin:6px 0 4px; border:1px solid var(--line); border-radius:6px; background:#f2eee4; padding:6px 10px}
   .rsn{font-size:12.2px; padding:2px 0; line-height:1.4}
   .rsn.r-crit{color:var(--crit)}
   .rsn.r-risk{color:#a86400}
@@ -275,29 +275,29 @@
   .footline{font-size:10.6px; color:var(--mut); border-top:1px solid var(--line); padding:6px 12px; line-height:1.5}
   .footline a{color:var(--mut)}
   .mt-kpi{display:flex; gap:10px; flex-wrap:wrap; margin:8px 0}
-  .mt-kpi .k{flex:1; min-width:150px; border:1px solid var(--line); border-radius:8px; padding:7px 10px; background:#fbfdfe}
+  .mt-kpi .k{flex:1; min-width:150px; border:1px solid var(--line); border-radius:8px; padding:7px 10px; background:#eef2f5}
   .mt-kpi .k b{display:block; font-size:15.5px; margin-top:2px}
   .mt-kpi .k span{font-size:11px; color:var(--mut)}
   .mt-tabs{display:flex; gap:6px; flex-wrap:wrap; margin:8px 0}
-  .mt-tabs button{border:1px solid var(--line); background:#fff; border-radius:6px; padding:4px 12px; font-size:12.5px; cursor:pointer}
+  .mt-tabs button{border:1px solid var(--line); background:#f2eee4; border-radius:6px; padding:4px 12px; font-size:12.5px; cursor:pointer}
   .mt-tabs button.on{background:#2f6fb2; color:#fff; border-color:#2f6fb2}
   .mt-tbl{border-collapse:collapse; font-size:11.5px; width:100%; margin-top:6px}
   .mt-tbl td,.mt-tbl th{border:1px solid var(--line); padding:2px 5px; text-align:right}
-  .mt-tbl th{background:#eef3f7; text-align:center; position:sticky; top:0}
+  .mt-tbl th{background:#dfe7ed; text-align:center; position:sticky; top:0}
   .mt-anom{background:#fdeceb; color:#a02518; font-weight:600}
   .mt-anom2{background:#fff4e0; color:#8a5a00}
   #tgModal .close{float:right; border:none; background:none; font-size:20px; cursor:pointer; color:var(--mut)}
   #tgModal input, #tgModal select, #tgModal textarea{padding:5px 8px; border:1px solid var(--line); border-radius:5px; font-size:12.8px; font-family:inherit}
-  .tg-rec{border:1px solid var(--line); border-radius:8px; background:#fff; padding:10px 14px; margin:10px 0}
+  .tg-rec{border:1px solid var(--line); border-radius:8px; background:#f2eee4; padding:10px 14px; margin:10px 0}
   .tg-rec .tg-head{display:flex; gap:10px; flex-wrap:wrap; align-items:baseline; font-size:12.5px}
   .tg-status{display:inline-block; font-size:11px; font-weight:700; padding:1px 10px; border-radius:10px}
-  .tg-выдано{background:#e3e8ec; color:#556}
+  .tg-выдано{background:#d3dbe1; color:#556}
   .tg-вработе{background:#fbe8c8; color:#a86400}
   .tg-устранено{background:#d8ecd9; color:var(--ok)}
   .tg-просрочено{background:#f7dcd7; color:var(--crit)}
-  .tg-reply{border-left:3px solid var(--line); margin:6px 0 0 10px; padding:4px 10px; font-size:12.3px; background:#faf8f3}
+  .tg-reply{border-left:3px solid var(--line); margin:6px 0 0 10px; padding:4px 10px; font-size:12.3px; background:#eae5d6}
   /* ---------- текущий осмотр (интерактивный чек-лист) ---------- */
-  .insp-sec{border:1px solid var(--line); border-radius:8px; background:#fff; margin:8px 0}
+  .insp-sec{border:1px solid var(--line); border-radius:8px; background:#f2eee4; margin:8px 0}
   .insp-sec>summary{cursor:pointer; padding:9px 12px; font-weight:600; font-size:13px; list-style:none; display:flex; justify-content:space-between; gap:8px}
   .insp-sec>summary::-webkit-details-marker{display:none}
   .insp-sec .normref{margin:0 12px 6px}
@@ -305,20 +305,20 @@
   .insp-item .q{font-size:12.8px; line-height:1.35}
   .insp-item .nref{font-size:11px; color:var(--mut)}
   .insp-item .acts{display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; align-items:center}
-  .stbtn{border:1px solid var(--line); background:#fff; border-radius:6px; cursor:pointer; padding:3px 10px; font-size:12.5px}
+  .stbtn{border:1px solid var(--line); background:#f2eee4; border-radius:6px; cursor:pointer; padding:3px 10px; font-size:12.5px}
   .stbtn.on-ok{background:var(--ok); color:#fff; border-color:var(--ok)}
   .stbtn.on-warn{background:#e9a23b; color:#fff; border-color:#e9a23b}
   .stbtn.on-viol{background:var(--crit); color:#fff; border-color:var(--crit)}
-  .mic{border:1px solid var(--line); background:#fff; border-radius:6px; cursor:pointer; padding:3px 8px; font-size:13px}
+  .mic{border:1px solid var(--line); background:#f2eee4; border-radius:6px; cursor:pointer; padding:3px 8px; font-size:13px}
   .mic.on{background:var(--crit); color:#fff; border-color:var(--crit); animation:micpulse 1s infinite}
   @keyframes micpulse{50%{opacity:.55}}
   .insp-photos{display:flex; gap:8px; flex-wrap:wrap; margin-top:6px}
   .insp-ph{width:112px; font-size:10px; color:var(--mut); text-align:center; position:relative}
   .insp-ph img{width:112px; height:84px; object-fit:cover; border-radius:6px; border:1px solid var(--line); cursor:pointer}
   .insp-ph .del{position:absolute; top:-6px; right:-6px; width:18px; height:18px; border-radius:50%; border:none; background:var(--crit); color:#fff; font-size:11px; cursor:pointer; line-height:1}
-  .insp-prog{height:8px; background:#e8e4da; border-radius:4px; overflow:hidden; margin:8px 0}
+  .insp-prog{height:8px; background:#d8d3c4; border-radius:4px; overflow:hidden; margin:8px 0}
   .insp-prog>div{height:100%; background:var(--ok); width:0; transition:width .3s}
-  .insp-hist{border:1px solid var(--line); border-radius:8px; background:#fff; padding:8px 12px; margin:8px 0; font-size:12.8px}
+  .insp-hist{border:1px solid var(--line); border-radius:8px; background:#f2eee4; padding:8px 12px; margin:8px 0; font-size:12.8px}
 </style>
 </head>
 <body>
@@ -419,7 +419,7 @@
     <p>Сайт не собирает и не обрабатывает персональные данные посетителей: вход выполняется локально в браузере (sessionStorage), пароли ролей и данные сессии не передаются на сервер (152-ФЗ «О персональных данных»).</p>
     <h3>Актуальность данных</h3>
     <p id="legalVer">—</p>
-    <p><button id="legalVerCopy" class="noprint" style="border:1px solid var(--line); background:#fff; border-radius:6px; padding:5px 12px; font-size:12px; cursor:pointer">📋 Скопировать версию базы</button></p>
+    <p><button id="legalVerCopy" class="noprint" style="border:1px solid var(--line); background:#f2eee4; border-radius:6px; padding:5px 12px; font-size:12px; cursor:pointer">📋 Скопировать версию базы</button></p>
   </div>
 </div>
 
@@ -444,7 +444,7 @@
         <label class="task"><input type="radio" name="repScope" value="reg"> Реестр РИСК/КРИТИЧНО (с учётом фильтров реестра)</label>
         <div style="margin-top:10px; display:flex; gap:8px">
           <button id="repGen" style="border:1px solid var(--c-centr); background:var(--c-centr); color:#fff; border-radius:6px; padding:6px 14px; cursor:pointer">Сформировать</button>
-          <button id="repPrint" style="border:1px solid var(--line); background:#fff; border-radius:6px; padding:6px 14px; cursor:pointer">🖨 Печать / PDF</button>
+          <button id="repPrint" style="border:1px solid var(--line); background:#f2eee4; border-radius:6px; padding:6px 14px; cursor:pointer">🖨 Печать / PDF</button>
         </div>
       </div>
     </div>
@@ -463,9 +463,9 @@
       </select>
       <select id="regUK" style="padding:5px 8px; border:1px solid var(--line); border-radius:6px; font-size:12.5px"></select>
       <button id="regExport" style="border:1px solid var(--c-centr); background:var(--c-centr); color:#fff; border-radius:6px; padding:6px 14px; font-size:12.5px; cursor:pointer">⬇ Выгрузить в Excel</button>
-      <button id="regExportUK" title="Один файл, отдельный лист на каждую управляющую компанию" style="border:1px solid var(--c-centr); background:#fff; color:var(--c-centr); border-radius:6px; padding:6px 14px; font-size:12.5px; cursor:pointer">⬇ Ведомости по УК (листы)</button>
-      <button id="regPlansUK" title="Один файл на УК: все планы мероприятий её домов (ремонт + противоаварийные). УК выбирается в фильтре слева; без фильтра — файлы по всем УК" style="border:1px solid var(--ok); background:#fff; color:var(--ok); border-radius:6px; padding:6px 14px; font-size:12.5px; cursor:pointer">📦 Планы УК (Excel)</button>
-      <button id="regCoverageUK" title="Ведомость охвата осмотрами: по каждой УК дома, осмотрено за квартал/6/12 мес., % охвата, список неосмотренных адресов" style="border:1px solid var(--ok); background:#fff; color:var(--ok); border-radius:6px; padding:6px 14px; font-size:12.5px; cursor:pointer">📊 Охват осмотрами по УК</button>
+      <button id="regExportUK" title="Один файл, отдельный лист на каждую управляющую компанию" style="border:1px solid var(--c-centr); background:#f2eee4; color:var(--c-centr); border-radius:6px; padding:6px 14px; font-size:12.5px; cursor:pointer">⬇ Ведомости по УК (листы)</button>
+      <button id="regPlansUK" title="Один файл на УК: все планы мероприятий её домов (ремонт + противоаварийные). УК выбирается в фильтре слева; без фильтра — файлы по всем УК" style="border:1px solid var(--ok); background:#f2eee4; color:var(--ok); border-radius:6px; padding:6px 14px; font-size:12.5px; cursor:pointer">📦 Планы УК (Excel)</button>
+      <button id="regCoverageUK" title="Ведомость охвата осмотрами: по каждой УК дома, осмотрено за квартал/6/12 мес., % охвата, список неосмотренных адресов" style="border:1px solid var(--ok); background:#f2eee4; color:var(--ok); border-radius:6px; padding:6px 14px; font-size:12.5px; cursor:pointer">📊 Охват осмотрами по УК</button>
       <span class="note">Клик по строке открывает карточку объекта.</span>
     </div>
     <div id="regWrap"><table class="reg" id="regTable"></table></div>
@@ -1220,7 +1220,7 @@ map.on('click', e=>{
 geoCtl=document.createElement('button');
 geoCtl.id='geoPosBtn';
 geoCtl.textContent='📍 Позиционирование';
-geoCtl.style.cssText='position:absolute; top:84px; left:10px; z-index:700; background:#fff; border:2px solid rgba(0,0,0,.25); border-radius:5px; padding:4px 9px; font-size:12px; cursor:pointer';
+geoCtl.style.cssText='position:absolute; top:84px; left:10px; z-index:700; background:#f2eee4; border:2px solid rgba(0,0,0,.25); border-radius:5px; padding:4px 9px; font-size:12px; cursor:pointer';
 geoCtl.title='Режим уточнения координат: клик по зданию на снимке → ближайший объект → перенос точки';
 geoCtl.onclick=toggleGeoMode;
 document.getElementById('map').appendChild(geoCtl);
@@ -1249,10 +1249,10 @@ function gtmCovDraw(){
   const barX=118, barW=W-barX-44, rowH=26;
   rows.forEach(([key,label,v,color],i)=>{
     const y=20+i*rowH;
-    if(covFilter===key){ ctx.fillStyle='#f2ecd9'; ctx.fillRect(0,y-2,W,rowH-3); }
+    if(covFilter===key){ ctx.fillStyle='#e2dbc2'; ctx.fillRect(0,y-2,W,rowH-3); }
     ctx.font='10px Segoe UI, sans-serif'; ctx.fillStyle='#4a4234';
     ctx.fillText((covFilter===key?'▣ ':'▢ ')+label, 2, y+12);
-    ctx.fillStyle='#e8e2d4'; ctx.fillRect(barX,y+2,barW,13);
+    ctx.fillStyle='#d8d1bd'; ctx.fillRect(barX,y+2,barW,13);
     const w=Math.max(v?3:0, barW*v/n);
     ctx.fillStyle=color; ctx.fillRect(barX,y+2,Math.min(w,barW),13);
     ctx.fillStyle='#1d2733'; ctx.font='bold 10px Segoe UI, sans-serif';
@@ -1944,13 +1944,13 @@ function drawIsopleth(cv, o, wliter){
   const W=cv.clientWidth, H=340; cv.width=W*2; cv.height=H*2; cv.style.height=H+'px'; ctx.scale(2,2);
   ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
   const wd=o.prof[wliter]; if(!wd||wd.s.length<2) {
-    ctx.fillStyle='#6b7684'; ctx.font='12px sans-serif';
+    ctx.fillStyle='#5b6572'; ctx.font='12px sans-serif';
     ctx.fillText('Недостаточно дат замеров для термоизоплет (нужно ≥ 2)', 20, 40); return;
   }
   const dates=wd.s.map(s=>s[0]).sort();
   const depthSet=new Set(); wd.s.forEach(([,pts])=>pts.forEach(p=>depthSet.add(p[0])));
   const depths=[...depthSet].sort((a,b)=>a-b);
-  if(depths.length<3){ ctx.fillStyle='#6b7684'; ctx.font='12px sans-serif';
+  if(depths.length<3){ ctx.fillStyle='#5b6572'; ctx.font='12px sans-serif';
     ctx.fillText('Недостаточно точек по глубине (нужно ≥ 3)', 20, 40); return; }
   // матрица T[depth][date] с интерполяцией по глубине
   const M=depths.map(d=>dates.map(dt=>{
@@ -2136,7 +2136,7 @@ function defectBlock(o, codes){
   if(!present.length) return '<div class="note">Дефекты и повреждения по этому разделу в свежем отчёте не зарегистрированы (или отчёт отсутствует).</div>';
   return present.map(c=>{
     const rows=(d[c]||[]).map(r=>`<tr><td>${escT(r[0])}</td><td>${escT(r[1])}</td></tr>`);
-    const xr=(cx[c]||[]).map(t=>`<tr><td colspan="2" style="background:#f4f0e4">${escT(t)} <span class="note">(из отчёта, загруженного оператором)</span></td></tr>`);
+    const xr=(cx[c]||[]).map(t=>`<tr><td colspan="2" style="background:#e4dfcc">${escT(t)} <span class="note">(из отчёта, загруженного оператором)</span></td></tr>`);
     return `<div class="sect">${DEF_TITLES[c]} · выявлено: ${(d[c]||[]).length+(cx[c]||[]).length}</div>
     <table class="rows static"><thead><tr><th style="width:24%">Марка / оси</th><th>Дефект / повреждение (состояние конструкции)</th></tr></thead>
     <tbody>${rows.concat(xr).join('')}</tbody></table>`;
@@ -2240,7 +2240,7 @@ function tabCokOgr(o, el){
     <tr><td>Сечение одного продуха, м</td><td>${inp(o,'cok','vw','0.25')} × ${inp(o,'cok','vh','0.25')} <span class="note">— типовое 0,25 × 0,25 м</span></td></tr>
     <tr><td>Продухи на противоположных стенах</td><td>${sel(o,'cok','vopp','',['','да','нет'])} <span class="note">— для сквозного проветривания (п. 4.1.4)</span></td></tr>
   </table>
-  <div style="margin:8px 0; padding:8px 12px; border-radius:6px; background:#f6f7f9; border-left:4px solid ${vcCol}">
+  <div style="margin:8px 0; padding:8px 12px; border-radius:6px; background:#e8ebef; border-left:4px solid ${vcCol}">
     <b>Заключение по продухам: <span style="color:${vcCol}">${vc.st.s}</span></b>
     ${vc.Sreq!==null?`<div style="margin-top:4px">Требуемая суммарная площадь: S/400 = ${vc.S} / 400 = <b>${vc.Sreq.toFixed(2)} м²</b>; фактическая: ${vc.F0!==null?('<b>'+vc.F0.toFixed(2)+' м²</b> <span class="note">('+esc(vc.F0src)+')</span>'):'—'}; минимум по числу: 2 × ${vc.nSec} секц. = ${vc.Nmin} шт${vc.Nreq!==null&&vc.Nreq>vc.Nmin?(' (с учётом площади — не менее <b>'+vc.Nreq+' шт</b>)'):''}.</div>`:''}
     <div class="note" style="margin-top:4px">${esc(vc.st.d)}</div>
@@ -2912,7 +2912,7 @@ function tabGtm(o, el){
   </tbody></table>
   <div class="note">Высокий снежный покров — теплоизолятор: снижает промерзание грунта под проветриваемым подпольем и в приограждающей зоне и является превентивным триггером риска протаивания под свайным полем (СП 25.13330.2020, разд. 6.3, 13.2).${sc.exceeded?' Рекомендации — в заключении ниже.':''}</div>
   `:''}
-  <div style="margin:10px 0; padding:9px 12px; border-radius:6px; background:#f6f7f9; border-left:4px solid ${conclCol}">
+  <div style="margin:10px 0; padding:9px 12px; border-radius:6px; background:#e8ebef; border-left:4px solid ${conclCol}">
     <b>Заключение по обеспеченности мониторингом: <span style="color:${conclCol}">${worst.s==='НОРМА'?'ОБЕСПЕЧЕН (НОРМА)':worst.s}</span></b>
     ${recs.length?`<ul style="margin:6px 0 2px 18px">${recs.map(r=>`<li style="margin:2px 0">${esc(r)}</li>`).join('')}</ul>`:'<div class="note">Сеть наблюдений и периодичность соответствуют требованиям СП 25.13330.2020 (прил. М) и СП 497.1325800.2020 (табл. 9.1).</div>'}
   </div>
@@ -3761,7 +3761,7 @@ function showReportPreview(o, R, fname, text){
       ${R.floors?`<tr><td>Этажность (по тексту)</td><td>${R.floors}</td></tr>`:''}
     </table>
     ${secs.map(([k,v])=>`<div class="sect" style="font-size:11px">${esc(({fund_piles:'Сваи',fund_rostverk:'Ростверк',fund_ogolovki:'Оголовки свай',podpol:'Подполье',cok_ograd:'Цоколь/продухи',expl:'Условия эксплуатации',repairs:'Ремонты'})[k])} · строк: ${v.length}</div>
-      <div style="font-size:11px; max-height:110px; overflow:auto; background:#fff; border:1px solid var(--line); padding:4px 8px">${v.map(t=>esc(t)).join('<br>')}</div>`).join('')}
+      <div style="font-size:11px; max-height:110px; overflow:auto; background:#f2eee4; border:1px solid var(--line); padding:4px 8px">${v.map(t=>esc(t)).join('<br>')}</div>`).join('')}
     <div style="margin-top:8px; display:flex; gap:8px">
       <button class="wbtn" id="repApply" style="background:#2e7d32; color:#fff; border-color:#2e7d32">✔ Перенести в карточку</button>
       <button class="wbtn" id="repCancel">Отмена</button>
@@ -4748,7 +4748,7 @@ function tabCalc(o, el){
   const clr=document.getElementById('calcAppClear');
   if(clr) clr.onclick=e=>{ e.preventDefault(); sessionStorage.setItem('ngk_calcapp', JSON.stringify(JSON.parse(sessionStorage.getItem('ngk_calcapp')||'[]').filter(x=>x.addr!==o.a))); tabCalc(o, el); };
   const body=document.getElementById('calcBody');
-  const F=(id,label,unit,val,note)=>`<tr><td>${label}${note?` <span class="note">${note}</span>`:''}</td><td style="white-space:nowrap"><input class="ed" style="width:90px; border:1px solid var(--line); background:#fff" id="ci_${id}" type="number" step="any" value="${val===null||val===undefined?'':val}" ${ro?'disabled':''}> ${unit||''}</td></tr>`;
+  const F=(id,label,unit,val,note)=>`<tr><td>${label}${note?` <span class="note">${note}</span>`:''}</td><td style="white-space:nowrap"><input class="ed" style="width:90px; border:1px solid var(--line); background:#f2eee4" id="ci_${id}" type="number" step="any" value="${val===null||val===undefined?'':val}" ${ro?'disabled':''}> ${unit||''}</td></tr>`;
   const out=(html)=>{
     const el2=document.getElementById('calcOut'); el2.innerHTML=html;
     const b=document.createElement('button');
@@ -4799,7 +4799,7 @@ function tabCalc(o, el){
       const U=g('U'), L=g('L'), Ap=g('Ap');
       if(!(qs>0&&U>0&&L>0)){ out('<div class="note">Введите T грунта (для автоподстановки по таблицам СП) или q_s, U, L вручную.</div>'); return; }
       const Qb=qs*U*L*1000, Qe=(qp||0)*(Ap||0)*1000, Q=Qb+Qe, Qd=Q/2;
-      out(`<table class="kv" style="background:#fff">
+      out(`<table class="kv" style="background:#f2eee4">
         <tr><td>Боковое смерзание q_s·U·L</td><td>${qs.toFixed(3)} × ${U} × ${L} = <b>${Qb.toFixed(1)} кН</b></td></tr>
         <tr><td>Торец q_p·A_p</td><td>${(qp||0).toFixed(3)} × ${Ap||0} = <b>${Qe.toFixed(1)} кН</b></td></tr>
         <tr><td>Q = Q_бок + Q_торец</td><td><b>${Q.toFixed(1)} кН</b></td></tr>
@@ -4825,7 +4825,7 @@ function tabCalc(o, el){
       ${F('ww','W_w — незамерзшая вода','д.е.', sd.wW,'прил. Б')}
       ${F('tbf','T_bf — температура начала замерзания','°C', sd.tbf,'прил. Б (T_M)')}
       ${F('t0','T₀ — среднегодовая t ММГ','°C', t0def, t0note)}
-      <tr><td colspan="2" style="background:#f4f7fb"><b>Метеопараметры</b> <span class="note">${sp?('метеобаза, период '+esc(sp.period)+' — подставлено автоматически; можно править'):'метеобаза недоступна — введите вручную'}</span></td></tr>
+      <tr><td colspan="2" style="background:#e6ecf3"><b>Метеопараметры</b> <span class="note">${sp?('метеобаза, период '+esc(sp.period)+' — подставлено автоматически; можно править'):'метеобаза недоступна — введите вручную'}</span></td></tr>
       ${F('tthm','T_th,m — средняя t воздуха периода t>0','°C', sp?sp.Ttc:'','СП 131.13330 / метеобаза')}
       ${F('ttthm','t_th,m — продолжительность периода t>0','ч', sp?sp.ttc:'','')}
       ${F('tfm2','T_f,m — средняя t воздуха периода t<0','°C', sp?sp.Tfm:'','')}
@@ -4833,7 +4833,7 @@ function tabCalc(o, el){
       <tr><td>Коэффициент 0,9 (подрайон IБ/IГ)</td><td><label style="font-size:12px"><input type="checkbox" id="ci_sub09" checked ${ro?'disabled':''}> применять к T_th,m и t_th,m</label> <span class="note">Норильск — подрайон IБ</span></td></tr>
       <tr><td>Климатический сценарий (Изм. № 3)</td><td><select id="ci_hor" ${ro?'disabled':''}><option value="0">норматив (многолетний)</option><option value="10">+10 лет по тренду МГТ</option><option value="25">+25 лет по тренду МГТ</option></select></td></tr>
       <tr><td>Расположение (k_h, табл. Г.2)</td><td><select id="ci_kh" ${ro?'disabled':''}>${SPG_KH.map(k=>'<option value="'+k[1]+'">'+esc(k[0])+' — '+k[1]+'</option>').join('')}</select></td></tr>
-      <tr><td colspan="2" style="background:#f4f7fb"><b>Ручное переопределение теплофизики</b> <span class="note">пусто = авто по прил. Б</span></td></tr>
+      <tr><td colspan="2" style="background:#e6ecf3"><b>Ручное переопределение теплофизики</b> <span class="note">пусто = авто по прил. Б</span></td></tr>
       ${F('cth','C_th — теплоёмкость талого','Вт·ч/(м³·°C)','','авто: (0,75+4,19·W)·ρ_d, кДж')}
       ${F('cf','C_f — теплоёмкость мерзлого','Вт·ч/(м³·°C)','','авто: формула Б.8')}
       ${F('lv','L_v — теплота таяния','Вт·ч/м³','','авто: 3,35·10⁵·(W−W_w)·ρ_d')}
@@ -4863,7 +4863,7 @@ function tabCalc(o, el){
       if(ngcH!==null) rows.push('НГК объекта '+ngcH+' м: d_th '+fm(r.dth,2)+' м — '+(r.dth>ngcH?'<b style="color:#a86400">сезонное оттаивание глубже НГК — контроль теплового режима обязателен</b>':'выше НГК — нормальное соотношение'));
       if(pl2.L) rows.push('длина сваи '+pl2.L+' м: вмороженная часть ниже d_th = '+fm(pl2.L-r.dth,1)+' м'+(pl2.L-r.dth<3?' <b style="color:var(--crit)">— МЕНЕЕ 3 м, проверить несущую способность</b>':''));
       const cmp=rows.length?'<tr><td>Сопоставление с объектом</td><td>'+rows.join('<br>')+'</td></tr>':'';
-      out(`<table class="kv" style="background:#fff">
+      out(`<table class="kv" style="background:#f2eee4">
         <tr><td colspan="2"><b>Промежуточные величины</b></td></tr>
         <tr><td>T_th,c (Г.6)</td><td>1,4 × ${fm(p.tThM,1)} + 2,4 = <b>${fm(r.Tthc,1)} °C</b></td></tr>
         <tr><td>t_th,c (Г.7)</td><td>1,15 × ${fm(p.ttThM,0)} + 360 = <b>${r.ttthc} ч</b></td></tr>
@@ -4902,7 +4902,7 @@ function tabCalc(o, el){
       const Vdot=Q/(1.2*1006*dT);        // м³/с
       const Freq=Vdot/v;                 // м²
       const m0=F0/P, mreq=Freq/P;
-      out(`<table class="kv" style="background:#fff">
+      out(`<table class="kv" style="background:#f2eee4">
         <tr><td>Теплоприток в подполье</td><td>Q = ${qin} Вт/м² × ${A} м² = <b>${Q.toFixed(0)} Вт</b></td></tr>
         <tr><td>Требуемый расход воздуха</td><td>Q/(ρ·c_p·ΔT) = <b>${Vdot.toFixed(2)} м³/с</b></td></tr>
         <tr><td>Требуемая площадь продухов</td><td>V̇/v = <b>${Freq.toFixed(2)} м²</b> → модуль ${(mreq*100).toFixed(2)} см/м периметра${''}</td></tr>
@@ -4929,7 +4929,7 @@ function tabCalc(o, el){
       const k=linreg(s.xs, s.ys), tlast=s.ys[s.ys.length-1], dlast=s.xs[s.xs.length-1];
       let reach='не достигается при текущем тренде';
       if(k>0 && tlast<th){ const yrs=(th-tlast)/k; reach=`через ~${yrs.toFixed(1)} лет (к ${new Date(dlast).getFullYear()+Math.ceil(yrs)} г.)`; }
-      out(`<table class="kv" style="background:#fff">
+      out(`<table class="kv" style="background:#f2eee4">
         <tr><td>Тренд на ${d} м</td><td><b>${k>0?'+':''}${k.toFixed(3)} °C/год</b> (по ${s.ys.length} замерам, ${s.xs[0]}…${dlast})</td></tr>
         <tr><td>Последняя T на ${d} м</td><td><b>${tlast} °C</b> (${dlast})</td></tr>
         <tr><td>Выход на порог ${th} °C</td><td><b>${reach}</b></td></tr>
@@ -4949,7 +4949,7 @@ function tabCalc(o, el){
       const tc=parseFloat(document.getElementById('ci_tc').value);
       if(ci.tNgc===null||isNaN(tc)){ out('<div class="note">Нужны T на НГК (из замеров) и расчётная температура.</div>'); return; }
       const d=tc-ci.tNgc;
-      out(`<table class="kv" style="background:#fff">
+      out(`<table class="kv" style="background:#f2eee4">
         <tr><td>Запас ΔT = T_расч − T_НГК</td><td><b>${d.toFixed(2)} °C</b></td></tr>
         <tr><td>Оценка</td><td>${d>1?'запас достаточный':d>0?'<b style="color:#a86400">запас мал — контроль тренда обязателен</b>':'<b style="color:var(--crit)">T НГК ВЫШЕ расчётной — превышение проектного режима, мероприятия по СП 497.1325800.2020</b>'}</td></tr></table>`);
     };
@@ -4980,7 +4980,7 @@ function tabCalc(o, el){
         const dsl=(gm.maxOsad-dMin)/1000/Lk;
         krenRow=`<tr><td>Относительная разность осадок Δs/L</td><td>(${gm.maxOsad.toFixed(1)} − ${dMin.toFixed(1)}) мм / ${Lk} м = <b>${dsl.toExponential(2)}</b> против допуска ${bt[1]} — ${dsl<=bt[1]?'<b style="color:var(--ok)">в пределах</b>':'<b style="color:var(--crit)">ПРЕВЫШЕНИЕ</b>'} (табл. Д.1: ${esc(bt[0])})</td></tr>`;
       }
-      out(`<table class="kv" style="background:#fff">
+      out(`<table class="kv" style="background:#f2eee4">
         <tr><td>Использование предела</td><td>${gm.maxOsad.toFixed(1)} / ${lim} мм = <b>${(gm.maxOsad/lim*100).toFixed(0)}%</b></td></tr>
         <tr><td>Остаточный запас</td><td><b>${rest.toFixed(1)} мм</b>${yrs?` ≈ ${yrs.toFixed(1)} лет при текущей скорости ${gm.maxSpeed.toFixed(1)} мм/год`:''}</td></tr>
         ${krenRow}
@@ -5062,14 +5062,14 @@ async function tgRender(o){
     document.getElementById('tgCfg').onclick=e=>{
       e.preventDefault();
       document.getElementById('tgCfgArea').innerHTML=`
-        <div style="margin-top:8px; padding:10px; background:#fff; border:1px dashed var(--c-centr); border-radius:6px; text-align:left; font-size:12px">
+        <div style="margin-top:8px; padding:10px; background:#f2eee4; border:1px dashed var(--c-centr); border-radius:6px; text-align:left; font-size:12px">
           Общий реестр хранится в Supabase (таблица <code>telegrammy</code>). По умолчанию подключён встроенный контур АНО «АНИИГБ». Свои параметры проекта:
           <input id="sbUrl" placeholder="Project URL, https://xxxx.supabase.co" style="width:100%; margin:6px 0" value="${TG_SB?esc(TG_SB.url||''):''}">
           <input id="sbKey" placeholder="anon public key" style="width:100%; margin-bottom:6px" value="${TG_SB?esc(TG_SB.key||''):''}">
           <div style="display:flex; gap:6px; flex-wrap:wrap">
             <button id="sbCfgSave" style="padding:5px 10px; background:var(--c-centr); color:#fff; border:none; border-radius:6px; cursor:pointer">Сохранить</button>
-            <button id="sbCfgClear" style="padding:5px 10px; background:#fff; border:1px solid var(--line); border-radius:6px; cursor:pointer">Отключить (локальный режим)</button>
-            <button id="sbCfgReset" style="padding:5px 10px; background:#fff; border:1px solid var(--line); border-radius:6px; cursor:pointer">Вернуть встроенный</button>
+            <button id="sbCfgClear" style="padding:5px 10px; background:#f2eee4; border:1px solid var(--line); border-radius:6px; cursor:pointer">Отключить (локальный режим)</button>
+            <button id="sbCfgReset" style="padding:5px 10px; background:#f2eee4; border:1px solid var(--line); border-radius:6px; cursor:pointer">Вернуть встроенный</button>
           </div>
           <div class="note" style="margin-top:6px">После сохранения страница перезагрузится. Регистрация станет с настоящим подтверждением email, а предписания — общими для всех пользователей.</div>
         </div>`;
@@ -5098,7 +5098,7 @@ async function tgRender(o){
           </div>
           <div style="display:flex; gap:8px">
             <button id="sbLogin" style="padding:7px 14px; background:var(--bg); color:#fff; border:none; border-radius:6px; cursor:pointer">Войти</button>
-            <button id="sbShowReg" style="padding:7px 14px; background:#fff; border:1px solid var(--line); border-radius:6px; cursor:pointer">Регистрация</button>
+            <button id="sbShowReg" style="padding:7px 14px; background:#f2eee4; border:1px solid var(--line); border-radius:6px; cursor:pointer">Регистрация</button>
           </div>
           <div id="sbRegArea"></div>
           <div id="sbErr" style="color:var(--crit); font-size:12px; margin-top:6px"></div>
@@ -5119,7 +5119,7 @@ async function tgRender(o){
       };
       document.getElementById('sbShowReg').onclick=()=>{
         document.getElementById('sbRegArea').innerHTML=`
-          <div style="margin-top:12px; padding:10px; background:#fff; border:1px dashed var(--c-centr); border-radius:6px; display:grid; gap:8px">
+          <div style="margin-top:12px; padding:10px; background:#f2eee4; border:1px dashed var(--c-centr); border-radius:6px; display:grid; gap:8px">
             <input id="rgName" placeholder="ФИО ответственного">
             <input id="rgOrg" placeholder="Организация (УК / надзорная)">
             <select id="rgRole"><option value="">— роль —</option><option value="надзор">Организация мерзлотно-технического надзора (выдаёт предписания)</option><option value="ук">Управляющая компания (отчитывается об устранении)</option></select>
@@ -5163,7 +5163,7 @@ async function tgRender(o){
       TG.pending={name,org,role,email,code};
       saveTG();
       document.getElementById('rgArea').innerHTML=`
-        <div style="margin-top:12px; padding:10px; background:#fff; border:1px dashed var(--c-centr); border-radius:6px">
+        <div style="margin-top:12px; padding:10px; background:#f2eee4; border:1px dashed var(--c-centr); border-radius:6px">
           [МАКЕТ] Код верификации для <b>${esc(email)}</b>: <b style="font-size:16px">${code}</b><br>
           <span class="note">В рабочей версии код отправляется письмом на указанную почту.</span>
           <div style="margin-top:8px; display:flex; gap:8px"><input id="rgCode" placeholder="Код из письма"><button id="rgVerify" style="padding:6px 12px; background:var(--bg); color:#fff; border:none; border-radius:6px; cursor:pointer">Подтвердить</button></div>
@@ -5223,7 +5223,7 @@ async function tgRender(o){
   document.getElementById('goInsp').onclick=e=>{ e.preventDefault(); TG_VIEW='insp'; tgRender(o); };
   if(u.role==='надзор') document.getElementById('tgNew').onclick=()=>{
     document.getElementById('tgNewArea').innerHTML=`
-      <div style="border:1px solid var(--line); border-radius:8px; padding:10px 12px; background:#fff; margin:8px 0; display:grid; gap:7px">
+      <div style="border:1px solid var(--line); border-radius:8px; padding:10px 12px; background:#f2eee4; margin:8px 0; display:grid; gap:7px">
         <textarea id="tgViol" rows="2" placeholder="Выявленное нарушение (что, где, когда обнаружено)"></textarea>
         <textarea id="tgReq" rows="2" placeholder="Требование / предписание (что устранить и как)"></textarea>
         <div style="display:flex; gap:8px; flex-wrap:wrap">
@@ -6409,7 +6409,7 @@ function mtRender(d){
     <label style="font-size:12.5px">Параметр: <select id="mtP" style="padding:4px 6px; border:1px solid var(--line); border-radius:5px">${Object.keys(METEO_P).map(k=>`<option value="${k}"${k===mtParam?' selected':''}>${METEO_P[k]}</option>`).join('')}</select></label>
     <label style="font-size:12.5px">с <input id="mtY0" type="number" value="${mtY0}" style="width:64px; padding:3px 5px; border:1px solid var(--line); border-radius:5px"> по <input id="mtY1" type="number" value="${mtY1}" style="width:64px; padding:3px 5px; border:1px solid var(--line); border-radius:5px"></label>
     <label style="font-size:12px; cursor:pointer"><input type="checkbox" id="mtAn"${mtShowAnom?' checked':''}> выделять аномалии</label>
-    <button id="mtUpd" style="margin-left:auto; border:1px solid #2e7d32; color:#2e7d32; background:#fff; border-radius:6px; padding:4px 12px; font-size:12.5px; cursor:pointer" title="Дозагрузить недостающие месяцы из открытого метеоархива Open-Meteo (ERA5 + оперативный анализ)">⟳ Обновить из метеоархива</button>
+    <button id="mtUpd" style="margin-left:auto; border:1px solid #2e7d32; color:#2e7d32; background:#f2eee4; border-radius:6px; padding:4px 12px; font-size:12.5px; cursor:pointer" title="Дозагрузить недостающие месяцы из открытого метеоархива Open-Meteo (ERA5 + оперативный анализ)">⟳ Обновить из метеоархива</button>
     <span id="mtUpdSt" style="font-size:11.5px; color:var(--mut)"></span>
   </div>
   <div class="mt-tabs" id="mtTabs">
@@ -6435,7 +6435,7 @@ function mtRenderView(d){
   const out=document.getElementById('mtOut');
   const k=mtParam, nm=METEO_P[k];
   if(mtView==='chart'){
-    out.innerHTML='<canvas id="mtCv" style="width:100%; height:400px; border:1px solid var(--line); border-radius:6px; background:#fff"></canvas><div style="font-size:11.5px; color:var(--mut); margin-top:4px">Точки — помесячные значения; синяя линия — скользящее среднее 12 мес.; чёрный пунктир — линейный тренд; красные кружки — аномалии |z| ≥ 2,5.</div>';
+    out.innerHTML='<canvas id="mtCv" style="width:100%; height:400px; border:1px solid var(--line); border-radius:6px; background:#f2eee4"></canvas><div style="font-size:11.5px; color:var(--mut); margin-top:4px">Точки — помесячные значения; синяя линия — скользящее среднее 12 мес.; чёрный пунктир — линейный тренд; красные кружки — аномалии |z| ≥ 2,5.</div>';
     mtChart(document.getElementById('mtCv'), d, k);
   }
   if(mtView==='table'){
@@ -6500,7 +6500,7 @@ function mtRenderView(d){
     }
     out.innerHTML=`<div class="normref">Модель: годовая величина = линейный тренд МНК (${ag[0].y}–${y0}, R²=${lin.r2}); сезонный ход — месячная климатология ряда; полоса ±1,96σ (σ остатков = ${sigma.toFixed(2)}). Прогноз индикативный, для инженерных расчётов применяются нормативные значения СП 131.13330.</div>
     <table class="mt-tbl" style="width:auto"><tr><th>Год</th><th>${k==='pr'?'Σ осадков, мм':'Среднее, '+esc(nm.split(', ')[1]||'')}</th><th>Доверительный интервал 95%</th></tr>${rows}</table>
-    <canvas id="mtFc" style="width:100%; height:340px; border:1px solid var(--line); border-radius:6px; background:#fff; margin-top:8px"></canvas>`;
+    <canvas id="mtFc" style="width:100%; height:340px; border:1px solid var(--line); border-radius:6px; background:#f2eee4; margin-top:8px"></canvas>`;
     mtChartFc(document.getElementById('mtFc'), ag, lin, sigma, k);
   }
   if(mtView==='sp'){
@@ -6656,7 +6656,7 @@ setTimeout(()=>{ try{
 };
 const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"4WYeKU9t6vhlSW4y"};
 const BUILD="8c06d503";
-const BUILD_DATE="11.09.2026 19:51";
+const BUILD_DATE="11.09.2026 20:07";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
