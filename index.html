@@ -6896,6 +6896,7 @@ function wdProcHtml(d){
     const gc=wdGroupCounts(pp.d);
     h+='<div style="margin-top:6px; font-size:12px; color:var(--mut)">Точка прогноза: <b>'+esc(pp.pt)+'</b> · объектов в районе: МКД '+gc.m+', соцкультбыт '+gc.s+'</div>';
     if(!pp.procs.length){ h+='<div class="warn-none">✔ Вероятность опасных процессов низкая (&lt;30%) по всем направлениям.</div>'; return; }
+    h+='<button class="wxd-regBtn wxd-flt" data-d="'+esc(pp.d)+'" data-lb="вероятностные процессы, точка '+esc(pp.pt)+'" style="margin:2px 0 4px">▤ Объекты РИСК/КРИТИЧНО района «'+esc(pp.d)+'»'+(pp.procs.some(pr=>pr.proc==='flood')?' — талые/ливневые воды: приоритет свайных оснований':'')+'</button>';
     pp.procs.forEach(pr=>{
       const P=WD_PROC[pr.proc], col=pr.lvl==='high'?'#c62828':'#e08a00';
       h+='<div class="warn-card'+(pr.lvl==='high'?' crit':'')+'"><h3>'+P.ic+' '+P.nm+' — вероятность <span style="color:'+col+'">'+(pr.lvl==='high'?'высокая':'умеренная')+' ('+pr.prob+'%)</span> · пик '+pr.peak.split('-').reverse().join('.')+' <span class="note">'+esc(pr.basis)+'</span></h3>';
@@ -6975,6 +6976,8 @@ function wxDutyOpen(){
           const n=g==='M'?gc.m:gc.s;
           h+='<div class="wg"><b>Группа '+g+' ('+WD_GROUPS[g]+') — объектов в районе: '+n+'.</b> Возможное влияние: '+im.i+'. <b>Рекомендуемые меры:</b> '+im.m+'.</div>';
         });
+        const water=(x.haz==='rain'||x.haz==='thaw');
+        h+='<button class="wxd-regBtn wxd-flt" data-d="'+esc(x.d)+'" data-lb="'+esc(hz.nm+' '+x.date.split('-').reverse().join('.')+', '+x.pt)+'">▤ Объекты РИСК/КРИТИЧНО района «'+esc(x.d)+'»'+(water?' — талые/ливневые воды: приоритет свайных оснований':'')+'</button>';
         h+='</div>';
       });
     }
@@ -6983,8 +6986,17 @@ function wxDutyOpen(){
   }
   w.innerHTML=h;
   m.style.display='block';
+  w.querySelectorAll('.wxd-flt').forEach(b=>b.onclick=()=>wxDutyReg(b.dataset.d, b.dataset.lb));
   const rb=document.getElementById('wxDutyReg');
   if(rb) rb.onclick=()=>{ m.style.display='none'; const b=document.getElementById('regBtn'); if(b) b.click(); };
+}
+/* открыть сводный реестр, отфильтрованный по району предупреждения (одним кликом из карточки дежурного контроля) */
+function wxDutyReg(d,lb){
+  document.getElementById('wxDutyModal').style.display='none';
+  const fd=document.getElementById('regD'); if(fd) fd.value=d||'';
+  const fuk=document.getElementById('regUK'); if(fuk&&!UK_SCOPE) fuk.value='';
+  openRegistry();
+  if(lb){ const s=document.getElementById('regSummary'); if(s) s.textContent+=' · фильтр от дежурного метеоконтроля: '+lb+'.'; }
 }
 document.getElementById('wxDutyClose').onclick=()=>document.getElementById('wxDutyModal').style.display='none';
 document.getElementById('wxDutyModal').addEventListener('click',e=>{ if(e.target.id==='wxDutyModal') e.target.style.display='none'; });
@@ -6997,7 +7009,7 @@ setTimeout(()=>{ try{
 };
 const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"4WYeKU9t6vhlSW4y"};
 const BUILD="8c06d503";
-const BUILD_DATE="11.09.2026 21:09";
+const BUILD_DATE="11.09.2026 21:52";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
