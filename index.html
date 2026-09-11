@@ -21,7 +21,7 @@
   }
   *{box-sizing:border-box; margin:0; padding:0}
   html,body{height:100%; font:14px/1.45 "Segoe UI","PT Sans",-apple-system,"Helvetica Neue",Arial,sans-serif; color:var(--ink)}
-  #app{display:grid; grid-template-columns:330px 1fr 420px; grid-template-rows:56px 1fr; height:100vh}
+  #app{display:grid; grid-template-columns:330px 1fr 420px; grid-template-rows:56px auto 1fr; height:100vh}
   header{grid-column:1/4; background:var(--bg); color:#eef2f6; display:flex; align-items:center; gap:18px; padding:0 18px}
   header h1{font-size:16px; font-weight:600; letter-spacing:.3px; white-space:nowrap}
   header .sub{font-size:12px; color:#9fb0bf}
@@ -274,6 +274,26 @@
   #legalModal p{margin:4px 0}
   .footline{font-size:10.6px; color:#4e5763; border-top:1px solid #b3a98f; padding:6px 12px; line-height:1.5; background:#cfc7b0}
   .footline a{color:#4e5763}
+  /* ---------- дежурный метеоконтроль: постоянная полоса + окно ---------- */
+  #warnStrip{grid-column:1/4; font-size:12px; padding:4px 16px; cursor:pointer; border-bottom:1px solid var(--line); display:flex; align-items:center; white-space:nowrap; overflow:hidden}
+  #warnStrip>span{overflow:hidden; text-overflow:ellipsis}
+  #warnStrip.ok{background:#d5e4cf; color:#245028; border-bottom-color:#8fb489}
+  #warnStrip.warn{background:#f0e6bd; color:#7a6015; border-bottom-color:#cdbb6e}
+  #warnStrip.crit{background:#f2d3c9; color:#93321f; border-bottom-color:#cd887a; font-weight:600}
+  #warnStrip:hover{filter:brightness(.96)}
+  .warn-card{border:1px solid #cdbb6e; background:#f5eecb; border-radius:8px; padding:8px 12px; margin-bottom:8px}
+  .warn-card.crit{border-color:#cd887a; background:#f2d9d0}
+  .warn-card h3{font-size:13px; margin:0 0 3px}
+  .warn-card .wg{font-size:12px; margin:4px 0; line-height:1.45}
+  .warn-card .wg b{color:#4a4234}
+  .warn-none{border:1px solid #8fb489; background:#dde8d6; border-radius:8px; padding:7px 12px; font-size:12.5px; margin-bottom:8px}
+  .warn-meta{font-size:11px; color:var(--mut); margin-bottom:6px}
+  #wxDutyModal{display:none; position:fixed; inset:0; z-index:1120; background:rgba(15,28,38,.6)}
+  #wxDutyModal .box{background:var(--panel); width:980px; max-width:96vw; max-height:92vh; margin:3vh auto; border-radius:10px; padding:18px 22px; box-shadow:0 10px 40px rgba(0,0,0,.4); display:flex; flex-direction:column}
+  #wxDutyModal h2{font-size:15px; margin-right:30px}
+  #wxDutyModal .close{float:right; border:none; background:none; font-size:20px; cursor:pointer; color:var(--mut)}
+  .wxd-duty{border:1px solid var(--line); border-radius:8px; background:#f2eee4; padding:10px 14px; margin-bottom:10px; font-size:12.5px; line-height:1.55}
+  .wxd-regBtn{border:1px solid var(--c-centr); background:var(--c-centr); color:#fff; border-radius:6px; padding:6px 14px; font-size:12.5px; cursor:pointer; margin-top:4px}
   .mt-kpi{display:flex; gap:10px; flex-wrap:wrap; margin:8px 0}
   .mt-kpi .k{flex:1; min-width:150px; border:1px solid var(--line); border-radius:8px; padding:7px 10px; background:#eef2f5}
   .mt-kpi .k b{display:block; font-size:15.5px; margin-top:2px}
@@ -338,6 +358,7 @@
     <button id="gear" title="Пороги статусов">⚙ Пороги</button>
     <button id="logoutBtn" title="Выйти / сменить пользователя">⎋ Выход</button>
   </header>
+  <div id="warnStrip" class="ok" title="Дежурный метеоконтроль: критичные погодные явления для городской среды (МКД и объекты соцкультбыта) по районам, прогноз 10 суток, сверка каждый час. Клик — окно дежурного метеоконтроля: статус дежурства, предупреждения, рекомендуемые меры и нормативные основания."><span>…сверка прогноза метеоданных</span></div>
   <div id="side">
     <div style="display:flex; gap:6px; padding:10px 12px 4px">
       <button class="brbtn on" id="brMkd">🏢 МКД</button>
@@ -420,6 +441,14 @@
     <h3>Актуальность данных</h3>
     <p id="legalVer">—</p>
     <p><button id="legalVerCopy" class="noprint" style="border:1px solid var(--line); background:#f2eee4; border-radius:6px; padding:5px 12px; font-size:12px; cursor:pointer">📋 Скопировать версию базы</button></p>
+  </div>
+</div>
+
+<div id="wxDutyModal">
+  <div class="box">
+    <button class="close" id="wxDutyClose">✕</button>
+    <h2>🛡 Дежурный метеоконтроль · г. Норильск (городская среда: МКД и объекты соцкультбыта)</h2>
+    <div id="wxDutyWrap" style="overflow:auto">Загрузка…</div>
   </div>
 </div>
 
@@ -6647,6 +6676,316 @@ document.getElementById('meteoClose').onclick=()=>{ document.getElementById('met
     else{ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); }catch(e){} ta.remove(); done(); }
   };
 })();
+
+/* ==================== ДЕЖУРНЫЙ МЕТЕОКОНТРОЛЬ (городская среда) ====================
+   Адаптация режима «Дежурный метеоконтроль ГТС» (проект ГТМ ГТС ЗФ ПАО «ГМК «Норильский никель»)
+   под городскую среду: МКД и объекты соцкультбыта. Пороги опасных явлений — Росгидромет;
+   меры — ЖК РФ ст. 161; Правила № 170 (Госстрой, 27.09.2003), п. 3.6.21–3.6.24 (снег, наледь,
+   сосульки с кровель) и противогололёдная обработка территории; Правила благоустройства
+   г. Норильска; ГОСТ Р 50597-2017 (дороги/тротуары); СП 20.13330.2016 (снеговая нагрузка);
+   СП 25.13330.2020 (снегозапас и талые воды у оснований на ММГ); ГОСТ 31937-2024 (обследования). */
+const WD_PTS=[
+  {nm:'Центральный район', lat:69.349, lon:88.201, d:'Центральный'},
+  {nm:'Талнах', lat:69.493, lon:88.398, d:'Талнах'},
+  {nm:'Кайеркан', lat:69.357, lon:87.740, d:'Кайеркан'}
+];
+const WD_GROUPS={M:'МКД — свайные основания на ММГ', S:'Объекты соцкультбыта Администрации (школы, детсады, культура, спорт)'};
+const WD_HAZ={rain:{ic:'🌧',nm:'Ливневый дождь'},snow:{ic:'🌨',nm:'Обильный снегопад'},wind:{ic:'💨',nm:'Штормовой ветер'},
+  bliz:{ic:'❄️',nm:'Метель'},frz:{ic:'🧊',nm:'Гололёдные явления'},icicle:{ic:'🧊',nm:'Сосульки и наледь на кровлях'},
+  thaw:{ic:'🌡',nm:'Оттепель — талые воды к основаниям'}};
+const WD_IMPACT={
+ rain:{M:{i:'подтопление подполий и свайных полей, размыв отмосток; дополнительное увлажнение мёрзлого основания — локальное протаивание у оголовков свай; перегрузка ливневой канализации и водостоков',
+         m:'проверить ливневые приёмники, водосточные воронки и отмостки; готовность водоотлива из подполий; после ливня — осмотр цоколей и отмосток (ГОСТ 31937-2024); усилить контроль домов со статусом РИСК/КРИТИЧНО'},
+      S:{i:'подтопление техподполий учреждений, затопление подходов и входных групп — риск для детей и посетителей',
+         m:'проверка дренажа и входных групп; при сильном ливне — временное ограничение выхода; осмотр после явления'}},
+ snow:{M:{i:'накопление снеговой нагрузки на кровлях (СП 20.13330.2016); снегозапас у цоколей — при оттепели талые воды к основанию (протаивание ММГ под свайным полем); заносы входов и продухов подполья',
+         m:'контроль снегоотложения и очистка кровель от снега и наледи (п. 3.6.21–3.6.24 Правил № 170); расчистка входов; учёт снегозапаса — сверка с флагом «снежный покров выше нормативного h_sn» в паспортах ГТМ'},
+      S:{i:'снеговая нагрузка на кровли школ и детсадов; заносы эвакуационных выходов',
+         m:'очистка кровель и эвакуационных выходов в первоочередном порядке; снегомерный контроль территорий'}},
+ wind:{M:{i:'срыв кровельных покрытий и элементов фасадов, падение предметов с кровель — угроза пешеходам',
+         m:'ограничить нахождение людей у фасадов; обход и демонтаж незакреплённых элементов; после шторма — осмотр кровель и фасадов'},
+      S:{i:'те же риски для зданий с массовым пребыванием детей',
+         m:'закрыть прилегающие площадки; обход зданий после шторма'}},
+ bliz:{M:{i:'нулевая видимость, заносы тротуаров, входов и подъездов техники',
+         m:'дежурная расчистка; после метели — контроль снеговых наносов у цоколей'},
+      S:{i:'заносы входов и территорий учреждений',
+         m:'расчистка в сроки по Правилам благоустройства г. Норильска'}},
+ frz:{M:{i:'гололёд на тротуарах и входах — травмоопасность; обледенение карнизов и водостоков',
+         m:'противогололёдная обработка придомовой территории (Правила № 170; Правила благоустройства г. Норильска; ГОСТ Р 50597-2017 для тротуаров); очистка водостоков'},
+      S:{i:'гололёд на подходах к школам и детсадам — риск массового травматизма',
+         m:'первоочередная обработка подходов; предупреждающие ограждения'}},
+ icicle:{M:{i:'сход сосулек и наледи с кровель и карнизов — прямая угроза жизни пешеходов; повреждение водостоков',
+         m:'немедленное удаление сосулек и наледи с кровель (п. 3.6.22 Правил № 170); ограждение опасных зон у фасадов; контроль до конца оттепели'},
+      S:{i:'та же угроза у входов в учреждения с детьми',
+         m:'удаление наледи до начала учебного дня; постоянное ограждение зон возможного схода'}},
+ thaw:{M:{i:'приток талых вод к свайным полям и в подполия — рост температуры грунтов основания, риск превышения расчётной температуры (СП 25.13330.2020); просадки при повторном замерзании',
+         m:'водоотвод от цоколей и очистка дренажей; внеочередные замеры по термоскважинам домов РИСК/КРИТИЧНО — сверка с Tрасч в карточках объектов; водоотлив из подполий'},
+      S:{i:'подтопление подполий учреждений, увлажнение оснований',
+         m:'водоотвод и контроль температуры основания по режимным скважинам'}}
+};
+const WD_PROC={
+ flood:{ic:'💧',nm:'Подтопление подполий и территории'},
+ icicle:{ic:'🧊',nm:'Сосульки и наледь на кровлях'},
+ drift:{ic:'🌬',nm:'Снежные заносы'},
+ snowload:{ic:'🏠',nm:'Снеговая нагрузка на кровли'},
+ fth:{ic:'🔁',nm:'Переходы через 0 °C (морозное выветривание)'}
+};
+const WD_PROC_IMPACT={
+ flood:{M:{i:'вода устремляется к понижениям рельефа: подполия и свайные поля первыми принимают сток; на мёрзлом грунте k стока 0,8–0,95 — инфильтрация отсутствует; увлажнение основания → локальное протаивание ММГ и просадки',
+          m:'готовность водоотлива из подполий; очистка ливнёвки и дренажей; после пика стока — внеочередная геотермия домов РИСК/КРИТИЧНО и осмотр отмосток'},
+       S:{i:'подтопление подполий и территорий учреждений',
+          m:'водоотлив, ограждения, осмотр оснований после явления'}},
+ icicle:{M:{i:'массовое образование сосулек и наледи на карнизах и водостоках; сход — угроза пешеходам и имуществу',
+          m:'немедленная очистка кровель от наледи и сосулек (п. 3.6.22 Правил № 170); ограждение тротуаров под карнизами; контроль водосточных воронок'},
+       S:{i:'наледь у входов в школы и детсады',
+          m:'очистка до начала учебного дня; постоянные ограждения зон схода'}},
+ drift:{M:{i:'заносы входов, продухов подполья и подъездов; неравномерный снегозапас у цоколей меняет тепловой режим основания',
+          m:'дежурная расчистка; после метели — контроль наносов у цоколей и продухов; учёт перераспределения снега в паспортах ГТМ'},
+       S:{i:'заносы эвакуационных выходов и территорий',
+          m:'первоочередная расчистка выходов; снегомерный контроль'}},
+ snowload:{M:{i:'снеговая нагрузка на кровли, мокрый снег — до 1,3× тяжелее; ветхие и плоские кровли — риск превышения расчётной (СП 20.13330.2016)',
+          m:'контроль снегоотложения; своевременная очистка кровель (п. 3.6.21–3.6.24 Правил № 170) с соблюдением мер безопасности; при ветхих кровлях — ограничение доступа'},
+       S:{i:'нагрузка на кровли зданий с массовым пребыванием',
+          m:'приоритетная очистка кровель учреждений; при необходимости — временное ограничение посещения'}},
+ fth:{M:{i:'морозное выветривание насыщенного влагой бетона цоколей, отмосток и входных групп; ледяные корки на тротуарах',
+          m:'после серии переходов — осмотр цоколей и отмосток (ГОСТ 31937-2024); противогололёдная обработка; планирование ремонтов на тёплый период'},
+       S:{i:'разрушение отмосток и входных групп учреждений',
+          m:'осмотр и ремонтные мероприятия по ведомостям'}}
+};
+function wdCache(){ try{ return JSON.parse(localStorage.getItem('ngk_warnduty')||'null'); }catch(e){ return null; } }
+async function wdFetch(){
+  const url='https://api.open-meteo.com/v1/forecast?latitude='+WD_PTS.map(p=>p.lat).join(',')+'&longitude='+WD_PTS.map(p=>p.lon).join(',')
+    +'&hourly=temperature_2m,rain,snowfall,weather_code,wind_gusts_10m,wind_speed_10m,snow_depth,soil_temperature_0_to_7cm&wind_speed_unit=ms&forecast_days=10&timezone=Asia%2FKrasnoyarsk';
+  const r=await fetch(url); const j=await r.json();
+  const d={ts:Date.now(), pts:Array.isArray(j)?j:[j]};
+  try{ localStorage.setItem('ngk_warnduty',JSON.stringify(d)); }catch(e){}
+  return d;
+}
+function wdGroupCounts(dd){
+  let m=0, s=0;
+  try{ DB.objects.forEach(o=>{ if(o.d!==dd) return; if(o.br==='skb') s++; else m++; }); }catch(e){}
+  return {m,s};
+}
+function wdAnalyze(d){
+  const out=[];
+  (d.pts||[]).forEach((pt,pi)=>{
+    const meta=WD_PTS[pi]; if(!meta||!pt||!pt.hourly) return;
+    const H=pt.hourly, T=H.time||[], days={}, order=[];
+    for(let i=0;i<T.length;i++){
+      const key=T[i].slice(0,10);
+      let a=days[key];
+      if(!a){ a=days[key]={rain:0,snow:0,gust:0,frz:0,tmin:1e9,tmax:-1e9,depth:0}; order.push(key); }
+      a.rain+=H.rain?(+H.rain[i]||0):0;
+      a.snow+=H.snowfall?(+H.snowfall[i]||0):0;
+      const g=H.wind_gusts_10m?(+H.wind_gusts_10m[i]||0):0; if(g>a.gust) a.gust=g;
+      const t=+H.temperature_2m[i]; if(!isNaN(t)){ if(t<a.tmin)a.tmin=t; if(t>a.tmax)a.tmax=t; }
+      const dep=+((H.snow_depth||[])[i]); if(!isNaN(dep)) a.depth=dep*100;
+      const c=H.weather_code?+H.weather_code[i]:null;
+      if(c===66||c===67||c===56||c===57) a.frz++;
+    }
+    order.forEach((key,di)=>{
+      const a=days[key];
+      const push=(haz,lvl,val)=>out.push({date:key,haz,lvl,val,pt:meta.nm,d:meta.d});
+      if(a.rain>=30) push('rain','crit','дождь '+a.rain.toFixed(0)+' мм/сут');
+      else if(a.rain>=15) push('rain','warn','дождь '+a.rain.toFixed(0)+' мм/сут');
+      if(a.snow>=20) push('snow','crit','снегопад '+a.snow.toFixed(0)+' см/сут');
+      else if(a.snow>=8) push('snow','warn','снегопад '+a.snow.toFixed(0)+' см/сут');
+      if(a.snow>=5&&a.gust>=15) push('bliz','warn','снег '+a.snow.toFixed(0)+' см + порывы '+a.gust.toFixed(0)+' м/с');
+      if(a.gust>=22) push('wind','crit','порывы ветра до '+a.gust.toFixed(0)+' м/с');
+      else if(a.gust>=17) push('wind','warn','порывы ветра до '+a.gust.toFixed(0)+' м/с');
+      if(a.frz>0) push('frz','warn','гололёдный дождь/морось, '+a.frz+' ч');
+      let pm3=1e9; for(let k=Math.max(0,di-3);k<di;k++) pm3=Math.min(pm3,days[order[k]].tmin);
+      if(a.depth>=3&&a.tmax>-3&&a.tmax<=1.5&&pm3<=-10)
+        push('icicle',(a.tmax>0&&a.depth>=10)?'crit':'warn','покров '+a.depth.toFixed(0)+' см, днём до '+a.tmax.toFixed(0)+' °C после морозов до '+pm3.toFixed(0)+' °C');
+      if(a.tmax>0&&a.depth>0)
+        push('thaw',(a.tmax>2&&a.depth>=15)?'crit':'warn','оттепель до +'+a.tmax.toFixed(0)+' °C при покрове '+a.depth.toFixed(0)+' см');
+    });
+  });
+  return out.sort((x,y)=>x.date<y.date?-1:1);
+}
+/* --- вероятностные модели опасных процессов (городская адаптация, горизонт 10 сут) --- */
+function wdProcAnalyze(d){
+  const out=[];
+  (d.pts||[]).forEach((pt,pi)=>{
+    const meta=WD_PTS[pi]; if(!meta||!pt||!pt.hourly) return;
+    const H=pt.hourly;
+    if(!H.time||!H.snow_depth||!H.wind_speed_10m) return;
+    const T=H.time, N=T.length, days={}, order=[];
+    let prevSign=0;
+    for(let i=0;i<N;i++){
+      const t=+H.temperature_2m[i]; if(isNaN(t)) continue;
+      const key=T[i].slice(0,10);
+      let a=days[key];
+      if(!a){ a=days[key]={date:key,rain:0,snow:0,ws:0,ws6:0,tmin:1e9,tmax:-1e9,dh:0,depth:0,soil:0,soilN:0,cross:0}; order.push(key); }
+      a.rain+=H.rain?(+H.rain[i]||0):0;
+      a.snow+=H.snowfall?(+H.snowfall[i]||0):0;
+      const w=+H.wind_speed_10m[i]||0; if(w>a.ws)a.ws=w; if(w>=6)a.ws6++;
+      if(t<a.tmin)a.tmin=t; if(t>a.tmax)a.tmax=t;
+      if(t>0)a.dh+=t;
+      const dep=+H.snow_depth[i]; if(!isNaN(dep)) a.depth=dep*100;
+      const st=H.soil_temperature_0_to_7cm?+H.soil_temperature_0_to_7cm[i]:NaN;
+      if(!isNaN(st)){ a.soil+=st; a.soilN++; }
+      const s=t>0.2?1:(t<-0.2?-1:0);
+      if(s&&prevSign&&s!==prevSign) a.cross++;
+      if(s) prevSign=s;
+    }
+    const best={};
+    const push=(proc,prob,peak,basis)=>{ if(prob<30) return; prob=Math.min(95,Math.round(prob));
+      if(!best[proc]||prob>best[proc].prob) best[proc]={proc,prob,lvl:prob>=60?'high':'mod',peak,basis}; };
+    for(let di=0;di<order.length;di++){
+      const key=order[di], a=days[key], pv=di>0?days[order[di-1]]:null, pv2=di>1?days[order[di-2]]:null;
+      const month=+key.slice(5,7), coldSeason=(month>=10||month<=5);
+      let pm=0; for(let k=Math.max(0,di-7);k<di;k++){ pm+=days[order[k]].rain+days[order[k]].snow*2; }
+      let pm3=1e9; for(let k=Math.max(0,di-3);k<di;k++) pm3=Math.min(pm3,days[order[k]].tmin);
+      const soil=a.soilN?a.soil/a.soilN:null;
+      const melt=(a.depth>0&&a.dh>0)?Math.min(a.dh*0.35,a.depth*3):0;
+      // подтопление подполий и территории
+      const k=soil==null?0.6:(soil<=-0.5?0.9:(soil<=2?0.6:0.4));
+      let runoff=(a.rain+melt)*k; if(a.rain>0&&a.depth>0) runoff*=1.15;
+      let flood=runoff>=20?70:(runoff>=12?55:(runoff>=8?40:(runoff>=4?20:5)));
+      if(a.rain>=15) flood=Math.max(flood,50);
+      if(flood>=30) push('flood',flood,key,'сток ≈ '+runoff.toFixed(0)+' мм/сут (дождь '+a.rain.toFixed(0)+' + таяние '+melt.toFixed(0)+', k='+k.toFixed(1)+(soil!=null&&soil<=-0.5?' — мёрзлый грунт':'')+')');
+      // сосульки и наледь на кровлях
+      let icl=0;
+      if(a.depth>=3){
+        if(a.tmax>-3&&a.tmax<=1.5) icl=40;
+        if(icl>0&&pm3<=-10) icl+=15;
+        if(icl>0&&a.dh>2) icl+=10;
+        if(icl>0&&a.tmax>0&&a.depth>=10) icl+=10;
+      }
+      if(!coldSeason) icl=Math.min(icl,15);
+      if(icl>=30) push('icicle',icl,key,'покров '+a.depth.toFixed(0)+' см, днём до '+a.tmax.toFixed(0)+' °C, морозы до '+pm3.toFixed(0)+' °C, таяние '+a.dh.toFixed(0)+' °C·ч');
+      // снежные заносы
+      let drift=0;
+      const fresh=a.snow>=2||(pv&&pv.snow>=2), snowAvail=a.depth>2||a.snow>=1;
+      if(snowAvail){
+        if(a.ws>=12) drift=60; else if(a.ws>=8) drift=40; else if(a.ws>=5) drift=20;
+        if(drift>0){ drift+=15; if(fresh) drift+=15; if(a.tmax<=-10) drift+=10; drift+=Math.min(10,a.ws6*1.5); }
+      }
+      if(drift>=30) push('drift',drift,key,'средний ветер до '+a.ws.toFixed(0)+' м/с ('+a.ws6+' ч ≥ 6 м/с), покров '+a.depth.toFixed(0)+' см'+(fresh?', свежий снегопад':'')+(a.tmax<=-10?', сухой снег':''));
+      // снеговая нагрузка на кровли: накопление свежего снега за 3 суток
+      let s3=a.snow+(pv?pv.snow:0)+(pv2?pv2.snow:0);
+      let sl=s3>=25?70:(s3>=15?55:(s3>=10?40:0));
+      if(sl>0&&a.tmax>-1) sl+=15; // мокрый снег тяжелее
+      if(sl>=30) push('snowload',sl,key,'свежий снег за 3 сут ≈ '+s3.toFixed(0)+' см'+(a.tmax>-1?', мокрый снег (до 1,3× плотнее)':''));
+      // переходы через 0 °C
+      let fth=0;
+      if(a.cross>0){
+        const moist=a.rain>0.3||melt>1||a.snow>0.5;
+        fth=a.cross>=2?55:35; if(moist) fth+=20; else fth-=10;
+      }
+      if(fth>=30) push('fth',fth,key,a.cross+' переход(а) через 0 °C за сутки'+((a.rain>0.3||melt>1)?' при наличии влаги':'')+' (t от '+a.tmin.toFixed(0)+' до '+a.tmax.toFixed(0)+' °C)');
+    }
+    const procs=Object.keys(best).map(k=>best[k]).sort((x,y)=>y.prob-x.prob);
+    out.push({pi, pt:meta.nm, d:meta.d, procs});
+  });
+  return out;
+}
+function wdProcHighList(d){
+  const lst=[];
+  wdProcAnalyze(d).forEach(pp=>pp.procs.forEach(pr=>{ if(pr.lvl==='high') lst.push(WD_PROC[pr.proc].nm.toLowerCase()+' '+pr.prob+'% ('+pp.pt+')'); }));
+  return lst;
+}
+function wdProcHtml(d){
+  const pa=wdProcAnalyze(d);
+  if(!pa.length) return '';
+  let h='<div style="margin-top:10px; border-top:2px solid var(--line); padding-top:8px"><b style="font-size:13px">🧬 Вероятностная оценка опасных процессов на 10 суток</b> <span class="note">— подтопление подполий, сосульки и наледь на кровлях, снежные заносы, снеговая нагрузка на кровли, переходы через 0 °C; меры адаптированы под группы объектов городской среды</span>';
+  pa.forEach(pp=>{
+    const gc=wdGroupCounts(pp.d);
+    h+='<div style="margin-top:6px; font-size:12px; color:var(--mut)">Точка прогноза: <b>'+esc(pp.pt)+'</b> · объектов в районе: МКД '+gc.m+', соцкультбыт '+gc.s+'</div>';
+    if(!pp.procs.length){ h+='<div class="warn-none">✔ Вероятность опасных процессов низкая (&lt;30%) по всем направлениям.</div>'; return; }
+    pp.procs.forEach(pr=>{
+      const P=WD_PROC[pr.proc], col=pr.lvl==='high'?'#c62828':'#e08a00';
+      h+='<div class="warn-card'+(pr.lvl==='high'?' crit':'')+'"><h3>'+P.ic+' '+P.nm+' — вероятность <span style="color:'+col+'">'+(pr.lvl==='high'?'высокая':'умеренная')+' ('+pr.prob+'%)</span> · пик '+pr.peak.split('-').reverse().join('.')+' <span class="note">'+esc(pr.basis)+'</span></h3>';
+      h+='<div style="height:5px; background:#d5cec0; border-radius:3px; margin:4px 0 6px"><div style="height:5px; width:'+pr.prob+'%; background:'+col+'; border-radius:3px"></div></div>';
+      ['M','S'].forEach(g=>{
+        const im=WD_PROC_IMPACT[pr.proc][g];
+        h+='<div class="wg"><b>Группа '+g+' ('+WD_GROUPS[g]+').</b> Возможное влияние: '+im.i+'. <b>Рекомендуемые меры:</b> '+im.m+'.</div>';
+      });
+      h+='</div>';
+    });
+  });
+  h+='<div class="warn-meta" style="margin-top:6px">Модели: сток — водный баланс «дождь + степень-часовое снеготаяние (≈0,35 мм/°C·ч)», k = 0,9 при t грунта (0–7 см) ≤ −0,5 °C (мёрзлый грунт ММГ, СП 25.13330.2020); сосульки/наледь — покров ≥ 3 см + дневное таяние после морозов ≤ −10 °C (п. 3.6.22 Правил № 170); заносы — метелевый перенос от средней скорости ≥ 5 м/с, усиление при свежем и сухом снеге; снеговая нагрузка — свежий снег за 3 сут ≥ 10/15/25 см, мокрый снег ×1,3 (СП 20.13330.2016); переходы через 0 °C — смены знака t при наличии влаги (морозное выветривание цоколей и отмосток, ГОСТ 31937-2024).</div>';
+  h+='</div>';
+  return h;
+}
+/* --- постоянно видимая полоса дежурного статуса --- */
+function wdStripSet(d, ws, stale){
+  const st=document.getElementById('warnStrip'); if(!st) return;
+  if(!st.dataset.wired){ st.dataset.wired='1'; st.onclick=wxDutyOpen; }
+  if(!d){ st.className='warn'; st.innerHTML='<span>⚠ <b>Дежурный метеоконтроль</b>: нет связи с метеоисточником — повторная сверка через час · подробности и меры — клик по полосе</span>'; return; }
+  const upd=new Date(d.ts).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+  const nxt=new Date(d.ts+60*60*1000).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+  let nObj=0; try{ nObj=DB.objects.length+((DB.stubs||[]).length); }catch(e){}
+  let ph=[]; try{ ph=wdProcHighList(d); }catch(e){}
+  const phTxt=ph.length?' · 🧬 высокая вероятность процессов: '+esc(ph.join('; ')):'';
+  if(!ws.length){
+    st.className=ph.length?'warn':'ok';
+    st.innerHTML='<span>'+(ph.length?'⚠':'🛡')+' <b>Дежурный метеоконтроль активен</b> · критичных явлений на 10 суток не прогнозируется'+phTxt+' · точки: Центральный, Талнах, Кайеркан · объектов под наблюдением: '+nObj+' · сверка '+upd+', следующая ~'+nxt+(stale?' · ⚠ показан закэшированный прогноз (нет связи)':'')+'</span>';
+    return;
+  }
+  const critN=ws.filter(w=>w.lvl==='crit').length;
+  const w0=ws[0], hz=WD_HAZ[w0.haz];
+  st.className=critN?'crit':'warn';
+  st.innerHTML='<span>'+(critN?'⛔':'⚠')+' <b>Метеопредупреждения: '+ws.length+'</b>'+(critN?' · из них ОПАСНЫХ: '+critN:'')+' · ближайшее: '+hz.ic+' '+hz.nm+' — '+w0.date.split('-').reverse().join('.')+', '+esc(w0.pt)+' ('+esc(w0.val)+')'+phTxt+' · сверка '+upd+' · подробности и меры — клик</span>';
+}
+async function wdTick(force){
+  let d=wdCache();
+  const hasNew=d&&d.pts&&d.pts[0]&&d.pts[0].hourly&&d.pts[0].hourly.snow_depth;
+  if(!force&&d&&hasNew&&Date.now()-d.ts<55*60*1000){ wdStripSet(d,warnListSafe(d),false); return d; }
+  try{ d=await wdFetch(); wdStripSet(d,wdAnalyze(d),false); return d; }
+  catch(e){ if(d){ wdStripSet(d,wdAnalyze(d),true); return d; } wdStripSet(null,null,false); return null; }
+}
+function warnListSafe(d){ try{ return wdAnalyze(d); }catch(e){ return []; } }
+setInterval(()=>wdTick(false),60*60*1000);
+wdTick(false);
+
+/* ---------- окно дежурного метеоконтроля (клик по полосе) ---------- */
+function wxDutyOpen(){
+  const m=document.getElementById('wxDutyModal'), w=document.getElementById('wxDutyWrap');
+  const d=wdCache();
+  const ws=d?warnListSafe(d):[];
+  let nObj=0; try{ nObj=DB.objects.length+((DB.stubs||[]).length); }catch(e){}
+  let h='<div class="wxd-duty">'
+    +'<b>Функция режима.</b> Круглосуточный автоматический контроль прогноза критичных метеорологических явлений, способных повлиять на безопасность и эксплуатацию городской среды г. Норильска: ливни, обильные снегопады и метели, штормовой ветер, гололёдные явления, образование сосулек и наледи на кровлях, оттепели с притоком талых вод к основаниям зданий на многолетнемёрзлых грунтах.<br>'
+    +'<b>Задачи.</b> ежечасная сверка прогноза на 10 суток по трём районам города; классификация предупреждений по группам объектов (M — МКД на свайных основаниях по ММГ; S — объекты соцкультбыта Администрации: школы, детсады, культура, спорт); формирование рекомендаций дежурным службам УК и подразделений; связь оттепельных предупреждений с геотермикой объектов базы (сверка с Tрасч и флагом снегозапаса в паспортах ГТМ).<br>'
+    +'<b>Источник и пороги.</b> Open-Meteo (модели ECMWF IFS / GFS), точки: Центральный (69.349°N, 88.201°E), Талнах (69.493°N, 88.398°E), Кайеркан (69.357°N, 87.740°E). Пороги — по критериям опасных явлений Росгидромета: дождь ≥ 15 мм/сут (предупреждение) и ≥ 30 мм/сут (опасно); снегопад ≥ 8 и ≥ 20 см/сут; порывы ветра ≥ 17 и ≥ 22 м/с; метель (снег ≥ 5 см + порывы ≥ 15 м/с); гололёдные явления (коды 56/57/66/67).<br>'
+    +'<b>Нормативные основания.</b> ЖК РФ ст. 161 (содержание общего имущества МКД); Правила технической эксплуатации жилищного фонда № 170 (Госстрой, 27.09.2003): п. 3.6.21–3.6.24 — очистка кровель от снега, наледи и сосулек, противогололёдные мероприятия; Правила благоустройства г. Норильска (сроки уборки снега и наледи); ГОСТ Р 50597-2017 (тротуары и дороги); СП 20.13330.2016 «Нагрузки и воздействия» (снеговая нагрузка на кровли); СП 25.13330.2020 (учёт снегозапаса и талых вод у оснований на ММГ); ГОСТ 31937-2024 (обследования после воздействий).<br>'
+    +'<b>Вероятностные модели опасных процессов.</b> Состав метеоданных (почасово, 10 суток): температура воздуха, дождь, снегопад, код погоды, порывы и средняя скорость ветра, высота снежного покрова, температура грунта 0–7 см. Вычисляются вероятности: подтопления подполий (водный баланс стока, k=0,9 на мёрзлом грунте), сосулек и наледи на кровлях (покров + таяние после морозов), снежных заносов (метелевый перенос), снеговой нагрузки на кровли (накопление за 3 сут, мокрый снег ×1,3) и переходов через 0 °C (морозное выветривание). Вероятности ≥ 30 % выводятся ниже с мерами по группам объектов; ≥ 60 % — высокая, выводится в полосу дежурного контроля.</div>';
+  if(!d){
+    h+='<div class="warn-card crit"><h3>⚠ Нет связи с метеоисточником</h3><div class="wg">Прогноз не загружен и закэшированных данных нет. Дежурство продолжается: повторная сверка автоматически каждый час. До восстановления связи — штатный регламент наблюдений и данные дежурных метеослужб.</div></div>';
+  }else{
+    const upd=new Date(d.ts).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    const nxt=new Date(d.ts+60*60*1000).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+    const stale=(Date.now()-d.ts>55*60*1000);
+    h+='<div class="wxd-duty"><b>Статус дежурства:</b> <span style="color:#2e7d32;font-weight:700">активно, на дежурстве</span> · объектов под наблюдением: '+nObj+' · последняя сверка: <b>'+upd+'</b> · следующая сверка ~'+nxt+' (автоматически, каждый час)'+(stale?' · ⚠ прогноз закэширован, ожидается обновление':'')+'.</div>';
+    if(!ws.length){
+      h+='<div class="warn-none">✔ Критичных погодных явлений на ближайшие 10 суток не прогнозируется — дежурство в штатном режиме, внеочередные меры не требуются. Режим продолжает ежечасную сверку.</div>';
+    }else{
+      const critN=ws.filter(x=>x.lvl==='crit').length;
+      h+='<div style="font-size:12.5px;margin:6px 0 8px"><b>Активные предупреждения: '+ws.length+'</b>'+(critN?' · <span style="color:var(--crit)"><b>из них ОПАСНЫХ: '+critN+'</b></span>':'')+' — с классификацией по группам объектов и рекомендуемыми мерами:</div>';
+      ws.forEach(x=>{
+        const hz=WD_HAZ[x.haz];
+        const gc=wdGroupCounts(x.d);
+        h+='<div class="warn-card'+(x.lvl==='crit'?' crit':'')+'"><h3>'+hz.ic+' '+hz.nm+' · '+x.date.split('-').reverse().join('.')+' · '+esc(x.pt)+' <span class="note">'+esc(x.val)+(x.lvl==='crit'?' · ОПАСНО':'')+'</span></h3>';
+        ['M','S'].forEach(g=>{
+          const im=WD_IMPACT[x.haz][g];
+          const n=g==='M'?gc.m:gc.s;
+          h+='<div class="wg"><b>Группа '+g+' ('+WD_GROUPS[g]+') — объектов в районе: '+n+'.</b> Возможное влияние: '+im.i+'. <b>Рекомендуемые меры:</b> '+im.m+'.</div>';
+        });
+        h+='</div>';
+      });
+    }
+    h+=wdProcHtml(d);
+    h+='<button class="wxd-regBtn" id="wxDutyReg">Открыть сводный реестр объектов РИСК/КРИТИЧНО</button>';
+  }
+  w.innerHTML=h;
+  m.style.display='block';
+  const rb=document.getElementById('wxDutyReg');
+  if(rb) rb.onclick=()=>{ m.style.display='none'; const b=document.getElementById('regBtn'); if(b) b.click(); };
+}
+document.getElementById('wxDutyClose').onclick=()=>document.getElementById('wxDutyModal').style.display='none';
+document.getElementById('wxDutyModal').addEventListener('click',e=>{ if(e.target.id==='wxDutyModal') e.target.style.display='none'; });
 setTimeout(()=>{ try{
   const st=mtStore();
   if(st.ts&&Date.now()-st.ts<20*3600e3) return;
@@ -6656,7 +6995,7 @@ setTimeout(()=>{ try{
 };
 const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"4WYeKU9t6vhlSW4y"};
 const BUILD="8c06d503";
-const BUILD_DATE="11.09.2026 20:15";
+const BUILD_DATE="11.09.2026 20:50";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
