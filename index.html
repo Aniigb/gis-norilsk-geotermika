@@ -255,6 +255,14 @@
   #tgModal .box{background:var(--panel); width:860px; max-width:95vw; max-height:92vh; margin:3vh auto; border-radius:10px; padding:20px 24px; box-shadow:0 10px 40px rgba(0,0,0,.4); overflow-y:auto}
   #meteoModal{display:none; position:fixed; inset:0; z-index:1150; background:rgba(15,28,38,.6)}
   #meteoModal .box{background:var(--panel); width:1020px; max-width:96vw; max-height:94vh; margin:2.5vh auto; border-radius:10px; padding:18px 24px; box-shadow:0 10px 40px rgba(0,0,0,.4); overflow-y:auto}
+  #legalModal{display:none; position:fixed; inset:0; z-index:1300; background:rgba(15,28,38,.6)}
+  #legalModal .box{background:var(--panel); width:760px; max-width:94vw; max-height:88vh; overflow-y:auto; margin:5vh auto; border-radius:10px; padding:22px 28px; box-shadow:0 10px 40px rgba(0,0,0,.4); font-size:13px; line-height:1.55}
+  #legalModal .close{float:right; border:none; background:none; font-size:20px; cursor:pointer; color:var(--mut)}
+  #legalModal h2{font-size:16px; margin:0 0 8px}
+  #legalModal h3{font-size:13.5px; margin:14px 0 4px}
+  #legalModal p{margin:4px 0}
+  .footline{font-size:10.6px; color:var(--mut); border-top:1px solid var(--line); padding:6px 12px; line-height:1.5}
+  .footline a{color:var(--mut)}
   .mt-kpi{display:flex; gap:10px; flex-wrap:wrap; margin:8px 0}
   .mt-kpi .k{flex:1; min-width:150px; border:1px solid var(--line); border-radius:8px; padding:7px 10px; background:#fbfdfe}
   .mt-kpi .k b{display:block; font-size:15.5px; margin-top:2px}
@@ -334,6 +342,7 @@
     </div>
     <input id="search" placeholder="Поиск по адресу…">
     <div id="list"></div>
+    <div class="footline">© 2013–2026 АНО «АНИИГБ» им. М.В. Кима<br>ИНН 2457195433 · ОГРН 1132468035072<br><a href="#" id="legalOpen1">Правовая информация и охрана базы данных</a></div>
   </div>
   <div id="map">
     <div class="legend">
@@ -379,6 +388,24 @@
   <div class="box">
     <button class="close" id="meteoClose">✕</button>
     <div id="meteoBody"></div>
+  </div>
+</div>
+
+<div id="legalModal">
+  <div class="box">
+    <button class="close" id="legalClose">✕</button>
+    <h2>Правовая информация</h2>
+    <h3>Правообладатель</h3>
+    <p>© 2013–2026 Автономная некоммерческая организация «АНИИГБ» им. М.В. Кима (АНО «АНИИГБ» им. М.В. Кима). Все права защищены.</p>
+    <p>ИНН 2457195433 · ОГРН 1132468035072 · КПП 245701001 (зарегистрирована 17.06.2013). Адрес: 663319, Красноярский край, г. Норильск, Центральный р-н, Ленинский пр-кт, д. 45, офис 5. Директор — Керимов Алигюшад Гасан оглы. Реквизиты приведены по данным ЕГРЮЛ.</p>
+    <h3>Охрана произведения и базы данных</h3>
+    <p>Программный код, дизайн, структура, тексты и подбор материалов настоящего ресурса являются объектами авторского права (ст. 1259, 1260 ГК РФ). Собранная база данных геотехнического мониторинга зданий г. Норильска охраняется как база данных: исключительное право изготовителя базы данных принадлежит АНО «АНИИГБ» им. М.В. Кима (ст. 1334 ГК РФ). Извлечение и последующее использование материалов базы данных без согласия правообладателя не допускается, за исключением случаев, прямо предусмотренных законодательством РФ.</p>
+    <h3>Источники открытых данных</h3>
+    <p>При подготовке ресурса использованы открытые данные, права на которые принадлежат их правообладателям: адресный реестр и сведения о зданиях — ГИС ЖКХ (dom.gosuslugi.ru) и Городской информационный фонд (ginfo.ru); планы ремонтов и постановления — официальный портал Администрации г. Норильска (норильск.рф); картографическая подоснова — © участники OpenStreetMap, лицензия ODbL (openstreetmap.org/copyright); метеорологические данные — архив расписания погоды (rp5.ru) и открытая модель Open-Meteo (open-meteo.com); нормативные ссылки — ГОСТ 25358-2020, ГОСТ 31937-2024, СП 25.13330.2020, СП 497.1325800.2020 (тексты стандартов — Система Гарант и официальные издания).</p>
+    <h3>Статус сведений</h3>
+    <p>Ресурс носит информационно-аналитический характер и предназначен для превентивного (раннего предупредительного) геотехнического мониторинга. Размещённые сведения не заменяют официальные заключения специализированных организаций, акты обследований, программы ГТМ и решения уполномоченных органов. Правообладатель не несёт ответственности за решения, принятые исключительно на основании материалов ресурса без должной инженерной проверки.</p>
+    <h3>Персональные данные</h3>
+    <p>Сайт не собирает и не обрабатывает персональные данные посетителей: вход выполняется локально в браузере (sessionStorage), пароли ролей и данные сессии не передаются на сервер (152-ФЗ «О персональных данных»).</p>
   </div>
 </div>
 
@@ -504,6 +531,7 @@
     <button type="submit" id="loginGo" disabled>Войти</button>
     <div class="lerr" id="loginErr"></div>
     <div class="lnote">Вход в два шага: ① выберите роль по вашему статусу → ② введите пароль роли. Содержание доступа показано под выбранной ролью.</div>
+    <div class="footline" style="text-align:center">© 2013–2026 АНО «АНИИГБ» им. М.В. Кима · ИНН 2457195433 · ОГРН 1132468035072<br>г. Норильск, Ленинский пр-кт, д. 45, офис 5 · <a href="#" id="legalOpen2">Правовая информация</a></div>
   </form>
 </div>
 <script>window.__initApp=function(){
@@ -6526,6 +6554,15 @@ function mtChartFc(cv,ag,lin,sigma,k){
 }
 document.getElementById('meteoBtn').onclick=meteoOpen;
 document.getElementById('meteoClose').onclick=()=>{ document.getElementById('meteoModal').style.display='none'; };
+/* ---------- правовая информация (футер) ---------- */
+(function(){
+  const lm=document.getElementById('legalModal');
+  const open=e=>{ if(e) e.preventDefault(); lm.style.display='block'; };
+  const l1=document.getElementById('legalOpen1'), l2=document.getElementById('legalOpen2');
+  if(l1) l1.onclick=open; if(l2) l2.onclick=open;
+  document.getElementById('legalClose').onclick=()=>{ lm.style.display='none'; };
+  lm.addEventListener('click',e=>{ if(e.target===lm) lm.style.display='none'; });
+})();
 setTimeout(()=>{ try{
   const st=mtStore();
   if(st.ts&&Date.now()-st.ts<20*3600e3) return;
