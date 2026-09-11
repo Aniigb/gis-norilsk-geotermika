@@ -328,7 +328,7 @@
     <label style="margin:0 12px 8px; font-size:11.8px; color:var(--mut); display:flex; gap:6px; align-items:center; cursor:pointer"><input type="checkbox" id="ukGroup"> группировать список по УК</label>
     <label style="margin:0 12px 8px; font-size:11.8px; color:#5b4a7a; display:flex; gap:6px; align-items:center; cursor:pointer" title="Фиолетовые маркеры на карте — дома в краткосрочном плане ремонтов текущего года (Power BI регоператора)"><input type="checkbox" id="kpYr"> 🔧 КП <span id="kpYrNum"></span> на карте</label>
     <div class="ukblk open" id="ukBlk">
-      <div class="ukblk-h" id="ukBlkH"><span>🏢 Управляющие компании</span><span class="n" id="ukBlkN"></span></div>
+      <div class="ukblk-h" id="ukBlkH"><span id="ukBlkT">🏢 Управляющие компании</span><span class="n" id="ukBlkN"></span></div>
       <div class="ukblk-b" id="ukBlkB"></div>
     </div>
     <input id="search" placeholder="Поиск по адресу…">
@@ -1334,10 +1334,12 @@ function ukStats(uk){
 }
 function renderUKBlock(){
   const bb=document.getElementById('ukBlkB'); if(!bb) return;
-  const set=new Set(UK_LIST);
-  DB.objects.forEach(o=>{ if(o.br!=='skb') set.add(effectiveUK(o)); });
-  (DB.stubs||[]).forEach(s=>set.add(stubUK(s)));
-  const uks=[...set].filter(u=>u!=='Не определена'&&u!=='Администрация г. Норильска').sort((a,b)=>a.localeCompare(b,'ru'));
+  const skb=curBranch==='skb';
+  const tEl=document.getElementById('ukBlkT'); if(tEl) tEl.textContent=skb?'🏛 Подразделения Администрации':'🏢 Управляющие компании';
+  const set=new Set(skb?[]:UK_LIST);
+  DB.objects.forEach(o=>{ if((o.br==='skb')===skb) set.add(effectiveUK(o)); });
+  if(!skb) (DB.stubs||[]).forEach(s=>set.add(stubUK(s)));
+  const uks=[...set].filter(u=>u!=='Не определена'&&(skb||u!=='Администрация г. Норильска')).sort((a,b)=>a.localeCompare(b,'ru'));
   bb.innerHTML='';
   uks.forEach(u=>{
     const st=ukStats(u); if(!st.n&&!st.nStub) return;
@@ -1348,16 +1350,18 @@ function renderUKBlock(){
     r.onclick=()=>selectUK(u);
     bb.appendChild(r);
   });
-  const nEl=document.getElementById('ukBlkN'); if(nEl) nEl.textContent=uks.length+' УК';
+  const nEl=document.getElementById('ukBlkN'); if(nEl) nEl.textContent=uks.length+(skb?' подразд.':' УК');
 }
 function selectUK(uk){
   curUKCard=uk; curObj=null;
   document.querySelectorAll('.item').forEach(e=>e.classList.remove('sel'));
   renderUKBlock();
+  const isPodr=!UK_LIST.includes(uk)&&!(DB.stubs||[]).some(s=>stubUK(s)===uk)&&DB.objects.some(o=>o.br==='skb'&&effectiveUK(o)===uk);
+  const kind=isPodr?'подразделение Администрации г. Норильска':'управляющая компания';
   const d=document.getElementById('detail');
   const st=ukStats(uk);
   d.innerHTML=`
-    <h2>${esc(uk)}<span class="badge b-card">управляющая компания</span></h2>
+    <h2>${esc(uk)}<span class="badge b-card">${kind}</span></h2>
     <div class="rayon">Объектов в базе: <b>${st.n}</b> (с мониторингом: ${st.nMon}; НОРМА&nbsp;${st.nN} · РИСК&nbsp;${st.nR} · КРИТИЧНО&nbsp;${st.nC})${st.nStub?` · реестр МКД: <b>${st.nStub}</b>`:''} · г. Норильск</div>
     <div class="tabs" id="ukTabs"></div>
     <div id="ukTabBody"></div>`;
@@ -1388,11 +1392,15 @@ function ukTabInfo(uk, el){
   const base=UK_INFO[uk]||{}, ov=UKMETA[uk]||{};
   const g=k=>ov[k]!==undefined?ov[k]:(base[k]||'');
   const ro=!document.body.classList.contains('role-edit');
-  const F=[['full','Полное наименование'],['inn','ИНН'],['ogrn','ОГРН'],['reg','Дата регистрации'],['addr','Юридический адрес'],['dir','Руководитель'],['phone','Телефон'],['mail','E-mail'],['lic','Лицензия на управление МКД'],['note','Примечание']];
+  const isPodr=!UK_LIST.includes(uk)&&!(DB.stubs||[]).some(s=>stubUK(s)===uk)&&DB.objects.some(o=>o.br==='skb'&&effectiveUK(o)===uk);
+  const srcTxt=isPodr
+    ?'Подразделение Администрации г. Норильска (объекты социально-культурного и бытового назначения). Реквизиты и контакты подразделения заполняются оператором в режиме редактирования.'
+    :'Сведения из открытых источников: ЕГРЮЛ, официальные сайты УК, Администрация г. Норильска (норильск.рф). Номер лицензии сверяется с реестром лицензий ГЖИ Красноярского края.';
+  const F=[['full','Полное наименование'],['inn','ИНН'],['ogrn','ОГРН'],['reg','Дата регистрации'],['addr','Юридический адрес'],['dir','Руководитель'],['phone','Телефон'],['mail','E-mail'],['lic',isPodr?'Документ об основаниях управления':'Лицензия на управление МКД'],['note','Примечание']];
   const rows=F.map(([k,lab])=>`<tr><td>${lab}</td><td>${ro?esc(g(k)||'—'):`<input data-ukm="${k}" value="${esc(g(k))}" style="width:100%; padding:3px 6px; border:1px solid var(--line); border-radius:4px; font-size:12.5px">`}</td></tr>`).join('');
   const site=g('site'), siteUrl=g('siteUrl')||base.siteUrl;
   el.innerHTML=`
-  <div class="normref">Сведения из открытых источников: ЕГРЮЛ, официальные сайты УК, Администрация г. Норильска (норильск.рф). Номер лицензии сверяется с реестром лицензий ГЖИ Красноярского края. ${ro?'':'<b>Режим оператора:</b> поля редактируемые, сохранение автоматическое (локально в браузере).'}</div>
+  <div class="normref">${srcTxt} ${ro?'':'<b>Режим оператора:</b> поля редактируемые, сохранение автоматическое (локально в браузере).'}</div>
   <table class="kv">${rows}
     <tr><td>Официальный сайт</td><td>${site?`<a href="${esc(siteUrl||('https://'+site))}" target="_blank" rel="noopener">${esc(site)}</a>`:'—'}</td></tr>
   </table>
