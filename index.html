@@ -6916,6 +6916,7 @@ function wdProcHtml(d){
         const im=WD_PROC_IMPACT[pr.proc][g];
         h+='<div class="wg"><b>Группа '+g+' ('+WD_GROUPS[g]+').</b> Возможное влияние: '+im.i+'. <b>Рекомендуемые меры:</b> '+im.m+'.</div>';
       });
+      h+='<button class="wxd-regBtn wxd-pdoc" data-pi="'+pp.pi+'" data-pr="'+pr.proc+'" style="background:#6b4a2a;border-color:#6b4a2a" title="Сформировать предписание дежурным службам района по этому процессу с перечнем объектов КРИТИЧНО/РИСК (Word)">📄 Предписание дежурным службам (.docx)</button>';
       h+='</div>';
     });
   });
@@ -7000,6 +7001,11 @@ function wxDutyOpen(){
   m.style.display='block';
   w.querySelectorAll('.wxd-flt').forEach(b=>b.onclick=()=>wxDutyReg(b.dataset.d, b.dataset.lb));
   w.querySelectorAll('.wxd-doc').forEach(b=>b.onclick=()=>wxDutyDoc(ws[+b.dataset.i]));
+  const paWx=d?wdProcAnalyze(d):[];
+  w.querySelectorAll('.wxd-pdoc').forEach(b=>b.onclick=()=>{
+    const pp=paWx.find(p=>p.pi===+b.dataset.pi); const pr=pp&&pp.procs.find(p2=>p2.proc===b.dataset.pr);
+    if(pr) wxDutyDoc({date:pr.peak, pt:pp.pt, d:pp.d, lvl:pr.lvl==='high'?'crit':'warn', val:'вероятность '+pr.prob+'% · '+pr.basis, proc:pr.proc});
+  });
   const rb=document.getElementById('wxDutyReg');
   if(rb) rb.onclick=()=>{ m.style.display='none'; const b=document.getElementById('regBtn'); if(b) b.click(); };
 }
@@ -7014,8 +7020,10 @@ function wxDutyReg(d,lb){
 /* ---------- авто-предписание дежурным службам из карточки метео-предупреждения (docx) ---------- */
 async function wxDutyDoc(x){
   if(!window.docx){ alert('Библиотека Word не загрузилась (нужен интернет). Попробуйте ещё раз.'); return; }
-  const hz=WD_HAZ[x.haz]||{ic:'',nm:x.haz}, imp=WD_IMPACT[x.haz]||{};
-  const water=(x.haz==='rain'||x.haz==='thaw');
+  const isProc=!!x.proc;
+  const hz=isProc?(WD_PROC[x.proc]||{ic:'',nm:x.proc}):(WD_HAZ[x.haz]||{ic:'',nm:x.haz});
+  const imp=isProc?(WD_PROC_IMPACT[x.proc]||{}):(WD_IMPACT[x.haz]||{});
+  const water=(!isProc&&(x.haz==='rain'||x.haz==='thaw'))||x.proc==='flood';
   const dCache=wdCache();
   const upd=dCache?new Date(dCache.ts).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
   const dateRu=x.date.split('-').reverse().join('.');
@@ -7041,19 +7049,21 @@ async function wxDutyDoc(x){
   const rowLine=(r,n)=>[String(n+1), r.o.a, grp(r), effectiveUK(r.o), r.sd.status,
     r.sd.reasons.map(y=>y.text).join('; ')||'—',
     (r.o.d1||'—'), r.gm?r.gm.maxSpeed.toFixed(1):'—'];
-  const num='ДМК-'+x.date.replace(/-/g,'')+'-'+String(x.d).slice(0,1).toUpperCase()+'-'+String(Date.now()).slice(-4);
+  const num='ДМК-'+(isProc?'П-':'')+x.date.replace(/-/g,'')+'-'+String(x.d).slice(0,1).toUpperCase()+'-'+String(Date.now()).slice(-4);
   const kids=[
     new Paragraph({alignment:AlignmentType.CENTER, children:[new TextRun({text:'АНО «АНИИГБ» им. М.В. Кима · ГИС-база геотехнического мониторинга зданий, г. Норильск', bold:true, font:'Times New Roman', size:22})]}),
     new Paragraph({alignment:AlignmentType.CENTER, children:[new TextRun({text:'ПРЕДУПРЕЖДЕНИЕ ДЕЖУРНЫМ СЛУЖБАМ № '+num, bold:true, font:'Times New Roman', size:28})], spacing:{before:200,after:120}}),
     T('Дата составления: '+new Date().toLocaleDateString('ru-RU')+' · Район: '+x.d+', г. Норильск'+(UK_SCOPE?' · Сформировано в контуре доступа: '+UK_SCOPE:'')),
-    T('Основание: дежурный метеоконтроль ГИС-базы — прогноз Open-Meteo (модели ECMWF IFS / GFS), точка «'+x.pt+'»; последняя сверка прогноза: '+upd+'. Пороги классификации — по критериям опасных явлений Росгидромета.'),
-    H('1. Прогнозируемое явление'),
+    T(isProc
+      ?'Основание: вероятностная оценка опасных процессов дежурного метеоконтроля ГИС-базы — прогноз Open-Meteo (модели ECMWF IFS / GFS), точка «'+x.pt+'»; последняя сверка прогноза: '+upd+'. Модели: водный баланс стока (k = 0,9 на мёрзлом грунте), степень-часовое снеготаяние (≈0,35 мм/°C·ч), метелевый перенос, снеговая нагрузка за 3 сут, переходы через 0 °C.'
+      :'Основание: дежурный метеоконтроль ГИС-базы — прогноз Open-Meteo (модели ECMWF IFS / GFS), точка «'+x.pt+'»; последняя сверка прогноза: '+upd+'. Пороги классификации — по критериям опасных явлений Росгидромета.'),
+    H(isProc?'1. Прогнозируемый опасный процесс':'1. Прогнозируемое явление'),
     tbl(['Параметр','Значение'],[
-      ['Явление', hz.nm],
-      ['Дата (сутки)', dateRu],
+      [isProc?'Процесс':'Явление', hz.nm],
+      [isProc?'Пик процесса (сутки)':'Дата (сутки)', dateRu],
       ['Район / точка прогноза', x.d+' / '+x.pt],
-      ['Ожидаемое значение', x.val],
-      ['Уровень опасности', x.lvl==='crit'?'ОПАСНОЕ ЯВЛЕНИЕ':'предупреждение'],
+      [isProc?'Вероятность / расчётная основа':'Ожидаемое значение', x.val],
+      ['Уровень опасности', isProc?(x.lvl==='crit'?'высокая вероятность (≥ 60 %)':'умеренная вероятность (≥ 30 %)'):(x.lvl==='crit'?'ОПАСНОЕ ЯВЛЕНИЕ':'предупреждение')],
     ]),
     H('2. Возможное влияние и рекомендуемые меры'),
     ...(imp.M?[T('Группа M — '+WD_GROUPS.M+'. Возможное влияние: '+imp.M.i+'. Рекомендуемые меры: '+imp.M.m+'.')]:[]),
