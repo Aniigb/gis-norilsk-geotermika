@@ -6968,7 +6968,7 @@ function wxDutyOpen(){
     }else{
       const critN=ws.filter(x=>x.lvl==='crit').length;
       h+='<div style="font-size:12.5px;margin:6px 0 8px"><b>Активные предупреждения: '+ws.length+'</b>'+(critN?' · <span style="color:var(--crit)"><b>из них ОПАСНЫХ: '+critN+'</b></span>':'')+' — с классификацией по группам объектов и рекомендуемыми мерами:</div>';
-      ws.forEach(x=>{
+      ws.forEach((x,xi)=>{
         const hz=WD_HAZ[x.haz];
         const gc=wdGroupCounts(x.d);
         h+='<div class="warn-card'+(x.lvl==='crit'?' crit':'')+'"><h3>'+hz.ic+' '+hz.nm+' · '+x.date.split('-').reverse().join('.')+' · '+esc(x.pt)+' <span class="note">'+esc(x.val)+(x.lvl==='crit'?' · ОПАСНО':'')+'</span></h3>';
@@ -6979,6 +6979,7 @@ function wxDutyOpen(){
         });
         const water=(x.haz==='rain'||x.haz==='thaw');
         h+='<button class="wxd-regBtn wxd-flt" data-d="'+esc(x.d)+'" data-lb="'+esc(hz.nm+' '+x.date.split('-').reverse().join('.')+', '+x.pt)+'">▤ Объекты РИСК/КРИТИЧНО района «'+esc(x.d)+'»'+(water?' — талые/ливневые воды: приоритет свайных оснований':'')+'</button>';
+        h+='<button class="wxd-regBtn wxd-doc" data-i="'+xi+'" style="margin-left:6px;background:#6b4a2a;border-color:#6b4a2a" title="Сформировать предписание дежурным службам района с перечнем объектов КРИТИЧНО/РИСК (Word)">📄 Предписание дежурным службам (.docx)</button>';
         h+='</div>';
       });
     }
@@ -6988,6 +6989,7 @@ function wxDutyOpen(){
   w.innerHTML=h;
   m.style.display='block';
   w.querySelectorAll('.wxd-flt').forEach(b=>b.onclick=()=>wxDutyReg(b.dataset.d, b.dataset.lb));
+  w.querySelectorAll('.wxd-doc').forEach(b=>b.onclick=()=>wxDutyDoc(ws[+b.dataset.i]));
   const rb=document.getElementById('wxDutyReg');
   if(rb) rb.onclick=()=>{ m.style.display='none'; const b=document.getElementById('regBtn'); if(b) b.click(); };
 }
@@ -6998,6 +7000,76 @@ function wxDutyReg(d,lb){
   const fuk=document.getElementById('regUK'); if(fuk&&!UK_SCOPE) fuk.value='';
   openRegistry();
   if(lb){ const s=document.getElementById('regSummary'); if(s) s.textContent+=' · фильтр от дежурного метеоконтроля: '+lb+'.'; }
+}
+/* ---------- авто-предписание дежурным службам из карточки метео-предупреждения (docx) ---------- */
+async function wxDutyDoc(x){
+  if(!window.docx){ alert('Библиотека Word не загрузилась (нужен интернет). Попробуйте ещё раз.'); return; }
+  const hz=WD_HAZ[x.haz]||{ic:'',nm:x.haz}, imp=WD_IMPACT[x.haz]||{};
+  const water=(x.haz==='rain'||x.haz==='thaw');
+  const dCache=wdCache();
+  const upd=dCache?new Date(dCache.ts).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+  const dateRu=x.date.split('-').reverse().join('.');
+  /* перечень объектов района со статусами КРИТИЧНО/РИСК — та же логика, что и в сводном реестре */
+  const rows=[];
+  DB.objects.forEach(o=>{
+    if(!scopePass(o)) return;
+    if(o.d!==x.d) return;
+    const sd=statusDetail(o);
+    if(sd.status!=='КРИТИЧНО'&&sd.status!=='РИСК') return;
+    rows.push({o,sd,gm:geodMetrics(o)});
+  });
+  rows.sort((a,b)=>(a.sd.status===b.sd.status?0:a.sd.status==='КРИТИЧНО'?-1:1)||a.o.a.localeCompare(b.o.a,'ru'));
+  const crit=rows.filter(r=>r.sd.status==='КРИТИЧНО'), risk=rows.filter(r=>r.sd.status==='РИСК');
+  const {Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType} = window.docx;
+  const T=(t,opts)=>new Paragraph({children:[new TextRun(Object.assign({text:String(t??'—'),font:'Times New Roman',size:22},opts||{}))], spacing:{after:80}});
+  const H=(t)=>new Paragraph({children:[new TextRun({text:t,bold:true,font:'Times New Roman',size:26})], spacing:{before:220,after:120}});
+  const cell=(t,b)=>new TableCell({children:[new Paragraph({children:[new TextRun({text:String(t??'—'),bold:!!b,font:'Times New Roman',size:18})]})]});
+  const tbl=(head,rr)=>new Table({width:{size:100,type:WidthType.PERCENTAGE},
+    rows:[new TableRow({children:head.map(h=>cell(h,true)), tableHeader:true}),
+          ...rr.map(r=>new TableRow({children:r.map(x2=>cell(x2))}))]});
+  const grp=(r)=>r.o.br==='skb'?'СКБ':'МКД';
+  const rowLine=(r,n)=>[String(n+1), r.o.a, grp(r), effectiveUK(r.o), r.sd.status,
+    r.sd.reasons.map(y=>y.text).join('; ')||'—',
+    (r.o.d1||'—'), r.gm?r.gm.maxSpeed.toFixed(1):'—'];
+  const num='ДМК-'+x.date.replace(/-/g,'')+'-'+String(x.d).slice(0,1).toUpperCase()+'-'+String(Date.now()).slice(-4);
+  const kids=[
+    new Paragraph({alignment:AlignmentType.CENTER, children:[new TextRun({text:'АНО «АНИИГБ» им. М.В. Кима · ГИС-база геотехнического мониторинга зданий, г. Норильск', bold:true, font:'Times New Roman', size:22})]}),
+    new Paragraph({alignment:AlignmentType.CENTER, children:[new TextRun({text:'ПРЕДУПРЕЖДЕНИЕ ДЕЖУРНЫМ СЛУЖБАМ № '+num, bold:true, font:'Times New Roman', size:28})], spacing:{before:200,after:120}}),
+    T('Дата составления: '+new Date().toLocaleDateString('ru-RU')+' · Район: '+x.d+', г. Норильск'+(UK_SCOPE?' · Сформировано в контуре доступа: '+UK_SCOPE:'')),
+    T('Основание: дежурный метеоконтроль ГИС-базы — прогноз Open-Meteo (модели ECMWF IFS / GFS), точка «'+x.pt+'»; последняя сверка прогноза: '+upd+'. Пороги классификации — по критериям опасных явлений Росгидромета.'),
+    H('1. Прогнозируемое явление'),
+    tbl(['Параметр','Значение'],[
+      ['Явление', hz.nm],
+      ['Дата (сутки)', dateRu],
+      ['Район / точка прогноза', x.d+' / '+x.pt],
+      ['Ожидаемое значение', x.val],
+      ['Уровень опасности', x.lvl==='crit'?'ОПАСНОЕ ЯВЛЕНИЕ':'предупреждение'],
+    ]),
+    H('2. Возможное влияние и рекомендуемые меры'),
+    ...(imp.M?[T('Группа M — '+WD_GROUPS.M+'. Возможное влияние: '+imp.M.i+'. Рекомендуемые меры: '+imp.M.m+'.')]:[]),
+    ...(imp.S?[T('Группа S — '+WD_GROUPS.S+'. Возможное влияние: '+imp.S.i+'. Рекомендуемые меры: '+imp.S.m+'.')]:[]),
+    ...(water?[T('Особое внимание: талые/ливневые воды на многолетнемёрзлых грунтах — приоритет домов на свайных основаниях со статусом КРИТИЧНО (разд. 3): приток воды к свайному полю ускоряет протаивание основания и рост осадок (СП 25.13330.2020).', {bold:true})]:[]),
+    H('3. Перечень объектов района «'+x.d+'» в статусе КРИТИЧНО ('+crit.length+') — первоочередной контроль'),
+    crit.length?tbl(['№','Адрес','Группа','УК / подразделение','Статус','Причины статуса','Последний замер','Скорость осадки, мм/год'], crit.map(rowLine))
+      :T('Объектов со статусом КРИТИЧНО в районе по текущим данным нет.'),
+    H('4. Перечень объектов района «'+x.d+'» в статусе РИСК ('+risk.length+')'),
+    risk.length?tbl(['№','Адрес','Группа','УК / подразделение','Статус','Причины статуса','Последний замер','Скорость осадки, мм/год'], risk.map(rowLine))
+      :T('Объектов со статусом РИСК в районе по текущим данным нет.'),
+    H('5. Требуемые действия дежурных служб'),
+    T('1) До наступления явления — выполнить рекомендуемые меры разд. 2 по группам объектов; для объектов разд. 3 — подтвердить готовность водоотлива, очистку кровель, ливнёвки и дренажей, ограждение опасных зон.'),
+    T('2) В период явления — дежурное наблюдение, оперативное документирование происшествий.'),
+    T('3) После явления — внеочередной осмотр объектов разд. 3 и 4 (ГОСТ 31937-2024); при оттепели/ливне — внеочередные замеры по термоскважинам со сверкой с Tрасч в карточках объектов ГИС-базы; результаты внести в базу через модуль «Загрузка данных».'),
+    H('Нормативные основания'),
+    T('ЖК РФ ст. 161; Правила № 170 (п. 3.6.21–3.6.24, 4.1.4); Правила благоустройства г. Норильска; ГОСТ Р 50597-2017; СП 20.13330.2016; СП 25.13330.2020; СП 497.1325800.2020; ГОСТ 31937-2024. Статусы объектов — по превентивной градации НОРМА/РИСК/КРИТИЧНО ГИС-базы (текущие настройки «⚙ Пороги»).'),
+    T(''),
+    T('Дежурный метеоконтроль ГИС-базы: ____________    Руководитель дежурной службы: ____________'),
+  ];
+  const doc=new Document({sections:[{children:kids}]});
+  const blob=await Packer.toBlob(doc);
+  const a2=document.createElement('a');
+  a2.href=URL.createObjectURL(blob);
+  a2.download='Предписание_дежурным_службам_'+String(x.d).replace(/[\s\/]+/g,'_')+'_'+x.date+'.docx';
+  a2.click();
 }
 document.getElementById('wxDutyClose').onclick=()=>document.getElementById('wxDutyModal').style.display='none';
 document.getElementById('wxDutyModal').addEventListener('click',e=>{ if(e.target.id==='wxDutyModal') e.target.style.display='none'; });
