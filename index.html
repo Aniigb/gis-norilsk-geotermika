@@ -137,6 +137,17 @@
   .ukrow .n{color:var(--mut); font-size:11px; white-space:nowrap}
   .ukrow .dots{display:inline-flex; gap:3px; margin-left:6px; vertical-align:middle}
   .ukrow .dots i{width:8px; height:8px; border-radius:50%; display:inline-block}
+  /* --- раскрывающиеся внутренние подразделения (соцкультбыт) --- */
+  .ukrow .car{flex:none; width:14px; color:var(--mut); font-size:10px; text-align:center; cursor:pointer}
+  .ukcat{padding:4px 10px 4px 26px; font-size:11.6px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:6px; border-top:1px dashed #eee7d8; color:#4a4234; background:#f6f2e8; user-select:none}
+  .ukcat:hover{background:#efe9da}
+  .ukcat .n{color:var(--mut); font-size:10.5px}
+  .ukcat::before{content:'▸'; margin-right:5px; font-size:9px; color:var(--mut)}
+  .ukcat.open::before{content:'▾'}
+  .ukobj{display:block; padding:3px 10px 3px 40px; font-size:11.4px; cursor:pointer; border-top:1px dotted #f0ead9; background:#fdfcf8; color:var(--fg); text-decoration:none}
+  .ukobj:hover{background:#e8eff9}
+  .ukobj .oa{display:block; color:var(--mut); font-size:10.3px}
+  .ukobj .sdot{display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:4px}
   /* --- аккордеон по улицам (полный реестр МКД) --- */
   .acc-h{padding:7px 14px; font-size:12.5px; font-weight:700; color:#4a4234; background:#efe9dc; border-bottom:1px solid var(--line); cursor:pointer; user-select:none; display:flex; justify-content:space-between; align-items:center}
   .acc-h:hover{background:#e7dfcd}
@@ -693,6 +704,7 @@ function saveUKPLANS(){ localStorage.setItem('ngk_ukplans', JSON.stringify(UKPLA
 let UKMETA={}; try{ UKMETA=JSON.parse(localStorage.getItem('ngk_ukmeta')||'{}'); }catch(e){ UKMETA={}; }
 function saveUKMETA(){ localStorage.setItem('ngk_ukmeta', JSON.stringify(UKMETA)); }
 let curUKCard=null, curUkTab='info';
+const ukBlkExp=new Set(), ukBlkExpCat=new Set(); // раскрытые подразделения и их внутренние группы
 let UK_SCOPE=sessionStorage.getItem('ngk_uk_scope')||null; // роль «Управляющая компания»: изоляция — видны только объекты своей УК
 function scopePass(o){ return !UK_SCOPE||effectiveUK(o)===UK_SCOPE; }
 function normAddrKey(s){
@@ -1434,6 +1446,49 @@ function selectStub(si){
     setTimeout(()=>document.getElementById('detail').scrollIntoView({behavior:'smooth'}),150);
 }
 /* ---------- блок УК: интерактивный список + карточка управляющей компании ---------- */
+/* Классификация объектов соцкультбыта по внутренним подразделениям (по наименованию учреждения) */
+function skbCat(o){
+  const p=o.podr||'';
+  const nm=(o.pf2&&o.pf2.project)||'';
+  if(/общего и дошкольного/i.test(p)){
+    if(/детский сад/i.test(nm)) return 'Детские сады';
+    if(/СШ|школа|гимназия|лицей/i.test(nm)) return 'Школы';
+    if(/МБУ ДО|внешкольн|творчеств|станци|туризм/i.test(nm)) return 'Дополнительное образование';
+    return 'Аппарат управления';
+  }
+  if(/культур/i.test(p)) return 'Учреждения культуры и искусства';
+  if(/спорт/i.test(p)) return 'Спортивные объекты';
+  if(/социальной политики/i.test(p)) return 'Объекты социальной политики';
+  return 'Административные здания';
+}
+function skbObjName(o){ // краткое имя учреждения для дерева
+  let nm=((o.pf2&&o.pf2.project)||'').replace(/\s*—.*$/,'').trim();
+  nm=nm.replace(/^(МБДОУ|МАДОУ|МБОУ|МАОУ|МБУ ДО|МКУ|МБУ)\s+(ЦРР\s+)?/,'');
+  return nm||o.a;
+}
+function skbSubTree(u){ // раскрытое подразделение: группы → объекты с интерактивными ссылками
+  const box=document.createElement('div');
+  const cats=new Map();
+  DB.objects.forEach((o,i)=>{ if(o.br==='skb'&&effectiveUK(o)===u){ const c=skbCat(o); if(!cats.has(c)) cats.set(c,[]); cats.get(c).push([o,i]); } });
+  [...cats.entries()].sort((a,b)=>b[1].length-a[1].length||a[0].localeCompare(b[0],'ru')).forEach(([c,arr])=>{
+    arr.sort((x,y)=>skbObjName(x[0]).localeCompare(skbObjName(y[0]),'ru'));
+    const key=u+'|'+c;
+    const ch=document.createElement('div');
+    ch.className='ukcat'+(ukBlkExpCat.has(key)?' open':'');
+    ch.innerHTML=`<span>${esc(c)}</span><span class="n">${arr.length}</span>`;
+    ch.onclick=()=>{ if(ukBlkExpCat.has(key)) ukBlkExpCat.delete(key); else ukBlkExpCat.add(key); renderUKBlock(); };
+    box.appendChild(ch);
+    if(ukBlkExpCat.has(key)) arr.forEach(([o,i])=>{
+      const st=statusOf(o);
+      const el=document.createElement('a');
+      el.className='ukobj';
+      el.innerHTML=`${st?`<span class="sdot" style="background:${SCOL[st]}"></span>`:''}${esc(skbObjName(o))}<span class="oa">${esc(o.a)}${o.d?' · '+esc(o.d):''}</span>`;
+      el.onclick=e=>{ e.preventDefault(); select(i,true); };
+      box.appendChild(el);
+    });
+  });
+  return box;
+}
 function ukObjects(uk){ return DB.objects.map((o,i)=>[o,i]).filter(([o])=>effectiveUK(o)===uk); }
 function ukStats(uk){
   const arr=ukObjects(uk); let nN=0,nR=0,nC=0,nMon=0;
@@ -1455,9 +1510,15 @@ function renderUKBlock(){
     const r=document.createElement('div');
     r.className='ukrow'+(curUKCard===u?' sel':'');
     const dots=(st.nC?`<i style="background:#c8372d" title="КРИТИЧНО: ${st.nC}"></i>`:'')+(st.nR?`<i style="background:#e08a00" title="РИСК: ${st.nR}"></i>`:'')+(st.nN?`<i style="background:#2e7d32" title="НОРМА: ${st.nN}"></i>`:'');
-    r.innerHTML=`<span class="nm">${esc(u)}<span class="dots">${dots}</span></span><span class="n">${st.n?st.n+' об.':''}${st.nStub?(st.n?'+':'')+st.nStub+' рее.':''}</span>`;
+    const caret=skb?`<span class="car" title="Развернуть внутренние подразделения">${ukBlkExp.has(u)?'▾':'▸'}</span>`:'';
+    r.innerHTML=`${caret}<span class="nm">${esc(u)}<span class="dots">${dots}</span></span><span class="n">${st.n?st.n+' об.':''}${st.nStub?(st.n?'+':'')+st.nStub+' рее.':''}</span>`;
     r.onclick=()=>selectUK(u);
     bb.appendChild(r);
+    if(skb){
+      const car=r.querySelector('.car');
+      car.onclick=e=>{ e.stopPropagation(); if(ukBlkExp.has(u)) ukBlkExp.delete(u); else ukBlkExp.add(u); renderUKBlock(); };
+      if(ukBlkExp.has(u)) bb.appendChild(skbSubTree(u));
+    }
   });
   const nEl=document.getElementById('ukBlkN'); if(nEl) nEl.textContent=uks.length+(skb?' подразд.':' УК');
 }
