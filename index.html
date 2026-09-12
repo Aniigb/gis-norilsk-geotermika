@@ -122,14 +122,23 @@
   .ukgroup{position:sticky; top:0; background:#d6cfbd; padding:5px 14px; font-size:11.5px; font-weight:700; letter-spacing:.4px; color:#5a5346; border-bottom:1px solid var(--line); z-index:5}
   .ukgroup .n{font-weight:400; color:var(--mut); margin-left:6px}
   /* --- блок управляющих компаний в левой панели --- */
-  .ukblk{margin:0 12px 8px; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:#ede8da}
+  .ukblk{margin:0 12px 8px; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:#ede8da; display:flex; flex-direction:column}
+  .ukblk.open{flex:1; min-height:160px}
   .ukblk-h{padding:6px 10px; font-size:12.5px; font-weight:700; color:#4a4234; background:#dfd7c3; cursor:pointer; user-select:none; display:flex; justify-content:space-between; align-items:center}
   .ukblk-h:hover{background:#d2c9b2}
   .ukblk-h .n{font-weight:400; color:var(--mut); font-size:11px}
   .ukblk-h::before{content:'▸'; margin-right:6px; font-size:10px; color:var(--mut)}
   .ukblk.open>.ukblk-h::before{content:'▾'}
-  .ukblk-b{display:none; max-height:280px; overflow:auto}
-  .ukblk.open>.ukblk-b{display:block}
+  .ukblk-b{display:none; overflow:auto; min-height:0}
+  .ukblk.open>.ukblk-b{display:block; flex:1}
+  /* --- дерево «УК → улица → дом» внутри блока --- */
+  #ukBlkB .acc{border-top:1px dashed #dcd3be}
+  #ukBlkB .acc-h{padding:4px 10px 4px 26px; font-size:11.6px; font-weight:600; background:#e6dfd0; border-bottom:none}
+  #ukBlkB .acc-h:hover{background:#ded5c0}
+  #ukBlkB .item{padding:4px 10px 4px 40px; font-size:11.4px; border-bottom:1px dotted #e0d7c2; background:#f2eee2}
+  #ukBlkB .item:hover{background:#d7e2f2}
+  #ukBlkB .item .t{font-size:10.3px}
+  #list:empty{display:none}
   .ukrow{padding:5px 10px; font-size:12px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:6px; border-top:1px solid #dcd3be}
   .ukrow:hover{background:#f1ebdd}
   .ukrow.sel{background:#c9daf2}
@@ -367,7 +376,7 @@
     </div>
     <div class="chips" id="chips"></div>
     <select id="ukFilter" style="margin:0 12px 6px; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; width:calc(100% - 24px)"></select>
-    <label style="margin:0 12px 8px; font-size:11.8px; color:var(--mut); display:flex; gap:6px; align-items:center; cursor:pointer"><input type="checkbox" id="ukGroup"> группировать список по УК</label>
+    <label style="display:none; margin:0 12px 8px; font-size:11.8px; color:var(--mut); gap:6px; align-items:center; cursor:pointer"><input type="checkbox" id="ukGroup"> группировать список по УК</label>
     <label style="margin:0 12px 8px; font-size:11.8px; color:#5b4a7a; display:flex; gap:6px; align-items:center; cursor:pointer" title="Фиолетовые маркеры на карте — дома в краткосрочном плане ремонтов текущего года (Power BI регоператора)"><input type="checkbox" id="kpYr"> 🔧 КП <span id="kpYrNum"></span> на карте</label>
     <div class="ukblk open" id="ukBlk">
       <div class="ukblk-h" id="ukBlkH"><span id="ukBlkT">🏢 Управляющие компании</span><span class="n" id="ukBlkN"></span></div>
@@ -737,7 +746,7 @@ function saveUKPLANS(){ localStorage.setItem('ngk_ukplans', JSON.stringify(UKPLA
 let UKMETA={}; try{ UKMETA=JSON.parse(localStorage.getItem('ngk_ukmeta')||'{}'); }catch(e){ UKMETA={}; }
 function saveUKMETA(){ localStorage.setItem('ngk_ukmeta', JSON.stringify(UKMETA)); }
 let curUKCard=null, curUkTab='info';
-const ukBlkExp=new Set(), ukBlkExpCat=new Set(); // раскрытые подразделения и их внутренние группы
+const ukBlkExp=new Set(), ukBlkExpCat=new Set(), ukBlkExpSt=new Set(); // раскрытые УК/подразделения, их внутренние группы и улицы
 let UK_SCOPE=sessionStorage.getItem('ngk_uk_scope')||null; // роль «Управляющая компания»: изоляция — видны только объекты своей УК
 function scopePass(o){ return !UK_SCOPE||effectiveUK(o)===UK_SCOPE; }
 function normAddrKey(s){
@@ -1401,6 +1410,7 @@ function stubUK(s){ return ukCanon(s.uk||'Не определена'); }
 function stubPass(s){ return !covFilter&&curBranch==='mkd'&&(curD==='Все'||s.d===curD)&&(curUK==='Все'||stubUK(s)===curUK)&&(!UK_SCOPE||stubUK(s)===UK_SCOPE)&&(!curQ||s.a.toLowerCase().includes(curQ)); }
 function renderList(){
   const list=document.getElementById('list'); list.innerHTML='';
+  if(!curQ){ applyFilter(); return; } // общий список — в дереве блока УК/подразделений (улица → дом); плоская выдача — только для поиска
   if(groupUK){
     let idx=DB.objects.map((o,i)=>[o,i]).filter(([o])=>passF(o));
     idx.sort((a,b)=>{ const ua=effectiveUK(a[0]), ub=effectiveUK(b[0]); return ua===ub? a[0].a.localeCompare(b[0].a,'ru') : ua.localeCompare(ub,'ru'); });
@@ -1522,6 +1532,30 @@ function skbSubTree(u){ // раскрытое подразделение: гру
   });
   return box;
 }
+function mkdSubTree(u){ // раскрытая УК: улицы → дома (карточки мониторинга + полный реестр МКД)
+  const box=document.createElement('div');
+  const groups=new Map();
+  DB.objects.forEach((o,i)=>{ if(!passF(o)||effectiveUK(o)!==u) return; const st=streetOf(o); if(!groups.has(st)) groups.set(st,[]); groups.get(st).push({t:'o',o,i}); });
+  (DB.stubs||[]).forEach((s,si)=>{ if(!stubPass(s)||stubUK(s)!==u) return; const stk=s.st.replace(/[.\s]+/g,''); if(!groups.has(stk)) groups.set(stk,[]); groups.get(stk).push({t:'s',s,si}); });
+  [...groups.entries()].sort((a,b)=>a[0].localeCompare(b[0],'ru')).forEach(([st,items])=>{
+    items.sort((a,b)=>{ const ha=(a.t==='o'?a.o.a:a.s.a), hb=(b.t==='o'?b.o.a:b.s.a);
+      const na=parseInt((ha.match(/\d+/)||[999])[0]), nb=parseInt((hb.match(/\d+/)||[999])[0]);
+      return (na-nb)||ha.localeCompare(hb,'ru'); });
+    const disp=((items[0].t==='o'?items[0].o.a:items[0].s.a).replace(/,\s*д\..*$/,'').replace(/\s+\d[^\s]*$/,''))||st;
+    const nMon=items.filter(x=>x.t==='o').length;
+    const key=u+'|'+st;
+    const acc=document.createElement('div');
+    acc.className='acc'+(ukBlkExpSt.has(key)?' open':'');
+    const h=document.createElement('div'); h.className='acc-h';
+    h.innerHTML=`<span>${esc(disp)}</span><span class="n">${items.length} дом.${nMon&&nMon<items.length?` · карт.: ${nMon}`:''}</span>`;
+    h.onclick=()=>{ acc.classList.toggle('open'); if(acc.classList.contains('open')) ukBlkExpSt.add(key); else ukBlkExpSt.delete(key); };
+    const bd=document.createElement('div'); bd.className='acc-b';
+    items.forEach(x=>{ bd.appendChild(x.t==='o'?objItem(x.o,x.i):stubItem(x.s,x.si)); });
+    acc.appendChild(h); acc.appendChild(bd); box.appendChild(acc);
+  });
+  if(!groups.size){ const em=document.createElement('div'); em.className='ukobj'; em.textContent='нет объектов по текущим фильтрам'; box.appendChild(em); }
+  return box;
+}
 function ukObjects(uk){ return DB.objects.map((o,i)=>[o,i]).filter(([o])=>effectiveUK(o)===uk); }
 function ukStats(uk){
   const arr=ukObjects(uk); let nN=0,nR=0,nC=0,nMon=0;
@@ -1536,22 +1570,21 @@ function renderUKBlock(){
   const set=new Set(skb?[]:UK_LIST);
   DB.objects.forEach(o=>{ if((o.br==='skb')===skb) set.add(effectiveUK(o)); });
   if(!skb) (DB.stubs||[]).forEach(s=>set.add(stubUK(s)));
-  const uks=[...set].filter(u=>u!=='Не определена'&&(skb||u!=='Администрация г. Норильска')&&(!UK_SCOPE||u===UK_SCOPE)).sort((a,b)=>a.localeCompare(b,'ru'));
+  const uks=[...set].filter(u=>u!=='Не определена'&&(skb||u!=='Администрация г. Норильска')&&(!UK_SCOPE||u===UK_SCOPE)&&(curUK==='Все'||u===curUK)).sort((a,b)=>a.localeCompare(b,'ru'));
+  if(UK_SCOPE) ukBlkExp.add(UK_SCOPE); // для роли УК её дерево раскрыто сразу
   bb.innerHTML='';
   uks.forEach(u=>{
     const st=ukStats(u); if(!st.n&&!st.nStub) return;
     const r=document.createElement('div');
     r.className='ukrow'+(curUKCard===u?' sel':'');
     const dots=(st.nC?`<i style="background:#c8372d" title="КРИТИЧНО: ${st.nC}"></i>`:'')+(st.nR?`<i style="background:#e08a00" title="РИСК: ${st.nR}"></i>`:'')+(st.nN?`<i style="background:#2e7d32" title="НОРМА: ${st.nN}"></i>`:'');
-    const caret=skb?`<span class="car" title="Развернуть внутренние подразделения">${ukBlkExp.has(u)?'▾':'▸'}</span>`:'';
+    const caret=`<span class="car" title="${skb?'Развернуть внутренние подразделения':'Развернуть объекты: улица → дом'}">${ukBlkExp.has(u)?'▾':'▸'}</span>`;
     r.innerHTML=`${caret}<span class="nm">${esc(u)}<span class="dots">${dots}</span></span><span class="n">${st.n?st.n+' об.':''}${st.nStub?(st.n?'+':'')+st.nStub+' рее.':''}</span>`;
     r.onclick=()=>selectUK(u);
     bb.appendChild(r);
-    if(skb){
-      const car=r.querySelector('.car');
-      car.onclick=e=>{ e.stopPropagation(); if(ukBlkExp.has(u)) ukBlkExp.delete(u); else ukBlkExp.add(u); renderUKBlock(); };
-      if(ukBlkExp.has(u)) bb.appendChild(skbSubTree(u));
-    }
+    const car=r.querySelector('.car');
+    car.onclick=e=>{ e.stopPropagation(); if(ukBlkExp.has(u)) ukBlkExp.delete(u); else ukBlkExp.add(u); renderUKBlock(); };
+    if(ukBlkExp.has(u)) bb.appendChild(skb?skbSubTree(u):mkdSubTree(u));
   });
   const nEl=document.getElementById('ukBlkN'); if(nEl) nEl.textContent=uks.length+(skb?' подразд.':' УК');
 }
