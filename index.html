@@ -306,6 +306,16 @@
   #wxDutyModal .box{background:var(--panel); width:980px; max-width:96vw; max-height:92vh; margin:3vh auto; border-radius:10px; padding:18px 22px; box-shadow:0 10px 40px rgba(0,0,0,.4); display:flex; flex-direction:column}
   #wxDutyModal h2{font-size:15px; margin-right:30px}
   #wxDutyModal .close{float:right; border:none; background:none; font-size:20px; cursor:pointer; color:var(--mut)}
+  #sumModal{display:none; position:fixed; inset:0; z-index:1140; background:rgba(10,20,30,.62); backdrop-filter:blur(3px)}
+  #sumModal .box{background:var(--panel); width:1020px; max-width:96vw; max-height:92vh; margin:3vh auto; border-radius:14px; overflow:hidden; box-shadow:0 18px 60px rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.28); display:flex; flex-direction:column; animation:sumIn .18s ease-out}
+  @keyframes sumIn{from{transform:translateY(14px) scale(.985); opacity:0} to{transform:none; opacity:1}}
+  #sumModal .sumh{background:linear-gradient(120deg,#0b151d 0%,#16324a 70%,#1f4a66 100%); color:#fff; padding:14px 20px 12px; position:relative; flex:none}
+  #sumModal .sumh h2{font-size:16.5px; margin:0 44px 3px 0}
+  #sumModal .sumh .sub{font-size:11.8px; color:#b8c8d6; line-height:1.45}
+  #sumModal .close{position:absolute; top:12px; right:14px; width:30px; height:30px; border-radius:50%; border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.08); color:#fff; font-size:14px; cursor:pointer; line-height:1}
+  #sumModal .close:hover{background:rgba(255,255,255,.22)}
+  #sumModal .sumb{overflow-y:auto; padding:14px 22px 20px}
+  #sumModal .rayon{font-size:12.5px; color:var(--mut); margin-bottom:10px}
   .wxd-duty{border:1px solid var(--line); border-radius:8px; background:#f2eee4; padding:10px 14px; margin-bottom:10px; font-size:12.5px; line-height:1.55}
   .wxd-regBtn{border:1px solid var(--c-centr); background:var(--c-centr); color:#fff; border-radius:6px; padding:6px 14px; font-size:12.5px; cursor:pointer; margin-top:4px}
   .mt-kpi{display:flex; gap:10px; flex-wrap:wrap; margin:8px 0}
@@ -467,6 +477,17 @@
     <button class="close" id="wxDutyClose">✕</button>
     <h2>🛡 Дежурный метеоконтроль · г. Норильск (городская среда: МКД и объекты соцкультбыта)</h2>
     <div id="wxDutyWrap" style="overflow:auto">Загрузка…</div>
+  </div>
+</div>
+
+<div id="sumModal">
+  <div class="box">
+    <div class="sumh">
+      <button class="close" id="sumClose" title="Закрыть (Esc)">✕</button>
+      <h2>📊 Сводная карточка МКД <span class="badge b-card" style="vertical-align:2px">аналитический модуль</span></h2>
+      <div class="sub">Жилой фонд г. Норильска в совокупности · шкала состояний, контрольные значения деформаций, журнал переходов, климатические индексы, модель «климат → грунт», прогноз ресурса и сезонного оттаивания</div>
+    </div>
+    <div class="sumb" id="sumWrap"></div>
   </div>
 </div>
 
@@ -1637,10 +1658,9 @@ function renderMkdSummary(){
   objs.forEach(o=>{ const f=pmThawFc(o); if(f){ fcObjs++; if(f.acc){ fcOk+=f.acc.ok; fcN+=f.acc.n; } } });
   const scen=pmScenarios();
   const log=statLogRecent(15);
-  const d=document.getElementById('detail');
+  const d=document.getElementById('sumWrap');
   d.innerHTML=`
-  <h2>📊 Сводная карточка МКД<span class="badge b-card">аналитический модуль</span></h2>
-  <div class="rayon">Жилой фонд г. Норильска в совокупности: объектов <b>${objs.length}</b>, под мониторингом <b>${mon}</b> · сформировано ${new Date().toLocaleString('ru-RU')}</div>
+  <div class="rayon" style="margin-top:2px">Жилой фонд г. Норильска в совокупности: объектов <b>${objs.length}</b>, под мониторингом <b>${mon}</b> · сформировано ${new Date().toLocaleString('ru-RU')}</div>
   <div class="normref">Этапы 1–2 дорожной карты развития системы ГТМ: пятиуровневая шкала состояний (НОРМА / ВНИМАНИЕ / РИСК / КРИТИЧНО / АВАРИЯ), контрольные значения деформаций, журнал переходов статусов, климатические индексы, калибровка модели «климат → грунт», прогноз остаточного ресурса и сезонного оттаивания. Нормативная база: СП 25.13330.2020, СП 497.1325800.2020, ГОСТ 24846-2019, ГОСТ 25358-2020, ГОСТ 31937-2024, Правила № 170.</div>
 
   <div class="sect">1. Распределение объектов по шкале состояний</div>
@@ -1690,11 +1710,15 @@ function renderMkdSummary(){
     <tr><td>Климатический триггер: снежный покров последней зимы выше нормативной h_sn</td><td>${scen.snow?('<b style="color:'+SCOL.РИСК+'">ДА</b> — зима '+scen.snow.season+': '+scen.snow.v+' см при норме '+scen.snow.snH+' см'):'нет'}</td></tr>
   </table>
   <div class="note">Модуль является аналитической сводкой по фонду МКД в совокупности и не заменяет карточки отдельных объектов. Переход к карточке — кликом по адресу в разделе 6 либо из списка слева.</div>`;
-  d.querySelectorAll('a[data-sumobj]').forEach(a=>{ a.onclick=e=>{ e.preventDefault(); const i=DB.objects.findIndex(o=>o.a===a.dataset.sumobj); if(i>=0) select(i,true); }; });
-  if(window.matchMedia('(max-width:900px)').matches)
-    setTimeout(()=>d.scrollIntoView({behavior:'smooth'}),150);
+  d.querySelectorAll('a[data-sumobj]').forEach(a=>{ a.onclick=e=>{ e.preventDefault(); const i=DB.objects.findIndex(o=>o.a===a.dataset.sumobj); sumClose(); if(i>=0) select(i,true); }; });
+  document.getElementById('sumModal').style.display='block';
+  document.getElementById('sumWrap').scrollTop=0;
 }
+function sumClose(){ const m=document.getElementById('sumModal'); if(m) m.style.display='none'; }
 document.getElementById('brSum').onclick=()=>renderMkdSummary();
+document.getElementById('sumClose').onclick=sumClose;
+document.getElementById('sumModal').addEventListener('click',e=>{ if(e.target.id==='sumModal') sumClose(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') sumClose(); });
 const openStreets=new Set();
 function streetOf(o){ let s=o.a;
   const mc=s.match(/^(.*?),\s*д\.\s*/);              // канонический шаблон «ул. …, д. …»
