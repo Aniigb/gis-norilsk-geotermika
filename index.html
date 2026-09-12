@@ -6899,10 +6899,66 @@ function wdProcHighList(d){
   wdProcAnalyze(d).forEach(pp=>pp.procs.forEach(pr=>{ if(pr.lvl==='high') lst.push(WD_PROC[pr.proc].nm.toLowerCase()+' '+pr.prob+'% ('+pp.pt+')'); }));
   return lst;
 }
+/* --- сравнение прогноза со среднемесячной климатической нормой (метеобаза АНИИГБ) --- */
+const WD_CLIM_F={
+  wind:{nm:'Сильный ветер',unit:'м/с',procs:'снежные заносы, срыв кровельных покрытий и снос сосулек ветром, падение предметов'},
+  snow:{nm:'Снегопад',unit:'см/сут',procs:'снеговая нагрузка на кровли, снежные заносы'},
+  rain:{nm:'Дождь',unit:'мм/сут',procs:'подтопление подполий и территории'},
+  warm:{nm:'Аномальное тепло',unit:'°C',procs:'снеготаяние, подтопление, оттаивание грунтов основания'},
+  cold:{nm:'Аномальный холод',unit:'°C',procs:'промерзание цокольных перекрытий, перемерзание инженерных сетей'}
+};
+const WD_MON=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+function wdClimCmp(d){ // для каждой точки: пиковые дни прогноза, превышающие среднемесячную норму своего месяца
+  const md=mtData(); if(!md) return null;
+  const cw=mtClim(md,'w'), cp=mtClim(md,'pr'), ct=mtClim(md,'t');
+  const out=[];
+  (d.pts||[]).forEach((pt,pi)=>{
+    const meta=WD_PTS[pi]; if(!meta||!pt||!pt.hourly||!pt.hourly.time) return;
+    const H=pt.hourly, T=H.time, days={}, order=[];
+    for(let i=0;i<T.length;i++){
+      const t=+H.temperature_2m[i]; if(isNaN(t)) continue;
+      const key=T[i].slice(0,10);
+      let a=days[key];
+      if(!a){ a=days[key]={date:key,rain:0,snow:0,ws:0,tmin:1e9,tmax:-1e9}; order.push(key); }
+      a.rain+=H.rain?(+H.rain[i]||0):0;
+      a.snow+=H.snowfall?(+H.snowfall[i]||0):0;
+      const w=+H.wind_speed_10m[i]||0; if(w>a.ws)a.ws=w;
+      if(t<a.tmin)a.tmin=t; if(t>a.tmax)a.tmax=t;
+    }
+    const best={};
+    order.forEach(key=>{
+      const a=days[key], mo=+key.slice(5,7)-1;
+      const wn=cw.mean[mo], pn=cp.mean[mo], tn=ct.mean[mo];
+      const tm=(a.tmin+a.tmax)/2;
+      const pk=(f,val,norm)=>{ if(!best[f]||val-norm>best[f].val-best[f].norm) best[f]={f,date:key,val:+val.toFixed(1),norm:+norm.toFixed(1)}; };
+      if(wn!==null&&a.ws>wn) pk('wind',a.ws,wn);
+      if(pn!==null){ const pday=pn/30.4; if(a.snow>pday) pk('snow',a.snow,pday); if(a.rain>pday) pk('rain',a.rain,pday); }
+      if(tn!==null){ if(tm>tn) pk('warm',tm,tn); if(tm<tn) pk('cold',tm,tn); }
+    });
+    const items=Object.keys(best).map(k=>{
+      const b=best[k], F=WD_CLIM_F[k], mo=+b.date.slice(5,7)-1;
+      let txt;
+      if(k==='warm') txt=F.nm+': '+b.date.split('-').reverse().join('.')+' ожидается среднесуточная t '+b.val.toFixed(1)+' °C — выше среднемесячной нормы '+WD_MON[mo]+' ('+b.norm.toFixed(1)+' °C)';
+      else if(k==='cold') txt=F.nm+': '+b.date.split('-').reverse().join('.')+' ожидается среднесуточная t '+b.val.toFixed(1)+' °C — ниже среднемесячной нормы '+WD_MON[mo]+' ('+b.norm.toFixed(1)+' °C)';
+      else txt=F.nm+': '+b.date.split('-').reverse().join('.')+' ожидается до '+b.val+' '+F.unit+' — выше среднемесячной нормы '+WD_MON[mo]+' ('+b.norm+' '+F.unit+((k==='snow'||k==='rain')?' в пересчёте на сутки':'')+')';
+      return Object.assign({},b,{txt:txt});
+    }).sort((a,b)=>a.date<b.date?-1:1);
+    if(items.length) out.push({pi:pi, pt:meta.nm, d:meta.d, items:items});
+  });
+  return {list:out, y0:md.years[0], y1:md.years[md.years.length-1]};
+}
 function wdProcHtml(d){
   const pa=wdProcAnalyze(d);
   if(!pa.length) return '';
   let h='<div style="margin-top:10px; border-top:2px solid var(--line); padding-top:8px"><b style="font-size:13px">🧬 Вероятностная оценка опасных процессов на 10 суток</b> <span class="note">— подтопление подполий, сосульки и наледь на кровлях, снежные заносы, снеговая нагрузка на кровли, переходы через 0 °C; меры адаптированы под группы объектов городской среды</span>';
+  const clim=wdClimCmp(d);
+  if(clim&&clim.list.length){
+    h+='<div class="warn-card" style="border-left:4px solid #7a5c2e; background:#f7eeda"><h3>📊 Прогноз выше среднемесячной нормы текущего месяца <span class="note">— сравнение с климатическим рядом метеобазы АНИИГБ, '+clim.y0+'–'+clim.y1+' гг.</span></h3>';
+    clim.list.forEach(cc=>{
+      h+='<div class="wg"><b>'+esc(cc.pt)+':</b><ul style="margin:4px 0 2px 18px; padding:0">'+cc.items.map(it=>'<li style="margin:2px 0">⚠ '+esc(it.txt)+' <span class="note">→ '+esc(WD_CLIM_F[it.f].procs)+'</span></li>').join('')+'</ul></div>';
+    });
+    h+='</div>';
+  }
   pa.forEach(pp=>{
     const gc=wdGroupCounts(pp.d);
     h+='<div style="margin-top:6px; font-size:12px; color:var(--mut)">Точка прогноза: <b>'+esc(pp.pt)+'</b> · объектов в районе: МКД '+gc.m+', соцкультбыт '+gc.s+'</div>';
