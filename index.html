@@ -71,6 +71,9 @@
   .b-avar{background:#5a0d0d; color:#fff}
   .b-card{background:#d3dbe1; color:var(--mut)}
   .legend{position:absolute; right:14px; bottom:38px; z-index:600; background:rgba(255,255,255,.92); border:1px solid var(--line); border-radius:6px; padding:8px 12px; font-size:12px}
+  /* информационные панели карты плавно скрываются при работе с картой и возвращаются в статике */
+  #map .legend, #floodLegend, #wxTicker, #mapTicker, #gtmCov{transition:opacity .35s ease}
+  #map.moving .legend, #map.moving #floodLegend, #map.moving #wxTicker, #map.moving #mapTicker, #map.moving #gtmCov{opacity:0; pointer-events:none}
   .legend div{margin:2px 0}
   /* ---------- бегущая строка статусов под картой ---------- */
   #mapTicker{position:absolute; left:0; right:0; bottom:0; z-index:650; height:26px; overflow:hidden; display:flex; align-items:center; background:rgba(15,28,38,.92); color:#d8e0e7; border-top:1px solid #3a4c5c}
@@ -1136,6 +1139,13 @@ const hydroGroup=L.layerGroup(), thermGroup=L.layerGroup(), hydroOgGroup=L.layer
 L.control.layers({'Спутник (Esri)':satTiles,'Карта (OSM)':osmTiles},{'💧 Сток по рельефу (модель, ЦМР 30 м)':hydroGroup,'💧 Оганер · сток (ЦМР 5 см, тест)':hydroOgGroup,'🌊 Оганер · зоны затопления (осадки, ЦМР 5 см)':floodGroup,'🏢 Контуры зданий · Оганер':fpGroup,'🌡 Тепловая карта грунтов':thermGroup},{position:'topright'}).addTo(map);
 map.on('overlayadd',e=>{ if(e.layer===hydroGroup) hydroToggle(true,'city'); if(e.layer===hydroOgGroup) hydroToggle(true,'oganer'); if(e.layer===floodGroup) floodToggle(true); if(e.layer===fpGroup) fpToggle(true); if(e.layer===thermGroup) thermToggle(true); });
 map.on('overlayremove',e=>{ if(e.layer===hydroGroup) hydroToggle(false,'city'); if(e.layer===hydroOgGroup) hydroToggle(false,'oganer'); if(e.layer===floodGroup) floodToggle(false); if(e.layer===fpGroup) fpToggle(false); if(e.layer===thermGroup) thermToggle(false); });
+/* авто-скрытие информационных панелей при движении/зуме карты; возврат — через 0,45 с после остановки */
+let mapIdleT=null;
+function mapBusy(on){ const el=document.getElementById('map');
+  if(on){ clearTimeout(mapIdleT); el.classList.add('moving'); }
+  else { clearTimeout(mapIdleT); mapIdleT=setTimeout(()=>el.classList.remove('moving'),450); } }
+map.on('movestart zoomstart dragstart', ()=>mapBusy(true));
+map.on('moveend zoomend dragend', ()=>mapBusy(false));
 const labelPos = {"Центральный":[69.349,88.19],"Талнах":[69.494,88.40],"Кайеркан":[69.352,87.755]};
 for(const [name, rings] of Object.entries(DB.districts)){
   L.polygon(rings.map(r=>r.map(p=>[p[0],p[1]])),{color:DCOL[name],weight:2.5,fillColor:DCOL[name],fillOpacity:.06,dashArray:'6 4'}).addTo(map);
