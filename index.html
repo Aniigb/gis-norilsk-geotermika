@@ -400,6 +400,7 @@
       <div><span class="sw" style="background:#8a97a3"></span>без замеров</div>
       <div><span class="sw" style="background:transparent; border:2px solid #2f6fb2; border-radius:2px"></span>границы районов</div>
     </div>
+    <div class="legend" id="floodLegend" style="display:none; bottom:222px"></div>
     <div id="wxTicker" title="Текущая погода в Норильске (Open-Meteo, обновление каждые 30 мин; пауза — навести курсор)"><div class="tk"><span id="wxA">загрузка погоды…</span><span id="wxB" aria-hidden="true"></span></div></div>
     <div id="mapTicker" title="Бегущая строка: количество объектов по категориям состояния (пауза — навести курсор)"><div class="tk"><span id="tkA"></span><span id="tkB" aria-hidden="true"></span></div></div>
     <div id="gtmCov" title="Охват объектов геотехническим мониторингом: термометрические скважины, геодезические марки, осмотры за 12 мес. Обновляется при изменении данных."><canvas id="gtmCovC" width="248" height="126"></canvas></div>
@@ -1094,10 +1095,10 @@ window.addEventListener('orientationchange', ()=>{ map.invalidateSize(); if(curO
 const osmTiles=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap'});
 const satTiles=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19, attribution:'Esri, Maxar, Earthstar Geographics'});
 satTiles.addTo(map);
-const hydroGroup=L.layerGroup(), thermGroup=L.layerGroup(), hydroOgGroup=L.layerGroup(), fpGroup=L.layerGroup();
-L.control.layers({'Спутник (Esri)':satTiles,'Карта (OSM)':osmTiles},{'💧 Сток по рельефу (модель, ЦМР 30 м)':hydroGroup,'💧 Оганер · сток (ЦМР 5 см, тест)':hydroOgGroup,'🏢 Контуры зданий · Оганер':fpGroup,'🌡 Тепловая карта грунтов':thermGroup},{position:'topright'}).addTo(map);
-map.on('overlayadd',e=>{ if(e.layer===hydroGroup) hydroToggle(true,'city'); if(e.layer===hydroOgGroup) hydroToggle(true,'oganer'); if(e.layer===fpGroup) fpToggle(true); if(e.layer===thermGroup) thermToggle(true); });
-map.on('overlayremove',e=>{ if(e.layer===hydroGroup) hydroToggle(false,'city'); if(e.layer===hydroOgGroup) hydroToggle(false,'oganer'); if(e.layer===fpGroup) fpToggle(false); if(e.layer===thermGroup) thermToggle(false); });
+const hydroGroup=L.layerGroup(), thermGroup=L.layerGroup(), hydroOgGroup=L.layerGroup(), fpGroup=L.layerGroup(), floodGroup=L.layerGroup();
+L.control.layers({'Спутник (Esri)':satTiles,'Карта (OSM)':osmTiles},{'💧 Сток по рельефу (модель, ЦМР 30 м)':hydroGroup,'💧 Оганер · сток (ЦМР 5 см, тест)':hydroOgGroup,'🌊 Оганер · зоны затопления (осадки, ЦМР 5 см)':floodGroup,'🏢 Контуры зданий · Оганер':fpGroup,'🌡 Тепловая карта грунтов':thermGroup},{position:'topright'}).addTo(map);
+map.on('overlayadd',e=>{ if(e.layer===hydroGroup) hydroToggle(true,'city'); if(e.layer===hydroOgGroup) hydroToggle(true,'oganer'); if(e.layer===floodGroup) floodToggle(true); if(e.layer===fpGroup) fpToggle(true); if(e.layer===thermGroup) thermToggle(true); });
+map.on('overlayremove',e=>{ if(e.layer===hydroGroup) hydroToggle(false,'city'); if(e.layer===hydroOgGroup) hydroToggle(false,'oganer'); if(e.layer===floodGroup) floodToggle(false); if(e.layer===fpGroup) fpToggle(false); if(e.layer===thermGroup) thermToggle(false); });
 const labelPos = {"Центральный":[69.349,88.19],"Талнах":[69.494,88.40],"Кайеркан":[69.352,87.755]};
 for(const [name, rings] of Object.entries(DB.districts)){
   L.polygon(rings.map(r=>r.map(p=>[p[0],p[1]])),{color:DCOL[name],weight:2.5,fillColor:DCOL[name],fillOpacity:.06,dashArray:'6 4'}).addTo(map);
@@ -1183,6 +1184,31 @@ async function hydroToggle(on,key){
       cancelAnimationFrame(hydroRAF);
       if(hydroCv) hydroCv.getContext('2d').clearRect(0,0,hydroCv.width,hydroCv.height);
     }
+  }
+}
+
+/* ---------- зоны возможного затопления от жидких осадков · Оганер (ЦМР 5 см → анализ 0,5 м; статическое наполнение понижений priority-flood; существующие водоёмы исключены) ---------- */
+let FLOOD=null;
+async function floodToggle(on){
+  const lg=document.getElementById('floodLegend');
+  if(on){
+    if(!FLOOD){
+      try{
+        const [fm,fz]=await Promise.all([fetch('flood_oganer.json').then(r=>r.json()), fetch('flood_oganer_zones.json').then(r=>r.json())]);
+        const b=fm.bbox, CC={}; fm.classes.forEach(c=>CC[c.c]=c);
+        L.imageOverlay(fm.png, [[b[1],b[0]],[b[3],b[2]]], {opacity:.75, interactive:false}).addTo(floodGroup);
+        L.geoJSON(fz,{renderer:L.canvas(), style:f=>({color:CC[f.properties.c].color, weight:.8, fillColor:CC[f.properties.c].color, fillOpacity:.18}),
+          onEachFeature:(f,l)=>{ const p=f.properties;
+            l.bindTooltip('Зона затопления · '+CC[p.c].name+'<br>глубина до '+p.dmax+' м · площадь '+p.area+' м² · объём '+p.vol+' м³',{direction:'top'}); }}).addTo(floodGroup);
+        lg.innerHTML='<b style="font-size:11px">Глубина затопления (осадки)</b>'+fm.classes.map(c=>'<div><span class="sw" style="background:'+c.color+'"></span>'+c.name+'</div>').join('')+'<div style="color:var(--mut);font-size:10px;margin-top:3px">статическое наполнение понижений по ЦМР 0,5 м;<br>существующие водоёмы исключены</div>';
+        FLOOD=true;
+      }catch(e){ alert('Не удалось загрузить слой затопления Оганера (flood_oganer*.json/png).'); return; }
+    }
+    if(!map.hasLayer(floodGroup)) floodGroup.addTo(map);
+    if(lg) lg.style.display='block';
+  }else{
+    map.removeLayer(floodGroup);
+    if(lg) lg.style.display='none';
   }
 }
 
