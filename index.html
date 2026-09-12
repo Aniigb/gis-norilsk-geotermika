@@ -65,8 +65,10 @@
   .empty{color:var(--mut); font-size:13px; padding:20px 4px; text-align:center}
   .badge{display:inline-block; font-size:11px; padding:1px 8px; border-radius:10px; margin-left:6px; font-weight:600}
   .b-ok{background:#d8ecd9; color:var(--ok)}
+  .b-attn{background:#f7e9a0; color:#6b5300}
   .b-risk{background:#fbe8c8; color:var(--risk)}
   .b-crit{background:#f7dcd7; color:var(--crit)}
+  .b-avar{background:#5a0d0d; color:#fff}
   .b-card{background:#d3dbe1; color:var(--mut)}
   .legend{position:absolute; right:14px; bottom:38px; z-index:600; background:rgba(255,255,255,.92); border:1px solid var(--line); border-radius:6px; padding:8px 12px; font-size:12px}
   .legend div{margin:2px 0}
@@ -267,6 +269,8 @@
   .rsn{font-size:12.2px; padding:2px 0; line-height:1.4}
   .rsn.r-crit{color:var(--crit)}
   .rsn.r-risk{color:#a86400}
+  .rsn.r-attn{color:#8a7300}
+  .rsn.r-avar{color:#5a0d0d; font-weight:600}
   .rsn.r-ok{color:var(--ok)}
   /* ---------- телефонограммы (скрытый раздел) ---------- */
   .tglock{border:none; background:none; cursor:pointer; font-size:12px; color:var(--mut); padding:1px 4px}
@@ -373,6 +377,7 @@
     <div style="display:flex; gap:6px; padding:10px 12px 4px">
       <button class="brbtn on" id="brMkd">🏢 МКД</button>
       <button class="brbtn" id="brSkb" title="Объекты соцкультбыта Администрации г. Норильска">🏛 Соцкультбыт Адм.</button>
+      <button class="brbtn" id="brSum" title="Сводная аналитическая карточка по всему жилому фонду: шкала состояний, контрольные значения, журнал переходов, модель «климат → грунт», прогноз ресурса">📊 Свод МКД</button>
     </div>
     <div class="chips" id="chips"></div>
     <select id="ukFilter" style="margin:0 12px 6px; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; width:calc(100% - 24px)"></select>
@@ -388,8 +393,10 @@
   <div id="map">
     <div class="legend">
       <div><span class="sw" style="background:#2e7d32"></span>НОРМА</div>
+      <div><span class="sw" style="background:#c9a800"></span>ВНИМАНИЕ</div>
       <div><span class="sw" style="background:#e08a00"></span>РИСК</div>
       <div><span class="sw" style="background:#c8372d"></span>КРИТИЧНО</div>
+      <div><span class="sw" style="background:#5a0d0d"></span>АВАРИЯ</div>
       <div><span class="sw" style="background:#8a97a3"></span>без замеров</div>
       <div><span class="sw" style="background:transparent; border:2px solid #2f6fb2; border-radius:2px"></span>границы районов</div>
     </div>
@@ -589,11 +596,11 @@
 </div>
 <script>window.__initApp=function(){
 const DCOL = {"Центральный":"#2f6fb2","Талнах":"#c05a2e","Кайеркан":"#3d8a5a"};
-const SCOL = {"НОРМА":"#2e7d32","РИСК":"#e08a00","КРИТИЧНО":"#c8372d"};
+const SCOL = {"НОРМА":"#2e7d32","ВНИМАНИЕ":"#c9a800","РИСК":"#e08a00","КРИТИЧНО":"#c8372d","АВАРИЯ":"#5a0d0d"};
 const DB = window.DB;
 
 /* ---------- пороги ---------- */
-const DEF_TH = {tcrit:-0.5, depth:3, trend:0.10, trendDepth:10, above:0.5, geodRiskSpeed:10, geodCritSpeed:20, geodCritTotal:100, bearRisk:0.91, bearCrit:0.77};
+const DEF_TH = {tcrit:-0.5, depth:3, trend:0.10, trendDepth:10, above:0.5, geodRiskSpeed:10, geodCritSpeed:20, geodCritTotal:100, bearRisk:0.91, bearCrit:0.77, attnTrend:0.05, geodAttnSpeed:2};
 let TH = Object.assign({}, DEF_TH, JSON.parse(localStorage.getItem('ngk_th')||'{}'));
 function saveTH(){ localStorage.setItem('ngk_th', JSON.stringify(TH)); }
 
@@ -875,10 +882,13 @@ function geodMetrics(o){ // макс. скорость последнего ци
   });
   return {maxSpeed, maxOsad, speedMark, osadMark};
 }
-function statusDetail(o){ // статус + причины (какие правила сработали)
-  if(!o.prof&&!o.geod) return {status:null, reasons:[]};
-  const tc=TCALC[o.a];
+function statusDetail(o){ // статус + причины; шкала: НОРМА / ВНИМАНИЕ / РИСК / КРИТИЧНО / АВАРИЯ
   const reasons=[];
+  // АВАРИЯ: аварийное состояние по данным ГИС ЖКХ — вне зависимости от наличия мониторинга
+  if(o.gkh&&o.gkh.condition&&/авари/i.test(o.gkh.condition))
+    reasons.push({level:'avar', text:`аварийное состояние по данным ГИС ЖКХ («${o.gkh.condition}») — требуется внеочередное обследование (ГОСТ 31937-2024)`});
+  if(!o.prof&&!o.geod){ const st0=reasons.length?'АВАРИЯ':null; try{ statLogMark(o, st0); }catch(e){} return {status:st0, reasons}; }
+  const tc=TCALC[o.a];
   if(o.prof){
     // КРИТИЧНО: температура на глубине
     let worstT=null;
@@ -915,12 +925,167 @@ function statusDetail(o){ // статус + причины (какие прав�
   if(gm){
     if(gm.maxSpeed>=TH.geodCritSpeed) reasons.push({level:'crit', text:`скорость осадки ${gm.maxSpeed.toFixed(1)} мм/год ≥ порога ${TH.geodCritSpeed} мм/год (марка ${gm.speedMark})`});
     else if(gm.maxSpeed>=TH.geodRiskSpeed) reasons.push({level:'risk', text:`скорость осадки ${gm.maxSpeed.toFixed(1)} мм/год ≥ порога ${TH.geodRiskSpeed} мм/год (марка ${gm.speedMark})`});
+    else if(gm.maxSpeed>=(TH.geodAttnSpeed||2)) reasons.push({level:'attn', text:`скорость осадки ${gm.maxSpeed.toFixed(1)} мм/год ≥ контрольного значения КВ-1 (${TH.geodAttnSpeed||2} мм/год, марка ${gm.speedMark}) — усилить наблюдения`});
     if(gm.maxOsad>=TH.geodCritTotal) reasons.push({level:'crit', text:`суммарная осадка ${gm.maxOsad.toFixed(0)} мм ≥ порога ${TH.geodCritTotal} мм (марка ${gm.osadMark})`});
   }
-  const crit=reasons.some(r=>r.level==='crit'), risk=reasons.some(r=>r.level==='risk');
-  return {status: crit?'КРИТИЧНО':(risk?'РИСК':'НОРМА'), reasons};
+  if(o.prof){
+    // ВНИМАНИЕ: умеренный тренд потепления (ниже порога РИСК)
+    let attnK=null;
+    Object.entries(o.prof).forEach(([w,wd])=>{
+      const s=wellDepthSeries(wd, TH.trendDepth);
+      if(s.ys.length>=3){ const k=linreg(s.xs,s.ys); if(k!==null&&k>(TH.attnTrend||0.05)&&k<=TH.trend&&(!attnK||k>attnK.k)) attnK={w,k}; }
+    });
+    if(attnK) reasons.push({level:'attn', text:`умеренный тренд потепления +${attnK.k.toFixed(2)} °C/год на глубине ${TH.trendDepth} м (скв. ${attnK.w}) — выше превентивного порога ${TH.attnTrend||0.05} °C/год`});
+    // ВНИМАНИЕ: глубина оттаивания растёт два сезона подряд
+    let grow=null;
+    Object.entries(o.prof).forEach(([w,wd])=>{
+      if(grow) return;
+      const byY={};
+      wellThawSeries(wd).forEach(p=>{ const y=+String(p.d).slice(0,4); if(!byY[y]||p.z>byY[y]) byY[y]=p.z; });
+      const ys=Object.keys(byY).map(Number).sort((a,b)=>a-b);
+      if(ys.length>=3){ const z1=byY[ys[ys.length-3]], z2=byY[ys[ys.length-2]], z3=byY[ys[ys.length-1]]; if(z2>z1&&z3>z2) grow={w, y1:ys[ys.length-3], y3:ys[ys.length-1], z:z3}; }
+    });
+    if(grow) reasons.push({level:'attn', text:`глубина оттаивания увеличивается два сезона подряд (${grow.y1}–${grow.y3}), достигла ${grow.z.toFixed(2)} м (скв. ${grow.w}) — превентивный признак деградации ММГ`});
+  }
+  const avar=reasons.some(r=>r.level==='avar'), crit=reasons.some(r=>r.level==='crit'),
+        risk=reasons.some(r=>r.level==='risk'), attn=reasons.some(r=>r.level==='attn');
+  const status=avar?'АВАРИЯ':(crit?'КРИТИЧНО':(risk?'РИСК':(attn?'ВНИМАНИЕ':'НОРМА')));
+  try{ statLogMark(o, status); }catch(e){}
+  return {status, reasons};
 }
 function statusOf(o){ return statusDetail(o).status; }
+
+/* --- журнал переходов статусов объектов (ngk_statlog): дата, из → в; до 12 переходов на объект --- */
+let _statLogCache=null;
+function statLogGet(){
+  if(_statLogCache) return _statLogCache;
+  try{ _statLogCache=JSON.parse(localStorage.getItem('ngk_statlog')||'{}'); }catch(e){ _statLogCache={}; }
+  return _statLogCache;
+}
+function statLogMark(o, st){
+  if(!st) return;
+  const log=statLogGet(), rec=log[o.a];
+  if(rec&&rec.s===st) return;
+  const today=new Date().toISOString().slice(0,10);
+  const hist=((rec&&rec.hist)||[]).concat([[today, rec?rec.s:'—', st]]).slice(-12);
+  log[o.a]={s:st, hist};
+  try{ localStorage.setItem('ngk_statlog', JSON.stringify(log)); }catch(e){}
+}
+function statLogRecent(n){ // последние переходы по всем объектам (новые сверху)
+  const log=statLogGet(), rows=[];
+  Object.entries(log).forEach(([a,rec])=>{ (rec.hist||[]).forEach(h=>rows.push({a, d:h[0], from:h[1], to:h[2]})); });
+  rows.sort((x,y)=>y.d.localeCompare(x.d));
+  return n?rows.slice(0,n):rows;
+}
+function statLogHtml(o){ // последние переходы статуса объекта (для карточки)
+  const rec=statLogGet()[o.a];
+  if(!rec||!rec.hist||!rec.hist.length) return '';
+  const rows=rec.hist.slice().reverse().slice(0,3);
+  return `<div class="note" style="margin-top:2px">Журнал статусов: ${rows.map(h=>`${h[0]}: ${h[1]} → <b style="color:${SCOL[h[2]]||'#666'}">${h[2]}</b>`).join(' · ')}</div>`;
+}
+
+/* ================== Физическая модель «климат → грунт» (сводная карточка МКД) ==================
+   Калибровка по архиву скважин и метеоряду: связь T грунта на НГК с МГТ воздуха;
+   sqrt-модель сезонного оттаивания z = a·√Ω_t (стефановская аппроксимация). */
+let _pmCalibCache=null;
+function pmMedian(a){ if(!a.length) return null; const s=a.slice().sort((x,y)=>x-y); const m=s.length>>1; return s.length%2?s[m]:(s[m-1]+s[m])/2; }
+function pmOmT(){ // годовые индексы оттаивания по полным годам: {год: Ω_t}
+  const OmT={};
+  try{ mtYearIdx(mtData()).forEach(x=>{ if(!x.part) OmT[x.y]=x.T; }); }catch(e){}
+  return OmT;
+}
+function pmCalib(){
+  if(_pmCalibCache) return _pmCalibCache;
+  const r={dTMed:null, aMed:null, nObj:0, nWell:0, MGT:null};
+  try{
+    const sp=(typeof mtSP==='function')?mtSP(mtData()):null;
+    if(sp) r.MGT=sp.MGT;
+    const dT=[], aa=[];
+    if(r.MGT!==null&&r.MGT!==undefined){
+      DB.objects.forEach(o=>{
+        if(o.ngc&&typeof o.ngc.t==='number'){ dT.push(o.ngc.t-r.MGT); r.nObj++; }
+      });
+    }
+    const OmT=pmOmT();
+    DB.objects.forEach(o=>{
+      if(!o.prof) return;
+      Object.values(o.prof).forEach(wd=>{
+        let used=false;
+        wellThawSeries(wd).forEach(p=>{
+          if(p.gt) return;
+          const y=+String(p.d).slice(0,4), T=OmT[y];
+          if(T&&T>50&&p.z>0){ aa.push(p.z/Math.sqrt(T)); used=true; }
+        });
+        if(used) r.nWell++;
+      });
+    });
+    r.dTMed=pmMedian(dT); r.aMed=pmMedian(aa);
+  }catch(e){}
+  _pmCalibCache=r; return r;
+}
+function pmThawA(wd){ // индивидуальный коэффициент a скважины: z = a·√Ω_t
+  try{
+    const OmT=pmOmT(); const arr=[];
+    wellThawSeries(wd).forEach(p=>{
+      if(p.gt) return;
+      const y=+String(p.d).slice(0,4), T=OmT[y];
+      if(T&&T>50&&p.z>0) arr.push(p.z/Math.sqrt(T));
+    });
+    return pmMedian(arr);
+  }catch(e){ return null; }
+}
+function pmThawFc(o){ // сезонный прогноз глубины оттаивания по скважинам объекта + сверка с фактом (±20 %)
+  if(!o.prof) return null;
+  const cal=pmCalib(); if(cal.aMed===null) return null;
+  const sp=mtSP(mtData()); if(!sp||!sp.OmT) return null;
+  const OmT=pmOmT();
+  const wells=[]; let nOk=0, nChk=0;
+  Object.entries(o.prof).forEach(([w,wd])=>{
+    const tm=wellThawMax(wd); if(!tm) return;
+    const a=pmThawA(wd)||cal.aMed;
+    const fc=+(a*Math.sqrt(sp.OmT)).toFixed(2); // прогноз сезонного максимума по климатической норме Ω_t
+    wellThawSeries(wd).forEach(p=>{ // hindcast-сверка по прошлым замерам скважины
+      if(p.gt) return;
+      const y=+String(p.d).slice(0,4), T=OmT[y];
+      if(T&&T>50&&p.z>0){ const e=Math.abs(a*Math.sqrt(T)-p.z)/p.z; nChk++; if(e<=0.2) nOk++; }
+    });
+    wells.push({w, fc, a:+a.toFixed(4), last:tm.last?tm.last.z:null, lastD:tm.last?tm.last.d:null});
+  });
+  if(!wells.length) return null;
+  return {wells, fcMax:+Math.max.apply(null,wells.map(x=>x.fc)).toFixed(2),
+    acc:(nChk?{ok:nOk, n:nChk, share:Math.round(100*nOk/nChk)}:null), OmT:sp.OmT, period:sp.period};
+}
+function pmResource(o){ // остаточный ресурс: лет до предельной T основания при текущем тренде потепления
+  if(!o.prof) return null;
+  const tlim=TCALC[o.a]!==undefined?TCALC[o.a]:TH.tcrit;
+  const h=o.ngc?o.ngc.h:TH.trendDepth;
+  let tcur=null, kk=null, wcur='';
+  Object.entries(o.prof).forEach(([w,wd])=>{
+    const s=wellDepthSeries(wd, h);
+    if(s.ys.length){ const t=s.ys[s.ys.length-1]; if(tcur===null||t>tcur){ tcur=t; wcur=w; } }
+    const s2=wellDepthSeries(wd, TH.trendDepth);
+    if(s2.ys.length>=2){ const k=linreg(s2.xs,s2.ys); if(k!==null&&(kk===null||k>kk)) kk=k; }
+  });
+  if(tcur===null) return null;
+  const r={tcur:+tcur.toFixed(2), k:kk, tlim, h, w:wcur, years:null};
+  if(kk!==null&&kk>0) r.years=+((tlim-tcur)/kk).toFixed(1);
+  return r;
+}
+function pmScenarios(){ // теплотехнические сценарии подполья — счётчики по фонду МКД
+  const sc=(typeof snowCheck==='function')?snowCheck():null;
+  const r={vent:0, leak:0, snow:(sc&&sc.exceeded)?sc:null, n:0};
+  DB.objects.forEach(o=>{
+    if(branchOf(o)!=='mkd') return;
+    r.n++;
+    try{
+      const blob=JSON.stringify([o.pf||{},o.cok||{}]);
+      if(/слабопроветрив|закрыт|заложен/i.test(blob)) r.vent++;
+      const rep=JSON.stringify([o.expl_report||{},o.defects||{}]);
+      if(/течь|обводнен|затоплен/i.test(rep)) r.leak++;
+    }catch(e){}
+  });
+  return r;
+}
 
 /* ---------- карта ---------- */
 const map = L.map('map',{zoomControl:true}).setView([69.355,88.20], 12);
@@ -1324,16 +1489,18 @@ async function wxTick(){
 }
 /* ---------- шапка ---------- */
 function renderStats(){
-  const n={НОРМА:0,РИСК:0,КРИТИЧНО:0};
-  DB.objects.forEach(o=>{const s=statusOf(o); if(s) n[s]++;});
+  const n={НОРМА:0,ВНИМАНИЕ:0,РИСК:0,КРИТИЧНО:0,АВАРИЯ:0};
+  DB.objects.forEach(o=>{const s=statusOf(o); if(s&&n[s]!==undefined) n[s]++;});
   document.getElementById('hstats').innerHTML=
     `<span><span class="dot" style="background:${SCOL.НОРМА}"></span><b>${n.НОРМА}</b> норма</span>
+     <span><span class="dot" style="background:${SCOL.ВНИМАНИЕ}"></span><b>${n.ВНИМАНИЕ}</b> внимание</span>
      <span><span class="dot" style="background:${SCOL.РИСК}"></span><b>${n.РИСК}</b> риск</span>
      <span><span class="dot" style="background:${SCOL.КРИТИЧНО}"></span><b>${n.КРИТИЧНО}</b> критично</span>
+     ${n.АВАРИЯ?`<span><span class="dot" style="background:${SCOL.АВАРИЯ}"></span><b>${n.АВАРИЯ}</b> авария</span>`:''}
      <span><span class="dot" style="background:#8a97a3"></span><b>${DB.objects.length}</b> всего</span>`;
   // бегущая строка под картой
-  const noData=DB.objects.length-n.НОРМА-n.РИСК-n.КРИТИЧНО;
-  const txt=`⛔ КРИТИЧНО: ${n.КРИТИЧНО}     ⚠️ РИСК: ${n.РИСК}     ✔ НОРМА: ${n.НОРМА}     ○ без замеров: ${noData}     ▦ всего объектов: ${DB.objects.length}     ·     ГИС-база геотехнического мониторинга зданий · г. Норильск · АНО «АНИИГБ» им. М.В. Кима     ·     `;
+  const noData=DB.objects.length-n.НОРМА-n.ВНИМАНИЕ-n.РИСК-n.КРИТИЧНО-n.АВАРИЯ;
+  const txt=`${n.АВАРИЯ?('🚨 АВАРИЯ: '+n.АВАРИЯ+'     '):''}⛔ КРИТИЧНО: ${n.КРИТИЧНО}     ⚠️ РИСК: ${n.РИСК}     🔶 ВНИМАНИЕ: ${n.ВНИМАНИЕ}     ✔ НОРМА: ${n.НОРМА}     ○ без замеров: ${noData}     ▦ всего объектов: ${DB.objects.length}     ·     ГИС-база геотехнического мониторинга зданий · г. Норильск · АНО «АНИИГБ» им. М.В. Кима     ·     `;
   const a=document.getElementById('tkA'), b=document.getElementById('tkB');
   if(a&&b){ a.textContent=txt; b.textContent=txt; }
   gtmCovDraw();
@@ -1397,6 +1564,111 @@ function setBranch(b){
 }
 document.getElementById('brMkd').onclick=()=>setBranch('mkd');
 document.getElementById('brSkb').onclick=()=>setBranch('skb');
+/* ---------- сводная карточка МКД: аналитический модуль по всему жилому фонду (этапы 1–2 дорожной карты) ---------- */
+function renderMkdSummary(){
+  curObj=null; curUKCard=null;
+  document.querySelectorAll('.item,.ukrow').forEach(e=>e.classList.remove('sel'));
+  const BMAP={НОРМА:'ok',ВНИМАНИЕ:'attn',РИСК:'risk',КРИТИЧНО:'crit',АВАРИЯ:'avar'};
+  const ORDER=['НОРМА','ВНИМАНИЕ','РИСК','КРИТИЧНО','АВАРИЯ'];
+  const objs=DB.objects.filter(o=>branchOf(o)==='mkd'&&scopePass(o));
+  const n={НОРМА:0,ВНИМАНИЕ:0,РИСК:0,КРИТИЧНО:0,АВАРИЯ:0}; let noData=0;
+  const byD={};
+  objs.forEach(o=>{
+    const st=statusOf(o);
+    if(!st){ noData++; return; }
+    n[st]++;
+    const dd=byD[o.d]||(byD[o.d]={НОРМА:0,ВНИМАНИЕ:0,РИСК:0,КРИТИЧНО:0,АВАРИЯ:0});
+    dd[st]++;
+  });
+  const mon=objs.length-noData, pct=x=>mon?Math.round(100*x/mon):0;
+  // контрольные значения осадок
+  let kv1=0, kv2=0, kv3=0;
+  objs.forEach(o=>{ const gm=geodMetrics(o); if(!gm) return;
+    if(gm.maxSpeed>=TH.geodCritSpeed||gm.maxOsad>=TH.geodCritTotal) kv3++;
+    else if(gm.maxSpeed>=TH.geodRiskSpeed) kv2++;
+    else if(gm.maxSpeed>=(TH.geodAttnSpeed||2)) kv1++; });
+  // метео
+  let sp=null, idx=[], lastFull=null, curYear=null;
+  try{ sp=mtSP(mtData()); idx=mtYearIdx(mtData());
+    lastFull=idx.filter(x=>!x.part).slice(-1)[0]||null;
+    curYear=idx.filter(x=>x.part)[0]||null;
+  }catch(e){}
+  const cal=pmCalib();
+  // ресурс объектов РИСК/КРИТИЧНО/АВАРИЯ
+  const resRows=[];
+  objs.forEach(o=>{
+    const st=statusOf(o);
+    if(st!=='РИСК'&&st!=='КРИТИЧНО'&&st!=='АВАРИЯ') return;
+    resRows.push({o, st, r:pmResource(o)});
+  });
+  resRows.sort((a,b)=>{
+    const ya=(a.r&&a.r.years!==null&&a.r.years!==undefined)?a.r.years:1e9;
+    const yb=(b.r&&b.r.years!==null&&b.r.years!==undefined)?b.r.years:1e9;
+    return ya-yb || a.o.a.localeCompare(b.o.a,'ru');
+  });
+  // сезонный прогноз оттаивания: сводная точность
+  let fcOk=0, fcN=0, fcObjs=0;
+  objs.forEach(o=>{ const f=pmThawFc(o); if(f){ fcObjs++; if(f.acc){ fcOk+=f.acc.ok; fcN+=f.acc.n; } } });
+  const scen=pmScenarios();
+  const log=statLogRecent(15);
+  const d=document.getElementById('detail');
+  d.innerHTML=`
+  <h2>📊 Сводная карточка МКД<span class="badge b-card">аналитический модуль</span></h2>
+  <div class="rayon">Жилой фонд г. Норильска в совокупности: объектов <b>${objs.length}</b>, под мониторингом <b>${mon}</b> · сформировано ${new Date().toLocaleString('ru-RU')}</div>
+  <div class="normref">Этапы 1–2 дорожной карты развития системы ГТМ: пятиуровневая шкала состояний (НОРМА / ВНИМАНИЕ / РИСК / КРИТИЧНО / АВАРИЯ), контрольные значения деформаций, журнал переходов статусов, климатические индексы, калибровка модели «климат → грунт», прогноз остаточного ресурса и сезонного оттаивания. Нормативная база: СП 25.13330.2020, СП 497.1325800.2020, ГОСТ 24846-2019, ГОСТ 25358-2020, ГОСТ 31937-2024, Правила № 170.</div>
+
+  <div class="sect">1. Распределение объектов по шкале состояний</div>
+  <table class="kv">${ORDER.map(s=>`<tr><td><b style="color:${SCOL[s]}">${s}</b></td><td><b>${n[s]}</b> (${pct(n[s])} % от мониторируемых)<div style="height:7px; border-radius:3px; background:#e7e2d6; margin-top:3px"><div style="height:7px; border-radius:3px; width:${pct(n[s])}%; background:${SCOL[s]}"></div></div></td></tr>`).join('')}
+  <tr><td style="color:var(--mut)">без замеров</td><td>${noData}</td></tr></table>
+  <table class="rows static"><thead><tr><th style="text-align:left">Район</th>${ORDER.map(s=>`<th>${s}</th>`).join('')}</tr></thead>
+  <tbody>${Object.entries(byD).sort((a,b)=>a[0].localeCompare(b[0],'ru')).map(([dd,v])=>`<tr><td style="text-align:left"><b style="color:${DCOL[dd]||'#666'}">${esc(dd)}</b></td>${ORDER.map(s=>`<td>${v[s]||''}</td>`).join('')}</tr>`).join('')}</tbody></table>
+
+  <div class="sect">2. Контрольные значения (КВ) деформаций · ГОСТ 24846-2019</div>
+  <table class="kv">
+    <tr><td>КВ-1 (ВНИМАНИЕ): скорость осадки ≥ ${TH.geodAttnSpeed||2} мм/год</td><td><b>${kv1}</b> объектов</td></tr>
+    <tr><td>КВ-2 (РИСК): скорость осадки ≥ ${TH.geodRiskSpeed} мм/год</td><td><b style="color:${SCOL.РИСК}">${kv2}</b> объектов</td></tr>
+    <tr><td>КВ-3 (КРИТИЧНО): скорость ≥ ${TH.geodCritSpeed} мм/год или суммарная осадка ≥ ${TH.geodCritTotal} мм</td><td><b style="color:${SCOL.КРИТИЧНО}">${kv3}</b> объектов</td></tr>
+  </table>
+
+  <div class="sect">3. Журнал переходов статусов (последние ${log.length})</div>
+  ${log.length?`<table class="rows static"><thead><tr><th style="width:11%">Дата</th><th style="text-align:left">Объект</th><th style="width:24%">Переход</th></tr></thead><tbody>${log.map(h=>`<tr><td>${h.d}</td><td style="text-align:left">${esc(h.a)}</td><td>${h.from} → <b style="color:${SCOL[h.to]||'#666'}">${h.to}</b></td></tr>`).join('')}</tbody></table>`:'<div class="note">Переходов пока не зарегистрировано — журнал ведётся автоматически при изменении статуса объекта (хранение: локальное, ngk_statlog).</div>'}
+
+  <div class="sect">4. Климатические индексы (метеоряд${sp?', норма '+sp.period:''})</div>
+  <table class="kv">
+    <tr><td>Индекс промерзания Ω_f: норма / последний полный год</td><td>${sp?('<b>'+sp.OmF+'</b> °C·сут'):'—'}${lastFull?(' / <b>'+lastFull.F+'</b> ('+lastFull.y+')'):''}</td></tr>
+    <tr><td>Индекс оттаивания Ω_t: норма / последний полный год</td><td>${sp?('<b>'+sp.OmT+'</b> °C·сут'):'—'}${lastFull?(' / <b>'+lastFull.T+'</b> ('+lastFull.y+')'):''}</td></tr>
+    <tr><td>Текущий (неполный) год</td><td>${curYear?('Ω_f <b>'+curYear.F+'</b> · Ω_t <b>'+curYear.T+'</b> °C·сут'):'—'}</td></tr>
+  </table>
+
+  <div class="sect">5. Калибровка модели «климат → грунт» по архиву скважин и метеоряду</div>
+  <table class="kv">
+    <tr><td>Смещение T грунта на НГК относительно МГТ воздуха (медиана)</td><td>${cal.dTMed!==null&&cal.dTMed!==undefined?('<b>'+(cal.dTMed>0?'+':'')+cal.dTMed.toFixed(2)+' °C</b> · '+cal.nObj+' объектов'):'—'}</td></tr>
+    <tr><td>Коэффициент оттаивания a в модели z = a·√Ω_t (медиана)</td><td>${cal.aMed!==null&&cal.aMed!==undefined?('<b>'+cal.aMed.toFixed(4)+' м/√(°C·сут)</b> · '+cal.nWell+' скважин'):'—'}</td></tr>
+  </table>
+
+  <div class="sect">6. Остаточный ресурс объектов РИСК / КРИТИЧНО / АВАРИЯ</div>
+  ${resRows.length?`<table class="rows static"><thead><tr><th style="text-align:left">Адрес</th><th>Статус</th><th>T на контр. глубине, °C</th><th>Тренд, °C/год</th><th>Ресурс, лет</th></tr></thead><tbody>${resRows.map(x=>`<tr><td style="text-align:left"><a href="#" data-sumobj="${esc(x.o.a)}">${esc(x.o.a)}</a></td><td><span class="badge b-${BMAP[x.st]}">${x.st}</span></td><td>${x.r?x.r.tcur:'—'}</td><td>${x.r&&x.r.k!==null&&x.r.k!==undefined?((x.r.k>0?'+':'')+x.r.k.toFixed(2)):'—'}</td><td><b>${x.r&&x.r.years!==null&&x.r.years!==undefined?(x.r.years>0?x.r.years:'<span style="color:'+SCOL.КРИТИЧНО+'">исчерпан</span>'):'—'}</b></td></tr>`).join('')}</tbody></table>
+  <div class="note">Ресурс — расчётное число лет до достижения предельной температуры основания (расчётная T из паспорта либо порог ${TH.tcrit} °C) при сохранении текущего тренда потепления на глубине ${TH.trendDepth} м. Линейная экстраполяция — оценка первого приближения для prioritизации обследований. Клик по адресу открывает карточку объекта.</div>`:'<div class="note">Объектов со статусами РИСК / КРИТИЧНО / АВАРИЯ нет.</div>'}
+
+  <div class="sect">7. Сезонный прогноз глубины оттаивания · сверка с фактом</div>
+  <table class="kv">
+    <tr><td>Объектов с прогнозом (есть динамика оттаивания)</td><td><b>${fcObjs}</b></td></tr>
+    <tr><td>Точность модели (hindcast): доля замеров с ошибкой ≤ ±20 %</td><td>${fcN?('<b>'+Math.round(100*fcOk/fcN)+' %</b> ('+fcOk+' из '+fcN+' замеров)'):'—'}</td></tr>
+  </table>
+  <div class="note">Прогноз сезонного максимума оттаивания: z = a·√Ω_t по климатической норме индекса оттаивания (${sp?sp.OmT:'—'} °C·сут${sp?', '+sp.period:''}); коэффициент a — индивидуальный по скважине либо медианный по фонду. Индивидуальный прогноз по скважинам — в карточке объекта, раздел «Геотермика».</div>
+
+  <div class="sect">8. Теплотехнические сценарии подполья (признаки по карточкам фонда)</div>
+  <table class="kv">
+    <tr><td>Признаки слабого проветривания / заложенных продухов</td><td><b>${scen.vent}</b> из ${scen.n}</td></tr>
+    <tr><td>Признаки течей / обводнения подполья (отчёты, дефекты)</td><td><b>${scen.leak}</b> из ${scen.n}</td></tr>
+    <tr><td>Климатический триггер: снежный покров последней зимы выше нормативной h_sn</td><td>${scen.snow?('<b style="color:'+SCOL.РИСК+'">ДА</b> — зима '+scen.snow.season+': '+scen.snow.v+' см при норме '+scen.snow.snH+' см'):'нет'}</td></tr>
+  </table>
+  <div class="note">Модуль является аналитической сводкой по фонду МКД в совокупности и не заменяет карточки отдельных объектов. Переход к карточке — кликом по адресу в разделе 6 либо из списка слева.</div>`;
+  d.querySelectorAll('a[data-sumobj]').forEach(a=>{ a.onclick=e=>{ e.preventDefault(); const i=DB.objects.findIndex(o=>o.a===a.dataset.sumobj); if(i>=0) select(i,true); }; });
+  if(window.matchMedia('(max-width:900px)').matches)
+    setTimeout(()=>d.scrollIntoView({behavior:'smooth'}),150);
+}
+document.getElementById('brSum').onclick=()=>renderMkdSummary();
 const openStreets=new Set();
 function streetOf(o){ let s=o.a;
   const mc=s.match(/^(.*?),\s*д\.\s*/);              // канонический шаблон «ул. …, д. …»
@@ -1558,10 +1830,10 @@ function mkdSubTree(u){ // раскрытая УК: улицы → дома (к�
 }
 function ukObjects(uk){ return DB.objects.map((o,i)=>[o,i]).filter(([o])=>effectiveUK(o)===uk); }
 function ukStats(uk){
-  const arr=ukObjects(uk); let nN=0,nR=0,nC=0,nMon=0;
-  arr.forEach(([o])=>{ const st=statusOf(o); if(st){ nMon++; if(st==='КРИТИЧНО')nC++; else if(st==='РИСК')nR++; else nN++; } });
+  const arr=ukObjects(uk); let nN=0,nR=0,nC=0,nA=0,nAv=0,nMon=0;
+  arr.forEach(([o])=>{ const st=statusOf(o); if(st){ nMon++; if(st==='АВАРИЯ')nAv++; else if(st==='КРИТИЧНО')nC++; else if(st==='РИСК')nR++; else if(st==='ВНИМАНИЕ')nA++; else nN++; } });
   const nStub=(DB.stubs||[]).filter(s=>stubUK(s)===uk).length;
-  return {n:arr.length, nMon, nN, nR, nC, nStub};
+  return {n:arr.length, nMon, nN, nR, nC, nA, nAv, nStub};
 }
 function renderUKBlock(){
   const bb=document.getElementById('ukBlkB'); if(!bb) return;
@@ -1577,7 +1849,7 @@ function renderUKBlock(){
     const st=ukStats(u); if(!st.n&&!st.nStub) return;
     const r=document.createElement('div');
     r.className='ukrow'+(curUKCard===u?' sel':'');
-    const dots=(st.nC?`<i style="background:#c8372d" title="КРИТИЧНО: ${st.nC}"></i>`:'')+(st.nR?`<i style="background:#e08a00" title="РИСК: ${st.nR}"></i>`:'')+(st.nN?`<i style="background:#2e7d32" title="НОРМА: ${st.nN}"></i>`:'');
+    const dots=(st.nAv?`<i style="background:#5a0d0d" title="АВАРИЯ: ${st.nAv}"></i>`:'')+(st.nC?`<i style="background:#c8372d" title="КРИТИЧНО: ${st.nC}"></i>`:'')+(st.nR?`<i style="background:#e08a00" title="РИСК: ${st.nR}"></i>`:'')+(st.nA?`<i style="background:#c9a800" title="ВНИМАНИЕ: ${st.nA}"></i>`:'')+(st.nN?`<i style="background:#2e7d32" title="НОРМА: ${st.nN}"></i>`:'');
     const caret=`<span class="car" title="${skb?'Развернуть внутренние подразделения':'Развернуть объекты: улица → дом'}">${ukBlkExp.has(u)?'▾':'▸'}</span>`;
     r.innerHTML=`${caret}<span class="nm">${esc(u)}<span class="dots">${dots}</span></span><span class="n">${st.n?st.n+' об.':''}${st.nStub?(st.n?'+':'')+st.nStub+' рее.':''}</span>`;
     r.onclick=()=>selectUK(u);
@@ -1748,9 +2020,10 @@ function ukTabReco(uk, el){
       else put(cur,o.a,i,sd.status,'Плановое обследование по СП 497.1325800.2020',t);
     });
   });
-  const bcol={КРИТИЧНО:'crit',РИСК:'risk'};
+  const bcol={АВАРИЯ:'avar',КРИТИЧНО:'crit',РИСК:'risk',ВНИМАНИЕ:'attn',НОРМА:'ok'};
   const block=(m,title)=>{
-    const rows=[...m.values()].sort((a,b)=>(a.level===b.level?a.a.localeCompare(b.a,'ru'):(a.level==='КРИТИЧНО'?-1:1)));
+    const rk={АВАРИЯ:0,КРИТИЧНО:1,РИСК:2,ВНИМАНИЕ:3};
+    const rows=[...m.values()].sort((a,b)=>((rk[a.level]??4)-(rk[b.level]??4))||a.a.localeCompare(b.a,'ru'));
     return `<div class="sect">${title} · объектов: ${rows.length}</div>`+(rows.length
       ?`<table class="rows static"><thead><tr><th style="width:22%">Адрес</th><th style="width:10%">Статус</th><th>Рекомендуемые мероприятия</th><th style="width:32%">Основание (карточка объекта)</th></tr></thead><tbody>${
         rows.map(e=>`<tr><td><a href="#" data-ukobj="${e.i}">${esc(e.a)}</a></td><td><span class="badge b-${bcol[e.level]}">${e.level}</span></td><td style="font-size:12px">${[...e.recs].map(r=>esc(r)).join('<br>')}</td><td style="font-size:11px; color:var(--mut)">${e.reasons.map(r=>esc(r)).join('<br>')}</td></tr>`).join('')}</tbody></table>`
@@ -2158,10 +2431,10 @@ function renderDetail(o){
   if(o.br==='skb'&&curTab==='krplan') curTab='passport'; // «План ремонтов МКД» — только для жилого фонда; у объектов соцкультбыта раздел не применяется
   const sd=statusDetail(o); const st=sd.status;
   const reasonsHtml = sd.reasons.length
-    ? `<div class="reasons">${sd.reasons.map(r=>`<div class="rsn r-${r.level}">${r.level==='crit'?'⛔':'⚠️'} ${esc(r.text)}</div>`).join('')}</div>`
+    ? `<div class="reasons">${sd.reasons.map(r=>`<div class="rsn r-${r.level}">${r.level==='avar'?'🚨':(r.level==='crit'?'⛔':(r.level==='attn'?'🔶':'⚠️'))} ${esc(r.text)}</div>`).join('')}</div>${statLogHtml(o)}`
     : (st?'<div class="reasons"><div class="rsn r-ok">✔ все показатели в пределах превентивных порогов</div></div>':'');
   d.innerHTML=`
-    <h2>${esc(o.a)}<span class="badge ${st?('b-'+{НОРМА:'ok',РИСК:'risk',КРИТИЧНО:'crit'}[st]):'b-card'}">${st||'карточка'}</span>${o.br==='skb'?'':`<button class="tglock" id="tgLock" title="Телефонограммы (доступ для УК и надзорной организации)">🔒</button>`}<button class="tglock" id="inspLock" title="Текущий осмотр — чек-лист (доступ для надзорной организации)">📋</button></h2>
+    <h2>${esc(o.a)}<span class="badge ${st?('b-'+{НОРМА:'ok',ВНИМАНИЕ:'attn',РИСК:'risk',КРИТИЧНО:'crit',АВАРИЯ:'avar'}[st]):'b-card'}">${st||'карточка'}</span>${o.br==='skb'?'':`<button class="tglock" id="tgLock" title="Телефонограммы (доступ для УК и надзорной организации)">🔒</button>`}<button class="tglock" id="inspLock" title="Текущий осмотр — чек-лист (доступ для надзорной организации)">📋</button></h2>
     <div class="rayon">Район: <b style="color:${DCOL[o.d]||'#666'}">${esc(o.d||'не определён')}</b> · ${o.br==='skb'?'Подразделение':'УК'}: <b>${esc(effectiveUK(o))}</b> · г. Норильск</div>
     ${osmLine(o)}
     ${reasonsHtml}
@@ -2500,6 +2773,8 @@ function tabGeoterm(o, el){
       <tr><td>Расчётная (проектная) температура</td><td>${tc!==undefined?('<b>'+tc+' °C</b>'):'—'} <span class="note">(задаётся во вкладке «Паспорт объекта»)</span></td></tr>
       <tr><td>Макс. глубина оттаивания грунтов</td><td>${thawMax?('<b>'+(thawMax.m.gt?'&gt; ':'')+fmt(thawMax.m.z,' м')+'</b> <span class="note">(скв. '+esc(thawMax.w)+', замер '+thawMax.m.date+')</span>'):'—'} <span class="note">— по изотерме 0 °C в профилях замеров</span></td></tr>
       <tr><td>Статус (превентивный)</td><td><b style="color:${SCOL[st]}">${st}</b></td></tr>
+      ${(()=>{ const r=pmResource(o); if(!r) return ''; const yv=r.years;
+        return `<tr><td>Прогноз остаточного ресурса основания</td><td>${yv===null||yv===undefined?'<span class="note">тренд потепления не определён (менее 2 замеров на контрольной глубине) — ресурс не оценивается</span>':(yv>0?('<b>≈ '+yv+' лет</b> до предельной T '+r.tlim+' °C (текущая '+r.tcur+' °C на '+r.h+' м, тренд +'+r.k.toFixed(2)+' °C/год)'):'<b style="color:'+SCOL.КРИТИЧНО+'">исчерпан</b> — текущая T '+r.tcur+' °C ≥ предельной '+r.tlim+' °C')} <span class="note">— линейная модель «климат → грунт» (калибровка — «📊 Свод МКД», п. 5)</span></td></tr>`; })()}
     </table>
     <div class="note">Глубина НГК — по амплитуде годовых колебаний ≤ 0,1 °C в рядах замеров (оценка макета).</div>
     ${thaw.length?`
@@ -3104,6 +3379,12 @@ function tabGeod(o, el){
       <th>Марка</th><th style="width:12%">Замеров</th><th style="width:22%">Период</th><th style="width:18%">Осадка с нач. набл., мм</th><th style="width:16%">Ср. скорость, мм/год</th>
     </tr></thead><tbody>${rows.map(r=>`<tr${r===worst?' style="background:#f7dcd7"':''}><td>${esc(r.m)}</td><td>${r.n}</td><td>${r.d0} … ${r.d1}</td><td><b>${r.osad}</b></td><td>${r.speed!==null?r.speed.toFixed(1):'—'}</td></tr>`).join('')}</tbody></table>
     <div class="note">Максимальная осадка — марка ${esc(worst.m)}: ${worst.osad} мм за период наблюдений. Положительные значения — подъём (вспучивание), отрицательные — осадка.${gmNote}</div>
+    <div class="sect">Контрольные значения (КВ) деформаций · ГОСТ 24846-2019</div>
+    <table class="kv">
+      <tr><td>КВ-1 · ВНИМАНИЕ</td><td>скорость осадки ≥ ${TH.geodAttnSpeed||2} мм/год</td><td>${gm&&gm.maxSpeed>=(TH.geodAttnSpeed||2)&&gm.maxSpeed<TH.geodRiskSpeed?('<b style="color:'+SCOL.ВНИМАНИЕ+'">превышено</b> ('+gm.maxSpeed.toFixed(1)+' мм/год)'):'не сработало'}</td></tr>
+      <tr><td>КВ-2 · РИСК</td><td>скорость осадки ≥ ${TH.geodRiskSpeed} мм/год</td><td>${gm&&gm.maxSpeed>=TH.geodRiskSpeed&&gm.maxSpeed<TH.geodCritSpeed?('<b style="color:'+SCOL.РИСК+'">превышено</b> ('+gm.maxSpeed.toFixed(1)+' мм/год)'):'не сработало'}</td></tr>
+      <tr><td>КВ-3 · КРИТИЧНО</td><td>скорость ≥ ${TH.geodCritSpeed} мм/год или суммарная осадка ≥ ${TH.geodCritTotal} мм</td><td>${gm&&(gm.maxSpeed>=TH.geodCritSpeed||gm.maxOsad>=TH.geodCritTotal)?('<b style="color:'+SCOL.КРИТИЧНО+'">превышено</b>'):'не сработало'}</td></tr>
+    </table>
     <div class="sect">График осадок по маркам во времени</div>
     <canvas class="plot" id="geodChartBuiltin"></canvas>`;
   }
@@ -4403,11 +4684,12 @@ function registryRows(){
     if(fd&&o.d!==fd) return;
     if(fuk&&effectiveUK(o)!==fuk) return;
     const sd=statusDetail(o);
-    if(sd.status!=='РИСК'&&sd.status!=='КРИТИЧНО') return;
+    if(sd.status!=='РИСК'&&sd.status!=='КРИТИЧНО'&&sd.status!=='АВАРИЯ') return;
     const gm=geodMetrics(o);
     rows.push({i, o, sd, gm});
   });
-  rows.sort((a,b)=> (a.sd.status===b.sd.status?0:a.sd.status==='КРИТИЧНО'?-1:1)
+  const sRank={АВАРИЯ:0,КРИТИЧНО:1,РИСК:2};
+  rows.sort((a,b)=> (a.sd.status===b.sd.status?0:(sRank[a.sd.status]??3)-(sRank[b.sd.status]??3))
     || String(a.o.d).localeCompare(String(b.o.d),'ru') || a.o.a.localeCompare(b.o.a,'ru'));
   return rows;
 }
@@ -6378,6 +6660,21 @@ function mtSP(d){ // параметры для теплотехнических 
   return r;
 }
 window.meteoSP=function(){ return mtSP(mtData()); }; // точка интеграции с разделом «РАСЧЕТЫ» карточки
+function mtYearIdx(d){ // индексы промерзания Ω_f и оттаивания Ω_t по годам, °C·сут (по помесячному ряду температуры)
+  const out=[];
+  if(!d||!d.m||!d.m.t) return out;
+  const nowY=new Date().getFullYear();
+  d.years.forEach((y,i)=>{
+    const row=(d.m.t||[])[i]||[];
+    let F=0, T=0, nf=0, nt=0;
+    row.forEach((v,mo)=>{
+      if(v===null||v===undefined) return;
+      if(v<0){ F+=Math.abs(v)*MT_DAYS[mo]; nf++; } else { T+=v*MT_DAYS[mo]; nt++; }
+    });
+    if(nf||nt) out.push({y:+y, F:Math.round(F), T:Math.round(T), part:(+y===nowY)});
+  });
+  return out;
+}
 /* --- автопополнение из открытых метеоархивов (Open-Meteo: ERA5 + оперативный анализ) --- */
 async function mtFetchDaily(url){
   const r=await fetch(url);
@@ -6596,6 +6893,12 @@ function mtRenderView(d){
       .map(r=>'<tr><td style="text-align:left">'+r[0]+'</td><td>'+r[1]+'</td><td><b>'+r[2]+'</b></td></tr>').join('')}
     </table>
     <div style="font-size:11.5px; color:var(--mut); margin-top:4px">* для формул прил. Г требуется температура поверхности грунта; в инженерной методике допускается принимать по температуре воздуха с поправками на покров — уточняется при расчёте в карточке объекта.</div>
+    <div class="sect">Индексы промерзания Ω_f и оттаивания Ω_t по годам, °C·сут</div>
+    <table class="mt-tbl" style="width:auto">
+      <tr><th>Год</th><th>Ω_f</th><th>Ω_t</th><th>Ω_f / норма</th><th>Ω_t / норма</th></tr>
+      ${mtYearIdx(d).slice(-11).map(r=>`<tr${r.part?' style="color:#888"':''}><td>${r.y}${r.part?'*':''}</td><td>${r.F}</td><td>${r.T}</td><td>${sp.OmF?(r.F/sp.OmF).toFixed(2):'—'}</td><td>${sp.OmT?(r.T/sp.OmT).toFixed(2):'—'}</td></tr>`).join('')}
+    </table>
+    <div style="font-size:11.5px; color:var(--mut); margin-top:4px">* текущий (неполный) год. Нормы Ω_f = ${sp.OmF} и Ω_t = ${sp.OmT} °C·сут — средние за ${sp.period}. Отношение &gt; 1 — год теплее (Ω_t) или холоднее (Ω_f) нормы. Индексы применяются в сводной карточке МКД и в сезонном прогнозе глубины оттаивания.</div>
     <button id="mtToCalc" style="margin-top:8px; border:1px solid #2f6fb2; color:#fff; background:#2f6fb2; border-radius:6px; padding:6px 14px; font-size:12.5px; cursor:pointer">Передать в раздел «РАСЧЕТЫ» карточки объекта</button>
     <span id="mtToCalcSt" style="font-size:12px; color:#2e7d32; margin-left:8px"></span>`;
     document.getElementById('mtToCalc').onclick=()=>{
@@ -7122,11 +7425,12 @@ async function wxDutyDoc(x){
     if(!scopePass(o)) return;
     if(o.d!==x.d) return;
     const sd=statusDetail(o);
-    if(sd.status!=='КРИТИЧНО'&&sd.status!=='РИСК') return;
+    if(sd.status!=='КРИТИЧНО'&&sd.status!=='РИСК'&&sd.status!=='АВАРИЯ') return;
     rows.push({o,sd,gm:geodMetrics(o)});
   });
-  rows.sort((a,b)=>(a.sd.status===b.sd.status?0:a.sd.status==='КРИТИЧНО'?-1:1)||a.o.a.localeCompare(b.o.a,'ru'));
-  const crit=rows.filter(r=>r.sd.status==='КРИТИЧНО'), risk=rows.filter(r=>r.sd.status==='РИСК');
+  const sRk={АВАРИЯ:0,КРИТИЧНО:1,РИСК:2};
+  rows.sort((a,b)=>(a.sd.status===b.sd.status?0:(sRk[a.sd.status]??3)-(sRk[b.sd.status]??3))||a.o.a.localeCompare(b.o.a,'ru'));
+  const crit=rows.filter(r=>r.sd.status==='КРИТИЧНО'||r.sd.status==='АВАРИЯ'), risk=rows.filter(r=>r.sd.status==='РИСК');
   const {Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType} = window.docx;
   const T=(t,opts)=>new Paragraph({children:[new TextRun(Object.assign({text:String(t??'—'),font:'Times New Roman',size:22},opts||{}))], spacing:{after:80}});
   const H=(t)=>new Paragraph({children:[new TextRun({text:t,bold:true,font:'Times New Roman',size:26})], spacing:{before:220,after:120}});
