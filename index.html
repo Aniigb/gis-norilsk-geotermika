@@ -6991,14 +6991,13 @@ async function mtAutoupdate(log){
   const packs=[];
   if(start<=archEnd){
     log('загрузка архива ERA5: '+start+' … '+archEnd+' …');
-    let s0=start;
-    while(s0<=archEnd){
-      const d0=new Date(s0+'T00:00:00');
-      let e1=new Date(d0.getTime()+5*365.25*864e5).toISOString().slice(0,10);
+    let s0=start, guard=0;
+    while(s0<=archEnd&&guard++<15){
+      let e1=gsDayAdd(s0,1826);
       if(e1>archEnd) e1=archEnd;
       try{ const dl=await mtFetchDaily('https://archive-api.open-meteo.com/v1/archive?'+L+'&start_date='+s0+'&end_date='+e1+'&daily='+V); if(dl&&dl.time) packs.push(dl); }
       catch(e){ log('архив: пропуск фрагмента '+s0+' ('+e.message+')'); }
-      s0=new Date(new Date(e1+'T00:00:00').getTime()+864e5).toISOString().slice(0,10);
+      s0=gsDayAdd(e1,1);
     }
   }
   log('оперативные данные (последние 14 сут) …');
@@ -8253,23 +8252,26 @@ function gsPairsStat(pairs){ const n=pairs.length; if(!n) return null;
   let r=null; if(n>=3){ const mf=sf/n, mm=sm/n; let s1=0,s2=0,s3=0; pairs.forEach(p=>{ const a=p.f-mf, b=p.m-mm; s1+=a*b; s2+=a*a; s3+=b*b; }); if(s2>0&&s3>0) r=s1/Math.sqrt(s2*s3); }
   return {n:n, bias:(sm-sf)/n, mae:sae/n, rmse:Math.sqrt(sse/n), r:r};
 }
+function gsDayAdd(d,n){ // сдвиг даты 'YYYY-MM-DD' на n суток БЕЗ учёта локального часового пояса (UTC-арифметика)
+  return new Date(Date.UTC(+d.slice(0,4),+d.slice(5,7)-1,+d.slice(8,10))+n*864e5).toISOString().slice(0,10);
+}
 async function gsAmsValidate(log){
   log=log||function(){};
   if(!gsAms.length) return 'реестр местных замеров пуст — добавьте записи вручную или импортируйте CSV';
   const dates=gsAms.map(r=>r.d).sort(), d0=dates[0];
   const now=new Date(), today=now.toISOString().slice(0,10);
-  const archEnd=new Date(now.getTime()-5*864e5).toISOString().slice(0,10);
+  const archEnd=gsDayAdd(today,-5);
   const V='temperature_2m_mean,precipitation_sum,wind_speed_10m_mean,snow_depth_mean';
   const packs=[];
   for(let pi=0;pi<WD_PTS.length;pi++){ const p=WD_PTS[pi];
     const L='latitude='+p.lat+'&longitude='+p.lon+'&timezone=Asia%2FKrasnoyarsk';
-    if(d0<=archEnd){ let s0=d0;
-      while(s0<=archEnd){
-        let e1=new Date(new Date(s0+'T00:00:00').getTime()+2*365.25*864e5).toISOString().slice(0,10); if(e1>archEnd) e1=archEnd;
+    if(d0<=archEnd){ let s0=d0, guard=0;
+      while(s0<=archEnd&&guard++<20){
+        let e1=gsDayAdd(s0,730); if(e1>archEnd) e1=archEnd;
         log('ERA5 · '+p.d+': '+s0+' … '+e1);
         try{ const dl=await mtFetchDaily('https://archive-api.open-meteo.com/v1/archive?'+L+'&start_date='+s0+'&end_date='+e1+'&daily='+V); if(dl&&dl.time) packs.push({pt:p.d, dl:dl}); }
         catch(e){ log('архив: пропуск фрагмента '+s0+' ('+e.message+')'); }
-        s0=new Date(new Date(e1+'T00:00:00').getTime()+864e5).toISOString().slice(0,10);
+        s0=gsDayAdd(e1,1);
       }
     }
     try{ const dl2=await mtFetchDaily('https://api.open-meteo.com/v1/forecast?'+L+'&daily='+V+'&past_days=14&forecast_days=1'); if(dl2&&dl2.time) packs.push({pt:p.d, dl:dl2}); }catch(e){}
@@ -8509,7 +8511,7 @@ setInterval(()=>{ try{ gsJournalSync(); }catch(e){} }, 300000); // далее �
 };
 const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"E5FuITDjDv9LUtjr"};
 const BUILD="3e8b6bb4";
-const BUILD_DATE="14.09.2026 04:11";
+const BUILD_DATE="14.09.2026 04:26";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
