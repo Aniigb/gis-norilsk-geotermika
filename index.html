@@ -465,6 +465,7 @@
         <button data-gs="sensors" title="Действующая измерительная база и контуры её развития: термоскважины, геодезические марки, метеоряд, БПЛА-ЦМР, телеметрия, InSAR">📡 Измерительная база</button>
         <button data-gs="data" title="Режим хранения, объёмы данных, версия базы, резервное копирование, аудит и интеграции">🗄 Данные·аудит·интеграции</button>
         <button data-gs="road" title="Этапы А/Б/В развития системы: доказательность данных → непрерывность → прогноз и интеграция">🗺 Дорожная карта<i class="bdg" id="gsBdgR" style="display:none"></i></button>
+        <button data-gs="ams" title="Городская АМС: реестр местных замеров (температура, осадки, ветер, снеговысота) и валидация метеомодели Open-Meteo/метеоряда rp5 по местным замерам — этап В, C5">🌡 Городская АМС · валидация<i class="bdg" id="gsBdgW" style="display:none"></i></button>
       </div>
     </div>
   </div>
@@ -7074,6 +7075,7 @@ function mtRender(d){
     <label style="font-size:12.5px">с <input id="mtY0" type="number" value="${mtY0}" style="width:64px; padding:3px 5px; border:1px solid var(--line); border-radius:5px"> по <input id="mtY1" type="number" value="${mtY1}" style="width:64px; padding:3px 5px; border:1px solid var(--line); border-radius:5px"></label>
     <label style="font-size:12px; cursor:pointer"><input type="checkbox" id="mtAn"${mtShowAnom?' checked':''}> выделять аномалии</label>
     <button id="mtUpd" style="margin-left:auto; border:1px solid #2e7d32; color:#2e7d32; background:#f2eee4; border-radius:6px; padding:4px 12px; font-size:12.5px; cursor:pointer" title="Дозагрузить недостающие месяцы из открытого метеоархива Open-Meteo (ERA5 + оперативный анализ)">⟳ Обновить из метеоархива</button>
+    <button id="mtAms" style="border:1px solid #2f6fb2; color:#2f6fb2; background:#f2eee4; border-radius:6px; padding:4px 12px; font-size:12.5px; cursor:pointer" title="Городская АМС: реестр местных замеров и валидация метеомодели (Open-Meteo/rp5) по факту — раздел Центра управления ГТМ (этап В, C5)">🌡 АМС · валидация</button>
     <span id="mtUpdSt" style="font-size:11.5px; color:var(--mut)"></span>
   </div>
   <div class="mt-tabs" id="mtTabs">
@@ -7092,6 +7094,7 @@ function mtRender(d){
     ev.target.disabled=false;
     mtRender(mtData());
   };
+  document.getElementById('mtAms').onclick=()=>{ document.getElementById('meteoModal').style.display='none'; if(typeof gsOpen==='function') gsOpen('ams'); };
   document.querySelectorAll('#mtTabs button').forEach(b=>b.onclick=()=>{ mtView=b.dataset.v; mtRender(d); });
   mtRenderView(d);
 }
@@ -7790,11 +7793,12 @@ setTimeout(()=>{ try{
    данные/аудит/интеграции, дорожная карта. Статусы — превентивная шкала
    НОРМА/ВНИМАНИЕ/РИСК/КРИТИЧНО/АВАРИЯ (statusDetail); нормативная рамка:
    СП 25.13330.2020, СП 497.1325800.2020, ГОСТ 25358-2020, ГОСТ 24846-2019, ГОСТ 31937-2024, Правила № 170. */
-const GS_STORE={j:'ngk_gs_j', snap:'ngk_gs_snap', road:'ngk_gs_road', sens:'ngk_gs_sens', out:'ngk_gs_out', ntf:'ngk_gs_ntf', duty:'ngk_gs_duty'};
+const GS_STORE={j:'ngk_gs_j', snap:'ngk_gs_snap', road:'ngk_gs_road', sens:'ngk_gs_sens', out:'ngk_gs_out', ntf:'ngk_gs_ntf', duty:'ngk_gs_duty', ams:'ngk_gs_ams', amsv:'ngk_gs_amsval'};
 function gsLoad(k,dflt){ try{ const v=JSON.parse(localStorage.getItem(k)); return v==null?dflt:v; }catch(e){ return dflt; } }
 function gsSave(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
 let gsJournal=gsLoad(GS_STORE.j,[]), gsRoad=gsLoad(GS_STORE.road,{}), gsSens=gsLoad(GS_STORE.sens,{}), gsCur=null, gsSbOff=false;
 let gsNotify=gsLoad(GS_STORE.ntf,[]), gsDuty=gsLoad(GS_STORE.duty,{name:'',phone:'',tg:'',mail:''});
+let gsAms=gsLoad(GS_STORE.ams,[]), gsAmsVal=gsLoad(GS_STORE.amsv,null);
 const GS_ROAD=[
  {g:'Этап А · 0–3 мес — доказательность данных', items:[
    {k:'A1', t:'Пятиуровневая шкала состояний (НОРМА/ВНИМАНИЕ/РИСК/КРИТИЧНО/АВАРИЯ) и журнал переходов статусов', d0:'готово'},
@@ -7815,7 +7819,7 @@ const GS_ROAD=[
    {k:'C2', t:'ЦМР и гидрология р-на Оганер (5-см цифровая подоснова): модель стоков и зоны возможного затопления', d0:'готово'},
    {k:'C3', t:'Надстройки для службы строительного надзора и жилищного контроля, УЖКХ/УГХ и руководства города', d0:'в работе'},
    {k:'C4', t:'Теплотехническая модель t(x,t) оснований по объектам (СП 25.13330.2020, сценарии климата)', d0:'план'},
-   {k:'C5', t:'Городская АМС и валидация метеомодели (Open-Meteo/rp5) по местным замерам', d0:'план'}]}
+   {k:'C5', t:'Городская АМС и валидация метеомодели (Open-Meteo/rp5) по местным замерам', d0:'в работе'}]}
 ];
 const GS_SENSORS=[
  {k:'s1', t:'Автономные термокосы (LoRa/GPRS)', aim:'ежесуточная термометрия свайных полей объектов РИСК/КРИТИЧНО без выезда бригады', kit:'термокосы с регистраторами и автономным питанием на зимний период — в первую очередь дома со статусом КРИТИЧНО и детские сады/школы', eff:'непрерывные ряды t(z) → ранняя диагностика деградации основания между сезонными циклами замеров'},
@@ -7840,6 +7844,7 @@ function gsBadges(added){
   if(bA){ bA.style.display=actN?'':'none'; bA.textContent=actN; bA.classList.toggle('alarm',critN>0); }
   const bR=document.getElementById('gsBdgR'); const pc=gsRoadPct();
   if(bR){ bR.style.display=pc?'':'none'; bR.textContent=pc+'%'; }
+  const bW=document.getElementById('gsBdgW'); if(bW){ bW.style.display=(typeof gsAms!=='undefined'&&gsAms.length)?'':'none'; bW.textContent=(typeof gsAms!=='undefined')?gsAms.length:0; }
   if(gsCur==='alerts'&&added>0) gsOpen('alerts',true);
 }
 function gsJournalSync(){
@@ -8159,6 +8164,7 @@ function gsViewSensors(){
   ${GS_SENSORS.map(s=>{const v=gsSens[s.k]||defSt[s.k]||'план'; return `<div style="border-top:1px dashed var(--line); padding:7px 0">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b style="font-size:12.5px">${s.t}</b><select class="gsSt" data-gsk="${s.k}">${opts(v)}</select></div>
     <div style="font-size:12px;margin-top:3px"><span class="mut">Цель:</span> ${s.aim}.<br><span class="mut">Состав:</span> ${s.kit}.<br><span class="mut">Эффект:</span> ${s.eff}.</div>
+    ${s.k==='s3'?'<div style="margin-top:5px"><button class="dbtn" data-gsopen="ams">🌡 Открыть модуль «Городская АМС · валидация» →</button></div>':''}
   </div>`;}).join('')}
   </div>`;
 }
@@ -8176,6 +8182,7 @@ function gsViewData(){
     ['Автоматизация планов ремонтов (Power BI регоператора, краткосрочные планы)','реализовано'],
     ['Регламентные документы docx: программа ГТМ, предписания дежурным службам','реализовано'],
     ['PDF-ингест журналов мерзлотного надзора (НЖЭК, ОК-1, СБ ТГ, ЖилКомСервис)','реализовано (пилот)'],
+    ['Городская АМС и валидация метеомодели (Open-Meteo/rp5) по местным замерам','реализовано — раздел «Городская АМС» (этап В, C5)'],
     ['Серверный общий журнал тревог (Supabase) — настраивается в контуре БД','опционально'],
     ['Версионирование замеров и аудит изменений (кто/когда/что)','план — этап А6'],
     ['API-ингест электронных журналов замеров эксплуатации','план — этап Б4'],
@@ -8221,8 +8228,208 @@ function gsViewRoad(){
     </div>`;
   }).join('')}`;
 }
+/* --- 7. Городская АМС и валидация метеомодели (дорожная карта, этап В · C5) --- */
+let gsAmsBusy=false, gsAmsChartPt='Центральный';
+const AMS_PTS=['Центральный','Талнах','Кайеркан'];
+const AMS_PN={t:'t воздуха сут. ср., °C', pr:'осадки сут., мм', w:'ветер сут. ср., м/с', sn:'снеговысота, см'};
+function gsAmsSaveAll(){ gsAms.sort((a,b)=>a.d<b.d?-1:(a.d>b.d?1:0)); if(gsAms.length>8000) gsAms=gsAms.slice(-8000); gsSave(GS_STORE.ams,gsAms); }
+function gsAmsMerge(recs){ const map={}; gsAms.forEach(r=>{ map[r.d+'|'+r.pt]=r; }); let n=0; recs.forEach(r=>{ const k=r.d+'|'+r.pt; if(!map[k]) n++; map[k]=r; }); gsAms=Object.keys(map).map(k=>map[k]); gsAmsSaveAll(); return n; }
+function gsAmsNum(v){ if(v==null||v==='') return null; const x=parseFloat(String(v).replace(',','.')); return isFinite(x)?x:null; }
+function gsAmsParse(text){ const out=[]; let bad=0;
+  String(text||'').split(/\r?\n/).forEach(ln=>{ ln=ln.trim(); if(!ln||/^(дата|date)/i.test(ln)) return;
+    const c=ln.split(/[;,\t]/).map(s=>s.trim()); if(c.length<2){ bad++; return; }
+    let d=c[0]; const m=d.match(/^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})$/); if(m) d=m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){ bad++; return; }
+    const low=(c[1]||'').toLowerCase(); let pt='';
+    if(low.indexOf('талнах')>=0) pt='Талнах'; else if(low.indexOf('кайеркан')>=0) pt='Кайеркан'; else if(low.indexOf('центр')>=0) pt='Центральный';
+    if(!pt){ bad++; return; }
+    out.push({d:d, pt:pt, t:gsAmsNum(c[2]), pr:gsAmsNum(c[3]), w:gsAmsNum(c[4]), sn:gsAmsNum(c[5])});
+  });
+  return {out:out, bad:bad};
+}
+function gsPairsStat(pairs){ const n=pairs.length; if(!n) return null;
+  let sf=0,sm=0; pairs.forEach(p=>{ sf+=p.f; sm+=p.m; });
+  let sae=0,sse=0; pairs.forEach(p=>{ const e=p.m-p.f; sae+=Math.abs(e); sse+=e*e; });
+  let r=null; if(n>=3){ const mf=sf/n, mm=sm/n; let s1=0,s2=0,s3=0; pairs.forEach(p=>{ const a=p.f-mf, b=p.m-mm; s1+=a*b; s2+=a*a; s3+=b*b; }); if(s2>0&&s3>0) r=s1/Math.sqrt(s2*s3); }
+  return {n:n, bias:(sm-sf)/n, mae:sae/n, rmse:Math.sqrt(sse/n), r:r};
+}
+async function gsAmsValidate(log){
+  log=log||function(){};
+  if(!gsAms.length) return 'реестр местных замеров пуст — добавьте записи вручную или импортируйте CSV';
+  const dates=gsAms.map(r=>r.d).sort(), d0=dates[0];
+  const now=new Date(), today=now.toISOString().slice(0,10);
+  const archEnd=new Date(now.getTime()-5*864e5).toISOString().slice(0,10);
+  const V='temperature_2m_mean,precipitation_sum,wind_speed_10m_mean,snow_depth_mean';
+  const packs=[];
+  for(let pi=0;pi<WD_PTS.length;pi++){ const p=WD_PTS[pi];
+    const L='latitude='+p.lat+'&longitude='+p.lon+'&timezone=Asia%2FKrasnoyarsk';
+    if(d0<=archEnd){ let s0=d0;
+      while(s0<=archEnd){
+        let e1=new Date(new Date(s0+'T00:00:00').getTime()+2*365.25*864e5).toISOString().slice(0,10); if(e1>archEnd) e1=archEnd;
+        log('ERA5 · '+p.d+': '+s0+' … '+e1);
+        try{ const dl=await mtFetchDaily('https://archive-api.open-meteo.com/v1/archive?'+L+'&start_date='+s0+'&end_date='+e1+'&daily='+V); if(dl&&dl.time) packs.push({pt:p.d, dl:dl}); }
+        catch(e){ log('архив: пропуск фрагмента '+s0+' ('+e.message+')'); }
+        s0=new Date(new Date(e1+'T00:00:00').getTime()+864e5).toISOString().slice(0,10);
+      }
+    }
+    try{ const dl2=await mtFetchDaily('https://api.open-meteo.com/v1/forecast?'+L+'&daily='+V+'&past_days=14&forecast_days=1'); if(dl2&&dl2.time) packs.push({pt:p.d, dl:dl2}); }catch(e){}
+  }
+  if(!packs.length) return 'метеомодель недоступна (нет связи с Open-Meteo) — попробуйте позже';
+  const M={};
+  packs.forEach(pk=>{ const m=M[pk.pt]||(M[pk.pt]={}); const dl=pk.dl;
+    dl.time.forEach((dt,ix)=>{ m[dt]={t:dl.temperature_2m_mean?dl.temperature_2m_mean[ix]:null, pr:dl.precipitation_sum?dl.precipitation_sum[ix]:null, w:dl.wind_speed_10m_mean?dl.wind_speed_10m_mean[ix]:null, sn:dl.snow_depth_mean?dl.snow_depth_mean[ix]:null}; });
+  });
+  const res={ts:new Date().toISOString(), d0:d0, d1:today, pts:{}, monthly:[]};
+  AMS_PTS.forEach(pt=>{
+    const mm=M[pt]||{}, loc=gsAms.filter(r=>r.pt===pt), by={};
+    ['t','pr','w','sn'].forEach(k=>{
+      const pairs=[]; loc.forEach(r=>{ const mv=mm[r.d]; if(r[k]!=null&&mv&&mv[k]!=null) pairs.push({d:r.d, f:r[k], m:mv[k]}); });
+      by[k]=gsPairsStat(pairs); by[k+'_pairs']=pairs.slice(-90);
+    });
+    res.pts[pt]={n:loc.length, by:by};
+  });
+  const dbs=(typeof mtData==='function')?mtData():null;
+  if(dbs&&dbs.years){ const agg={};
+    gsAms.forEach(r=>{ if(r.t==null) return; const k=r.d.slice(0,7); const a=agg[k]||(agg[k]={s:0,n:0}); a.s+=r.t; a.n++; });
+    Object.keys(agg).sort().forEach(k=>{ const a=agg[k]; if(a.n<8) return;
+      const y=+k.slice(0,4), mo=+k.slice(5,7)-1, yi=dbs.years.indexOf(y); if(yi<0) return;
+      const arr=(dbs.m&&dbs.m.t)?dbs.m.t:[]; const mv=(arr[yi]||[])[mo]; if(mv==null) return;
+      res.monthly.push({k:k, fact:a.s/a.n, base:mv, n:a.n});
+    });
+  }
+  gsAmsVal=res; gsSave(GS_STORE.amsv,res);
+  return null;
+}
+function gsAmsChartSvg(pairs){
+  if(!pairs||pairs.length<2) return '<div class="mut" style="padding:8px 0">Недостаточно совпадающих пар «факт/модель» для графика (нужно ≥ 2 суток).</div>';
+  const W=660,H=176,L=46,R=10,T=12,B=24, pts2=pairs.slice(-60);
+  let mn=Infinity,mx=-Infinity; pts2.forEach(p=>{ mn=Math.min(mn,p.f,p.m); mx=Math.max(mx,p.f,p.m); });
+  if(mn===mx){ mn-=1; mx+=1; } const pad=(mx-mn)*0.08; mn-=pad; mx+=pad;
+  const X=i=>L+(W-L-R)*i/(pts2.length-1), Y=v=>T+(H-T-B)*(1-(v-mn)/(mx-mn));
+  const ln=k=>pts2.map((p,i)=>(i?'L':'M')+X(i).toFixed(1)+','+Y(p[k]).toFixed(1)).join(' ');
+  let g='';
+  for(let i=0;i<=2;i++){ const vv=mn+(mx-mn)*i/2, yy=Y(vv);
+    g+='<line x1="'+L+'" y1="'+yy.toFixed(1)+'" x2="'+(W-R)+'" y2="'+yy.toFixed(1)+'" stroke="#d8d2c4" stroke-width="0.7"/>'
+      +'<text x="'+(L-5)+'" y="'+(yy+3).toFixed(1)+'" font-size="9" fill="#8a8a8a" text-anchor="end">'+vv.toFixed(1)+'</text>';
+  }
+  const step=Math.max(1,Math.ceil(pts2.length/8));
+  pts2.forEach((p,i)=>{ if(i%step) return; g+='<text x="'+X(i).toFixed(1)+'" y="'+(H-7)+'" font-size="9" fill="#8a8a8a" text-anchor="middle">'+p.d.slice(8)+'.'+p.d.slice(5,7)+'</text>'; });
+  g+='<path d="'+ln('f')+'" fill="none" stroke="#2f6fb2" stroke-width="2"/>'
+    +'<path d="'+ln('m')+'" fill="none" stroke="#c8372d" stroke-width="1.6" stroke-dasharray="5 3"/>'
+    +'<rect x="'+(L+6)+'" y="2" width="12" height="3" fill="#2f6fb2"/><text x="'+(L+22)+'" y="7" font-size="10" fill="#333">АМС (факт)</text>'
+    +'<rect x="'+(L+104)+'" y="2" width="12" height="3" fill="#c8372d"/><text x="'+(L+120)+'" y="7" font-size="10" fill="#333">Open-Meteo (модель)</text>';
+  return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%; background:#fbf9f3; border:1px solid var(--line); border-radius:6px">'+g+'</svg>';
+}
+function gsAmsRecs(){
+  const v=gsAmsVal, out=[];
+  if(v){ AMS_PTS.forEach(pt=>{ const P=v.pts[pt]; if(!P||!P.n) return;
+    const st=P.by.t;
+    if(st&&Math.abs(st.bias)>=0.5) out.push('<b>'+pt+'</b>: метеомодель '+(st.bias>0?'завышает':'занижает')+' суточную температуру в среднем на <b>'+Math.abs(st.bias).toFixed(1)+' °C</b> (n='+st.n+' сут.) — рекомендуемая поправка к метеотриггерам и индексам промерзания/оттаивания района: '+(st.bias>0?'−':'+')+Math.abs(st.bias).toFixed(1)+' °C.');
+    const sp=P.by.pr;
+    if(sp&&sp.n>=5){ const sf=P.by.pr_pairs.reduce((s,p)=>s+p.f,0), sm=P.by.pr_pairs.reduce((s,p)=>s+p.m,0);
+      if(sf>1&&(sm/sf>1.3||sm/sf<0.7)) out.push('<b>'+pt+'</b>: сумма осадков модели за период '+(sm/sf>1?'выше':'ниже')+' факта в '+(sm/sf>1?(sm/sf).toFixed(1):(sf/sm).toFixed(1))+' раза — ливневые триггеры дежурного метеоконтроля по району трактовать с поправкой.');
+    }
+    const ss=P.by.sn;
+    if(ss&&ss.n>=5&&Math.abs(ss.bias)>=3) out.push('<b>'+pt+'</b>: снеговысота модели '+(ss.bias>0?'выше':'ниже')+' факта на '+Math.abs(ss.bias).toFixed(0)+' см — учитывать при флаге «снежный покров выше нормативного h_sn» в паспортах ГТМ.');
+  }); }
+  out.push('Модуль готов к приёму потока автономной метеостанции (контур s3 измерительной базы): формат суточной записи — CSV «дата; район; t; осадки; ветер; снег». До подключения АМС реестр ведётся вручную или импортом сводок дежурного; валидация пересчитывается кнопкой и кэшируется локально.');
+  return out;
+}
+function gsAmsCsv(){ const rows=['дата;район;t_возд_сут_ср_C;осадки_сут_мм;ветер_сут_ср_мс;снеговысота_см'];
+  gsAms.forEach(r=>rows.push([r.d,r.pt,r.t==null?'':r.t,r.pr==null?'':r.pr,r.w==null?'':r.w,r.sn==null?'':r.sn].join(';')));
+  return rows.join('\n');
+}
+function gsAmsValCsv(){ if(!gsAmsVal) return ''; const rows=['расчёт от;'+gsAmsVal.ts,'район;параметр;n_суток;bias_модель-факт;MAE;RMSE;r'];
+  AMS_PTS.forEach(pt=>{ const P=gsAmsVal.pts[pt]; if(!P) return;
+    ['t','pr','w','sn'].forEach(k=>{ const s=P.by[k]; if(!s) return;
+      rows.push([pt,AMS_PN[k],s.n,s.bias.toFixed(2),s.mae.toFixed(2),s.rmse.toFixed(2),s.r==null?'':s.r.toFixed(2)].join(';')); });
+  });
+  if(gsAmsVal.monthly.length){ rows.push(''); rows.push('месяц;t_местная_C;t_метеоряд_C;дельта_C;n_суток');
+    gsAmsVal.monthly.forEach(m=>rows.push([m.k,m.fact.toFixed(1),m.base.toFixed(1),(m.base-m.fact).toFixed(1),m.n].join(';'))); }
+  return rows.join('\n');
+}
+function gsViewAms(){
+  const canEdit=['edit','admin'].includes(sessionStorage.getItem('ngk_role'));
+  const cnt={}; AMS_PTS.forEach(p=>cnt[p]=0); gsAms.forEach(r=>{ cnt[r.pt]=(cnt[r.pt]||0)+1; });
+  const dates=gsAms.map(r=>r.d).sort(), per=gsAms.length?(dates[0]+' … '+dates[dates.length-1]):'—';
+  const today=new Date().toISOString().slice(0,10);
+  let html='<h2>🌡 Городская АМС · валидация метеомодели</h2>';
+  html+='<div class="gsCard"><h3>Реестр местных замеров (суточные)</h3>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;font-size:12px;margin-bottom:6px">'
+    +'<span class="gsPill" style="background:#2f6fb2">записей: '+gsAms.length+'</span>'
+    +'<span class="gsPill" style="background:#3d5a73">период: '+per+'</span>'
+    +AMS_PTS.map(p=>'<span class="gsPill" style="background:#63666a">'+p+': '+cnt[p]+'</span>').join('')
+    +'</div>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
+    +(canEdit?'<button class="dbtn" id="gsAmsAdd">＋ Добавить замер</button><button class="dbtn" id="gsAmsImpBtn">⬆ Импорт CSV</button>':'')
+    +(gsAms.length?'<button class="dbtn" id="gsAmsExp">⬇ Экспорт CSV</button>':'')
+    +(canEdit&&gsAms.length?'<button class="dbtn" id="gsAmsClr" style="color:#b3202c">Очистить реестр</button>':'')
+    +'</div>';
+  if(canEdit){
+    html+='<div id="gsAmsForm" style="display:none; margin-top:8px; border-top:1px dashed var(--line); padding-top:8px">'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12px">'
+      +'<label>дата <input type="date" id="gsAmsD" value="'+today+'" style="padding:3px 4px"></label>'
+      +'<label>район <select id="gsAmsP">'+AMS_PTS.map(p=>'<option>'+p+'</option>').join('')+'</select></label>'
+      +'<label>t, °C <input type="number" step="0.1" id="gsAmsT" style="width:64px;padding:3px 4px"></label>'
+      +'<label>осадки, мм <input type="number" step="0.1" min="0" id="gsAmsPr" style="width:64px;padding:3px 4px"></label>'
+      +'<label>ветер, м/с <input type="number" step="0.1" min="0" id="gsAmsW" style="width:64px;padding:3px 4px"></label>'
+      +'<label>снег, см <input type="number" step="1" min="0" id="gsAmsSn" style="width:56px;padding:3px 4px"></label>'
+      +'<button class="dbtn" id="gsAmsSave" style="background:#2e7d32;color:#fff;border-color:#2e7d32">Сохранить</button>'
+      +'<span id="gsAmsSaveSt" class="mut" style="font-size:11px"></span></div>'
+      +'<div class="mut" style="font-size:11px;margin-top:3px">Пустые поля допустимы (например, снег летом). Повторная запись за ту же дату и район заменяет прежнюю.</div></div>'
+      +'<div id="gsAmsImp" style="display:none; margin-top:8px; border-top:1px dashed var(--line); padding-top:8px">'
+      +'<div class="mut" style="font-size:11px;margin-bottom:4px">Формат строк: <code>дата;район;t;осадки;ветер;снег</code> — разделитель «;», «,» или табуляция; дата ДД.ММ.ГГГГ или ГГГГ-ММ-ДД; район — Центральный/Талнах/Кайеркан.</div>'
+      +'<textarea id="gsAmsImpTxt" style="width:100%;height:96px;font-size:11.5px;font-family:monospace;padding:5px" placeholder="14.09.2026;Центральный;-2,5;0,6;4,2;"></textarea>'
+      +'<div style="display:flex;gap:6px;margin-top:5px;align-items:center;flex-wrap:wrap">'
+      +'<input type="file" id="gsAmsImpFile" accept=".csv,.txt" style="font-size:11.5px">'
+      +'<button class="dbtn" id="gsAmsImpRun">Загрузить строки</button>'
+      +'<span id="gsAmsImpSt" class="mut" style="font-size:11px"></span></div></div>';
+  }
+  if(gsAms.length){
+    const recent=gsAms.slice(-12).reverse();
+    html+='<table class="gsTbl" style="margin-top:8px"><tr><th>дата</th><th>район</th><th>t, °C</th><th>осадки</th><th>ветер</th><th>снег</th>'+(canEdit?'<th></th>':'')+'</tr>'
+      +recent.map(r=>'<tr><td>'+r.d+'</td><td>'+r.pt+'</td><td>'+(r.t==null?'—':r.t)+'</td><td>'+(r.pr==null?'—':r.pr)+'</td><td>'+(r.w==null?'—':r.w)+'</td><td>'+(r.sn==null?'—':r.sn)+'</td>'+(canEdit?'<td><button class="dbtn" data-amsdel="'+r.d+'|'+r.pt+'" title="Удалить запись" style="padding:1px 7px">✕</button></td>':'')+'</tr>').join('')
+      +'</table><div class="mut" style="font-size:11px">показаны последние '+recent.length+' из '+gsAms.length+' записей; полный реестр — в экспорте CSV.</div>';
+  } else {
+    html+='<div class="mut" style="margin-top:8px;font-size:12px">Реестр пуст. До подключения автономной метеостанции (контур s3 измерительной базы) ведите суточные сводки дежурного вручную или импортом CSV — валидация метеомодели начнёт работать с первых 3–5 суток записей.</div>';
+  }
+  html+='</div>';
+  const v=gsAmsVal;
+  html+='<div class="gsCard"><h3>Валидация метеомодели по местным замерам</h3>'
+    +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+    +'<button class="dbtn" id="gsAmsValGo" style="background:#2f6fb2;color:#fff;border-color:#2f6fb2">⟳ Пересчитать валидацию</button>'
+    +(v?'<button class="dbtn" id="gsAmsValExp">⬇ Отчёт валидации (CSV)</button>':'')
+    +'<span id="gsAmsValSt" class="mut" style="font-size:11.5px">'+(v?('расчёт от '+new Date(v.ts).toLocaleString('ru-RU')+' · охват '+v.d0+' … '+v.d1):'ещё не выполнялась')+'</span></div>';
+  if(v){
+    AMS_PTS.forEach(pt=>{ const P=v.pts[pt]; if(!P||!P.n) return;
+      html+='<h4 style="margin:10px 0 4px;font-size:12.5px">'+pt+' <span class="mut" style="font-weight:400">(местных суток: '+P.n+')</span></h4>'
+        +'<table class="gsTbl"><tr><th style="text-align:left">параметр</th><th>n</th><th>bias (модель−факт)</th><th>MAE</th><th>RMSE</th><th>r</th></tr>'
+        +['t','pr','w','sn'].map(k=>{ const s=P.by[k];
+          if(!s) return '<tr><td style="text-align:left">'+AMS_PN[k]+'</td><td colspan="5" class="mut">нет совпадающих пар</td></tr>';
+          const bc=Math.abs(s.bias)>=0.5?' style="color:#b3202c;font-weight:700"':'';
+          return '<tr><td style="text-align:left">'+AMS_PN[k]+'</td><td>'+s.n+'</td><td'+bc+'>'+(s.bias>=0?'+':'')+s.bias.toFixed(2)+'</td><td>'+s.mae.toFixed(2)+'</td><td>'+s.rmse.toFixed(2)+'</td><td>'+(s.r==null?'—':s.r.toFixed(2))+'</td></tr>';
+        }).join('')+'</table>';
+    });
+    const P0=v.pts[gsAmsChartPt];
+    html+='<div style="margin-top:10px"><label style="font-size:12px">График «факт/модель» — t воздуха, район: <select id="gsAmsCvPt" style="padding:3px 5px">'
+      +AMS_PTS.map(p=>'<option'+(p===gsAmsChartPt?' selected':'')+'>'+p+'</option>').join('')+'</select></label>'
+      +'<div style="margin-top:5px">'+gsAmsChartSvg(P0&&P0.by?P0.by.t_pairs:null)+'</div></div>';
+    if(v.monthly.length){
+      html+='<h4 style="margin:12px 0 4px;font-size:12.5px">Сверка с метеорядом базы (rp5/ERA5) — помесячная t воздуха</h4>'
+        +'<table class="gsTbl"><tr><th>месяц</th><th>t местная</th><th>t метеоряд</th><th>Δ (ряд−местн.)</th><th>n суток</th></tr>'
+        +v.monthly.map(m=>'<tr><td>'+m.k+'</td><td>'+m.fact.toFixed(1)+'</td><td>'+m.base.toFixed(1)+'</td><td>'+((m.base-m.fact)>=0?'+':'')+(m.base-m.fact).toFixed(1)+'</td><td>'+m.n+'</td></tr>').join('')
+        +'</table>';
+    }
+  } else {
+    html+='<div class="mut" style="margin-top:8px;font-size:12px">Методика: суточные значения Open-Meteo (ERA5 + оперативный анализ) по точкам трёх районов сопоставляются с местными замерами; метрики — bias (систематическое смещение), MAE, RMSE, корреляция r для температуры; помесячная сверка — с метеорядом базы (rp5/ERA5). Результат — калибровочные поправки к метеотриггерам дежурного метеоконтроля и индексам промерзания/оттаивания.</div>';
+  }
+  html+='</div>';
+  html+='<div class="gsCard"><h3>Калибровка и рекомендации</h3><div style="font-size:12px;line-height:1.45">'
+    +gsAmsRecs().map(s=>'<p style="margin:4px 0">'+s+'</p>').join('')+'</div></div>';
+  return html;
+}
 /* --- диспетчер --- */
-const GS_VIEWS={alerts:gsViewAlerts, risk:gsViewRisk, prog:gsViewProg, sensors:gsViewSensors, data:gsViewData, road:gsViewRoad};
+const GS_VIEWS={alerts:gsViewAlerts, risk:gsViewRisk, prog:gsViewProg, sensors:gsViewSensors, data:gsViewData, road:gsViewRoad, ams:gsViewAms};
 function gsBindCommon(){
   const d=document.getElementById('gsModalBody');
   d.querySelectorAll('[data-gsobj]').forEach(el=>el.addEventListener('click',ev=>{ ev.preventDefault(); const i=+el.dataset.gsobj; if(i>=0) select(i); }));
@@ -8235,6 +8442,41 @@ function gsBindCommon(){
   const eC2=document.getElementById('gsExpCsv'); if(eC2) eC2.onclick=gsExpJournalCsv;
   const dE=document.getElementById('gsDutyEdit'); if(dE) dE.onclick=()=>{ const f=document.getElementById('gsDutyForm'); if(f) f.style.display=(f.style.display==='none'||!f.style.display)?'':'none'; };
   const dS=document.getElementById('gsDutySave'); if(dS) dS.onclick=()=>{ gsDuty={name:document.getElementById('gsDutyName').value.trim(), phone:document.getElementById('gsDutyPhone').value.trim(), tg:document.getElementById('gsDutyTg').value.trim().replace(/^@/,''), mail:document.getElementById('gsDutyMail').value.trim()}; gsSave(GS_STORE.duty,gsDuty); gsOpen('alerts',true); };
+  /* --- Городская АМС --- */
+  const aAdd=document.getElementById('gsAmsAdd'); if(aAdd) aAdd.onclick=()=>{ const f=document.getElementById('gsAmsForm'); if(f) f.style.display=(f.style.display==='none'||!f.style.display)?'':'none'; };
+  const aImp=document.getElementById('gsAmsImpBtn'); if(aImp) aImp.onclick=()=>{ const f=document.getElementById('gsAmsImp'); if(f) f.style.display=(f.style.display==='none'||!f.style.display)?'':'none'; };
+  const aSv=document.getElementById('gsAmsSave'); if(aSv) aSv.onclick=()=>{
+    const dd=(document.getElementById('gsAmsD').value||'').trim(), pt=document.getElementById('gsAmsP').value;
+    const st=document.getElementById('gsAmsSaveSt');
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(dd)){ if(st) st.textContent='укажите дату'; return; }
+    const rec={d:dd, pt:pt, t:gsAmsNum(document.getElementById('gsAmsT').value), pr:gsAmsNum(document.getElementById('gsAmsPr').value), w:gsAmsNum(document.getElementById('gsAmsW').value), sn:gsAmsNum(document.getElementById('gsAmsSn').value)};
+    if(rec.t==null&&rec.pr==null&&rec.w==null&&rec.sn==null){ if(st) st.textContent='заполните хотя бы один параметр'; return; }
+    gsAmsMerge([rec]); gsBadges(0); gsOpen('ams',true);
+  };
+  const aFl=document.getElementById('gsAmsImpFile'); if(aFl) aFl.onchange=()=>{ const f=aFl.files&&aFl.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>{ const t=document.getElementById('gsAmsImpTxt'); if(t) t.value=String(rd.result||''); }; rd.readAsText(f,'utf-8'); };
+  const aRun=document.getElementById('gsAmsImpRun'); if(aRun) aRun.onclick=()=>{
+    const tx=document.getElementById('gsAmsImpTxt'); const pr=gsAmsParse(tx?tx.value:'');
+    const st=document.getElementById('gsAmsImpSt');
+    if(!pr.out.length){ if(st) st.textContent='не распознано ни одной строки — проверьте формат'; return; }
+    const n=gsAmsMerge(pr.out);
+    if(st) st.textContent='добавлено: '+n+', обновлено: '+(pr.out.length-n)+(pr.bad?', отклонено строк: '+pr.bad:'');
+    gsBadges(0); setTimeout(()=>gsOpen('ams',true),600);
+  };
+  const aEx=document.getElementById('gsAmsExp'); if(aEx) aEx.onclick=()=>gsDownload('ams_zamery_'+new Date().toISOString().slice(0,10)+'.csv','﻿'+gsAmsCsv());
+  const aClr=document.getElementById('gsAmsClr'); if(aClr) aClr.onclick=()=>{ if(confirm('Очистить реестр местных замеров АМС? Действие необратимо.')){ gsAms=[]; gsSave(GS_STORE.ams,gsAms); gsAmsVal=null; gsSave(GS_STORE.amsv,null); gsBadges(0); gsOpen('ams',true); } };
+  const aVg=document.getElementById('gsAmsValGo'); if(aVg) aVg.onclick=async ()=>{
+    if(gsAmsBusy) return; gsAmsBusy=true; aVg.disabled=true;
+    const st=document.getElementById('gsAmsValSt');
+    try{ const err=await gsAmsValidate(m=>{ if(st) st.textContent=m; });
+      if(st) st.textContent=err||('готово: '+new Date().toLocaleTimeString('ru-RU'));
+      if(!err) gsOpen('ams',true);
+    }catch(e){ if(st) st.textContent='ошибка: '+e.message; }
+    gsAmsBusy=false; const b2=document.getElementById('gsAmsValGo'); if(b2) b2.disabled=false;
+  };
+  const aVe=document.getElementById('gsAmsValExp'); if(aVe) aVe.onclick=()=>gsDownload('ams_validacia_'+new Date().toISOString().slice(0,10)+'.csv','﻿'+gsAmsValCsv());
+  const aCp=document.getElementById('gsAmsCvPt'); if(aCp) aCp.onchange=ev=>{ gsAmsChartPt=ev.target.value; gsOpen('ams',true); };
+  d.querySelectorAll('[data-amsdel]').forEach(el=>el.addEventListener('click',()=>{ gsAms=gsAms.filter(r=>(r.d+'|'+r.pt)!==el.dataset.amsdel); gsAmsSaveAll(); gsBadges(0); gsOpen('ams',true); }));
+  d.querySelectorAll('[data-gsopen]').forEach(el=>el.addEventListener('click',()=>gsOpen(el.dataset.gsopen)));
   d.querySelectorAll('[data-gsack]').forEach(el=>el.addEventListener('click',()=>gsAckNtf(el.dataset.gsack)));
 }
 function gsOpen(key, silent){
@@ -8267,7 +8509,7 @@ setInterval(()=>{ try{ gsJournalSync(); }catch(e){} }, 300000); // далее �
 };
 const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"E5FuITDjDv9LUtjr"};
 const BUILD="3e8b6bb4";
-const BUILD_DATE="14.09.2026 02:37";
+const BUILD_DATE="14.09.2026 04:11";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
