@@ -264,7 +264,7 @@
   #logoutBtn{background:none; border:1px solid #3a4c5c; color:#cdd8e2; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:13px}
   #logoutBtn:hover{background:#1b2c3a}
   body.role-view #uploadBtn, body.role-view .addrow, body.role-view .delrow{display:none !important}
-  body.role-uksc #brSkb, body.role-uksc #ukFilter{display:none !important}
+  body.role-uksc #brSkb, body.role-uksc #ukFilter, body.role-uksc #brSumSkb{display:none !important}
   body:not(.role-edit) #geoPosBtn{display:none}
   body.role-view input.ed, body.role-view select.ed, body.role-view textarea.ed{pointer-events:none; border-color:transparent !important; background:transparent !important}
   /* причины статуса */
@@ -309,32 +309,33 @@
   #wxDutyModal .box{background:var(--panel); width:980px; max-width:96vw; max-height:92vh; margin:3vh auto; border-radius:10px; padding:18px 22px; box-shadow:0 10px 40px rgba(0,0,0,.4); display:flex; flex-direction:column}
   #wxDutyModal h2{font-size:15px; margin-right:30px}
   #wxDutyModal .close{float:right; border:none; background:none; font-size:20px; cursor:pointer; color:var(--mut)}
-  #sumModal{display:none; position:fixed; inset:0; z-index:1140; background:rgba(10,20,30,.62); backdrop-filter:blur(3px)}
-  #sumModal .box{background:var(--panel); width:1020px; max-width:96vw; max-height:92vh; margin:3vh auto; border-radius:14px; overflow:hidden; box-shadow:0 18px 60px rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.28); display:flex; flex-direction:column; animation:sumIn .18s ease-out}
+  #sumModal,#skbModal{display:none; position:fixed; inset:0; z-index:1140; background:rgba(10,20,30,.62); backdrop-filter:blur(3px)}
+  #sumModal .box,#skbModal .box{background:var(--panel); width:1020px; max-width:96vw; max-height:92vh; margin:3vh auto; border-radius:14px; overflow:hidden; box-shadow:0 18px 60px rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.28); display:flex; flex-direction:column; animation:sumIn .18s ease-out}
   @keyframes sumIn{from{transform:translateY(14px) scale(.985); opacity:0} to{transform:none; opacity:1}}
-  #sumModal .sumh{background:linear-gradient(120deg,#0b151d 0%,#16324a 70%,#1f4a66 100%); color:#fff; padding:14px 20px 12px; position:relative; flex:none}
-  #sumModal .sumh h2{font-size:16.5px; margin:0 44px 3px 0}
-  #sumModal .sumh .sub{font-size:11.8px; color:#b8c8d6; line-height:1.45}
-  #sumModal .close{position:absolute; top:12px; right:14px; width:30px; height:30px; border-radius:50%; border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.08); color:#fff; font-size:14px; cursor:pointer; line-height:1}
-  #sumModal .close:hover{background:rgba(255,255,255,.22)}
-  #sumModal .sumb{overflow-y:auto; padding:14px 22px 20px}
-  #sumModal .rayon{font-size:12.5px; color:var(--mut); margin-bottom:10px}
-  #sumModal .resbox{border:1px solid var(--line); border-radius:10px; overflow:hidden; box-shadow:0 2px 10px rgba(20,30,40,.07); margin-bottom:8px}
-  #sumModal .resbox-h{display:flex; justify-content:space-between; align-items:center; background:#dcd5c4; padding:7px 12px; font-size:12px; font-weight:600}
-  #sumModal .resbox-h .cnt{font-weight:400; color:var(--mut); font-size:11.5px}
-  #sumModal .reslist{max-height:340px; overflow-y:auto}
-  #sumModal table.res{width:100%; border-collapse:collapse; font-size:12.3px}
-  #sumModal table.res thead th{position:sticky; top:0; background:#efe9db; padding:6px 10px; text-align:left; font-size:11px; color:var(--mut); text-transform:uppercase; letter-spacing:.4px; border-bottom:1px solid #d2cab8; z-index:1}
-  #sumModal table.res td{padding:5px 10px; border-bottom:1px solid #e8e2d2; vertical-align:middle}
-  #sumModal table.res tbody tr:nth-child(even){background:#faf7ee}
-  #sumModal table.res tbody tr:hover{background:#f1ecdd}
-  #sumModal .rpill{display:inline-block; min-width:64px; text-align:center; padding:2px 8px; border-radius:20px; font-size:11.5px; font-weight:600}
-  #sumModal .rpill.r-g{background:#d8ecd9; color:#2e7d32}
-  #sumModal .rpill.r-y{background:#f7e9a0; color:#6b5300}
-  #sumModal .rpill.r-o{background:#fbe8c8; color:#b05e00}
-  #sumModal .rpill.r-r{background:#f7dcd7; color:#c8372d}
-  #sumModal .rpill.r-x{background:#5a0d0d; color:#fff}
-  #sumModal .rpill.r-n{background:#ece7da; color:var(--mut); font-weight:400}
+  #sumModal .sumh,#skbModal .sumh{background:linear-gradient(120deg,#0b151d 0%,#16324a 70%,#1f4a66 100%); color:#fff; padding:14px 20px 12px; position:relative; flex:none}
+  #skbModal .sumh{background:linear-gradient(120deg,#101a13 0%,#1d4230 70%,#2a5a41 100%)}
+  #sumModal .sumh h2,#skbModal .sumh h2{font-size:16.5px; margin:0 44px 3px 0}
+  #sumModal .sumh .sub,#skbModal .sumh .sub{font-size:11.8px; color:#b8c8d6; line-height:1.45}
+  #sumModal .close,#skbModal .close{position:absolute; top:12px; right:14px; width:30px; height:30px; border-radius:50%; border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.08); color:#fff; font-size:14px; cursor:pointer; line-height:1}
+  #sumModal .close:hover,#skbModal .close:hover{background:rgba(255,255,255,.22)}
+  #sumModal .sumb,#skbModal .sumb{overflow-y:auto; padding:14px 22px 20px}
+  #sumModal .rayon,#skbModal .rayon{font-size:12.5px; color:var(--mut); margin-bottom:10px}
+  #sumModal .resbox,#skbModal .resbox{border:1px solid var(--line); border-radius:10px; overflow:hidden; box-shadow:0 2px 10px rgba(20,30,40,.07); margin-bottom:8px}
+  #sumModal .resbox-h,#skbModal .resbox-h{display:flex; justify-content:space-between; align-items:center; background:#dcd5c4; padding:7px 12px; font-size:12px; font-weight:600}
+  #sumModal .resbox-h .cnt,#skbModal .resbox-h .cnt{font-weight:400; color:var(--mut); font-size:11.5px}
+  #sumModal .reslist,#skbModal .reslist{max-height:340px; overflow-y:auto}
+  #sumModal table.res,#skbModal table.res{width:100%; border-collapse:collapse; font-size:12.3px}
+  #sumModal table.res thead th,#skbModal table.res thead th{position:sticky; top:0; background:#efe9db; padding:6px 10px; text-align:left; font-size:11px; color:var(--mut); text-transform:uppercase; letter-spacing:.4px; border-bottom:1px solid #d2cab8; z-index:1}
+  #sumModal table.res td,#skbModal table.res td{padding:5px 10px; border-bottom:1px solid #e8e2d2; vertical-align:middle}
+  #sumModal table.res tbody tr:nth-child(even),#skbModal table.res tbody tr:nth-child(even){background:#faf7ee}
+  #sumModal table.res tbody tr:hover,#skbModal table.res tbody tr:hover{background:#f1ecdd}
+  #sumModal .rpill,#skbModal .rpill{display:inline-block; min-width:64px; text-align:center; padding:2px 8px; border-radius:20px; font-size:11.5px; font-weight:600}
+  #sumModal .rpill.r-g,#skbModal .rpill.r-g{background:#d8ecd9; color:#2e7d32}
+  #sumModal .rpill.r-y,#skbModal .rpill.r-y{background:#f7e9a0; color:#6b5300}
+  #sumModal .rpill.r-o,#skbModal .rpill.r-o{background:#fbe8c8; color:#b05e00}
+  #sumModal .rpill.r-r,#skbModal .rpill.r-r{background:#f7dcd7; color:#c8372d}
+  #sumModal .rpill.r-x,#skbModal .rpill.r-x{background:#5a0d0d; color:#fff}
+  #sumModal .rpill.r-n,#skbModal .rpill.r-n{background:#ece7da; color:var(--mut); font-weight:400}
   .wxd-duty{border:1px solid var(--line); border-radius:8px; background:#f2eee4; padding:10px 14px; margin-bottom:10px; font-size:12.5px; line-height:1.55}
   .wxd-regBtn{border:1px solid var(--c-centr); background:var(--c-centr); color:#fff; border-radius:6px; padding:6px 14px; font-size:12.5px; cursor:pointer; margin-top:4px}
   .mt-kpi{display:flex; gap:10px; flex-wrap:wrap; margin:8px 0}
@@ -407,6 +408,7 @@
       <button class="brbtn on" id="brMkd">🏢 МКД</button>
       <button class="brbtn" id="brSkb" title="Объекты соцкультбыта Администрации г. Норильска">🏛 Соцкультбыт Адм.</button>
       <button class="brbtn" id="brSum" title="Сводная аналитическая карточка по всему жилому фонду: шкала состояний, контрольные значения, журнал переходов, модель «климат → грунт», прогноз ресурса">📊 Свод МКД</button>
+      <button class="brbtn" id="brSumSkb" style="display:none" title="Сводная аналитическая карточка по фонду объектов соцкультбыта Администрации: состав фонда, шкала состояний, паспорта и геопривязка, план ремонтно-восстановительных работ, климатические индексы, прогноз ресурса">📊 Свод СКБ</button>
     </div>
     <div class="chips" id="chips"></div>
     <select id="ukFilter" style="margin:0 12px 6px; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; width:calc(100% - 24px)"></select>
@@ -507,6 +509,17 @@
       <div class="sub">Жилой фонд г. Норильска в совокупности · шкала состояний, контрольные значения деформаций, журнал переходов, климатические индексы, модель «климат → грунт», прогноз ресурса и сезонного оттаивания</div>
     </div>
     <div class="sumb" id="sumWrap"></div>
+  </div>
+</div>
+
+<div id="skbModal">
+  <div class="box">
+    <div class="sumh">
+      <button class="close" id="skbClose" title="Закрыть (Esc)">✕</button>
+      <h2>📊 Сводная карточка объектов соцкультбыта <span class="badge b-card" style="vertical-align:2px">аналитический модуль</span></h2>
+      <div class="sub">Фонд объектов социально-культурно-бытового назначения Администрации г. Норильска в совокупности · состав фонда, шкала состояний, полнота паспортов и геопривязка, план ремонтно-восстановительных работ, климатические индексы, прогноз ресурса основания</div>
+    </div>
+    <div class="sumb" id="skbWrap"></div>
   </div>
 </div>
 
@@ -1627,6 +1640,8 @@ function setBranch(b){
   curBranch=b;
   document.getElementById('brMkd').className='brbtn'+(b==='mkd'?' on':'');
   document.getElementById('brSkb').className='brbtn'+(b==='skb'?' on':'');
+  document.getElementById('brSum').style.display=(b==='mkd')?'':'none';
+  document.getElementById('brSumSkb').style.display=(b==='skb')?'':'none';
   // фильтр УК → подразделения для ветки соцкультбыта
   const ukSel=document.getElementById('ukFilter');
   const opts=b==='mkd'?UK_LIST.concat(['Не определена']):podrList();
@@ -1753,7 +1768,146 @@ function sumClose(){ const m=document.getElementById('sumModal'); if(m) m.style.
 document.getElementById('brSum').onclick=()=>renderMkdSummary();
 document.getElementById('sumClose').onclick=sumClose;
 document.getElementById('sumModal').addEventListener('click',e=>{ if(e.target.id==='sumModal') sumClose(); });
-document.addEventListener('keydown',e=>{ if(e.key==='Escape') sumClose(); });
+/* ---------- сводная карточка объектов соцкультбыта Администрации (аналог «Свод МКД», адаптирован под фонд СКБ; упоминаний МКД нет) ---------- */
+function skbTypeOf(o){ const nm=((o.pf2&&o.pf2.project)||'');
+  if(!nm) return 'без реквизитов';
+  if(/детск|МБДОУ|МДОУ/i.test(nm)) return 'детские сады';
+  if(/школ|лицей|гимназ|МАОУ|МБОУ/i.test(nm)) return 'школы';
+  return 'иные учреждения'; }
+function renderSkbSummary(){
+  curObj=null; curUKCard=null;
+  document.querySelectorAll('.item,.ukrow').forEach(e=>e.classList.remove('sel'));
+  const BMAP={НОРМА:'ok',ВНИМАНИЕ:'attn',РИСК:'risk',КРИТИЧНО:'crit',АВАРИЯ:'avar'};
+  const ORDER=['НОРМА','ВНИМАНИЕ','РИСК','КРИТИЧНО','АВАРИЯ'];
+  const objs=DB.objects.filter(o=>branchOf(o)==='skb'&&scopePass(o));
+  /* 1. состав фонда */
+  const types={}, byPodr={}, byD2={};
+  objs.forEach(o=>{ const t=skbTypeOf(o); types[t]=(types[t]||0)+1;
+    const p=o.podr||'Администрация г. Норильска'; byPodr[p]=(byPodr[p]||0)+1;
+    byD2[o.d]=(byD2[o.d]||0)+1; });
+  /* 2. шкала состояний */
+  const n={НОРМА:0,ВНИМАНИЕ:0,РИСК:0,КРИТИЧНО:0,АВАРИЯ:0}; let noData=0;
+  const stByD={};
+  objs.forEach(o=>{ const st=statusOf(o);
+    if(!st){ noData++; return; }
+    n[st]++;
+    const dd=stByD[o.d]||(stByD[o.d]={НОРМА:0,ВНИМАНИЕ:0,РИСК:0,КРИТИЧНО:0,АВАРИЯ:0});
+    dd[st]++; });
+  const mon=objs.length-noData, pct=x=>mon?Math.round(100*x/mon):0;
+  /* 3. контрольные значения деформаций */
+  let kv1=0, kv2=0, kv3=0, gmon=0;
+  objs.forEach(o=>{ const gm=geodMetrics(o); if(!gm) return; gmon++;
+    if(gm.maxSpeed>=TH.geodCritSpeed||gm.maxOsad>=TH.geodCritTotal) kv3++;
+    else if(gm.maxSpeed>=TH.geodRiskSpeed) kv2++;
+    else if(gm.maxSpeed>=(TH.geodAttnSpeed||2)) kv1++; });
+  /* 4. паспорта + геопривязка */
+  let pfFull=0, pfName=0, pfNone=0;
+  objs.forEach(o=>{ const k=Object.keys(o.pf2||{}).filter(k2=>String((o.pf2||{})[k2]||'').trim()!=='').length;
+    if(k>=5) pfFull++; else if(k>=1) pfName++; else pfNone++; });
+  const geoQ={}; objs.forEach(o=>{ const p=o.p||'не задана'; geoQ[p]=(geoQ[p]||0)+1; });
+  /* 5. план ремонтно-восстановительных работ */
+  const normA=s=>String(s||'').toLowerCase().replace(/ё/g,'е').replace(/\s+/g,' ').trim();
+  const addrIdx={}; DB.objects.forEach((o,i)=>{ if(branchOf(o)==='skb') addrIdx[normA(o.a)]=i; });
+  const isAddr=a=>/^(ул\.|пр-т|пр-д|пер\.|б-р|пл\.|мкр|ш\.)/i.test(String(a||''));
+  const rvr=((UKPLANS_DEF['Управление общего и дошкольного образования']||{}).capital||[]).filter(r=>isAddr(r.a));
+  const uniq=new Set(rvr.map(r=>normA(r.a)));
+  const matched=[...uniq].filter(k=>addrIdx[k]!==undefined).length;
+  const byY={}; rvr.forEach(r=>{ byY[r.y]=(byY[r.y]||0)+1; });
+  rvr.sort((a,b)=>String(a.y).localeCompare(String(b.y),'ru')||String(a.obj||'').localeCompare(String(b.obj||''),'ru'));
+  /* 6. метео */
+  let sp=null, idx=[], lastFull=null, curYear=null;
+  try{ sp=mtSP(mtData()); idx=mtYearIdx(mtData());
+    lastFull=idx.filter(x=>!x.part).slice(-1)[0]||null;
+    curYear=idx.filter(x=>x.part)[0]||null;
+  }catch(e){}
+  /* 7. ресурс объектов РИСК/КРИТИЧНО/АВАРИЯ */
+  const resRows=[];
+  objs.forEach(o=>{ const st=statusOf(o);
+    if(st!=='РИСК'&&st!=='КРИТИЧНО'&&st!=='АВАРИЯ') return;
+    resRows.push({o, st, r:pmResource(o)}); });
+  resRows.sort((a,b)=>{
+    const ya=(a.r&&a.r.years!==null&&a.r.years!==undefined)?a.r.years:1e9;
+    const yb=(b.r&&b.r.years!==null&&b.r.years!==undefined)?b.r.years:1e9;
+    return ya-yb || a.o.a.localeCompare(b.o.a,'ru');
+  });
+  const rpill=r=>{
+    if(!r||r.years===null||r.years===undefined) return '<span class="rpill r-n">—</span>';
+    const y=r.years;
+    if(y<=0) return '<span class="rpill r-x">исчерпан</span>';
+    if(y<5)  return '<span class="rpill r-r">≈ '+y+' л.</span>';
+    if(y<10) return '<span class="rpill r-o">≈ '+y+' л.</span>';
+    if(y<20) return '<span class="rpill r-y">≈ '+y+' л.</span>';
+    return '<span class="rpill r-g">≈ '+y+' л.</span>';
+  };
+  const tOrder=['детские сады','школы','иные учреждения','без реквизитов'];
+  const d=document.getElementById('skbWrap');
+  d.innerHTML=`
+  <div class="rayon" style="margin-top:2px">Фонд объектов соцкультбыта Администрации г. Норильска в совокупности: объектов <b>${objs.length}</b>, под геотехническим мониторингом <b>${mon}</b> · сформировано ${new Date().toLocaleString('ru-RU')}</div>
+  <div class="normref">Аналитическая сводка по фонду объектов социально-культурно-бытового назначения: состав фонда, пятиуровневая шкала состояний (НОРМА / ВНИМАНИЕ / РИСК / КРИТИЧНО / АВАРИЯ), контрольные значения деформаций, полнота паспортов и геопривязки, пообъектный план ремонтно-восстановительных работ, климатические индексы, прогноз остаточного ресурса основания. Нормативная база: СП 118.13330.2022, СП 25.13330.2020, СП 497.1325800.2020, ГОСТ 31937-2024, ГОСТ 24846-2019, ГОСТ 25358-2020; постановление Администрации г. Норильска от 19.03.2026 № 82 (Прил. 3 к муниц. программе № 590).</div>
+
+  <div class="sect">1. Состав фонда</div>
+  <table class="kv">${tOrder.filter(t=>types[t]).map(t=>`<tr><td>${t==='без реквизитов'?'<span style="color:var(--mut)">без реквизитов (наименование не указано)</span>':('<b>'+t+'</b>')}</td><td><b>${types[t]}</b> (${Math.round(100*types[t]/objs.length)} %)</td></tr>`).join('')}</table>
+  <table class="rows static"><thead><tr><th style="text-align:left">Подразделение Администрации</th><th style="width:110px">Объектов</th></tr></thead>
+  <tbody>${Object.entries(byPodr).sort((a,b)=>b[1]-a[1]).map(([p,c])=>`<tr><td style="text-align:left">${esc(p)}</td><td><b>${c}</b></td></tr>`).join('')}</tbody></table>
+  <table class="rows static"><thead><tr><th style="text-align:left">Район</th><th style="width:110px">Объектов</th></tr></thead>
+  <tbody>${Object.entries(byD2).sort((a,b)=>b[1]-a[1]).map(([dd,c])=>`<tr><td style="text-align:left"><b style="color:${DCOL[dd]||'#666'}">${esc(dd)}</b></td><td><b>${c}</b></td></tr>`).join('')}</tbody></table>
+
+  <div class="sect">2. Распределение по шкале состояний (объекты под мониторингом)</div>
+  <table class="kv">${ORDER.map(s=>`<tr><td><b style="color:${SCOL[s]}">${s}</b></td><td><b>${n[s]}</b> (${pct(n[s])} % от мониторируемых)<div style="height:7px; border-radius:3px; background:#e7e2d6; margin-top:3px"><div style="height:7px; border-radius:3px; width:${pct(n[s])}%; background:${SCOL[s]}"></div></div></td></tr>`).join('')}
+  <tr><td style="color:var(--mut)">без замеров (скважины/марки не заведены)</td><td>${noData}</td></tr></table>
+  ${Object.keys(stByD).length?`<table class="rows static"><thead><tr><th style="text-align:left">Район</th>${ORDER.map(s=>`<th>${s}</th>`).join('')}</tr></thead>
+  <tbody>${Object.entries(stByD).sort((a,b)=>a[0].localeCompare(b[0],'ru')).map(([dd,v])=>`<tr><td style="text-align:left"><b style="color:${DCOL[dd]||'#666'}">${esc(dd)}</b></td>${ORDER.map(s=>`<td>${v[s]||''}</td>`).join('')}</tr>`).join('')}</tbody></table>`:''}
+  <div class="note">Охват геотехническим мониторингом: <b>${mon}</b> из <b>${objs.length}</b> объектов фонда. Шкала состояний идентична принятой для городского фонда; по мере заведения скважин и геодезических марок раздел наполняется автоматически.</div>
+
+  <div class="sect">3. Контрольные значения (КВ) деформаций · ГОСТ 24846-2019</div>
+  <table class="kv">
+    <tr><td>Геодезический мониторинг (марки) ведётся</td><td><b>${gmon}</b> объектов</td></tr>
+    <tr><td>КВ-1 (ВНИМАНИЕ): скорость осадки ≥ ${TH.geodAttnSpeed||2} мм/год</td><td><b>${kv1}</b> объектов</td></tr>
+    <tr><td>КВ-2 (РИСК): скорость осадки ≥ ${TH.geodRiskSpeed} мм/год</td><td><b style="color:${SCOL.РИСК}">${kv2}</b> объектов</td></tr>
+    <tr><td>КВ-3 (КРИТИЧНО): скорость ≥ ${TH.geodCritSpeed} мм/год или суммарная осадка ≥ ${TH.geodCritTotal} мм</td><td><b style="color:${SCOL.КРИТИЧНО}">${kv3}</b> объектов</td></tr>
+  </table>
+
+  <div class="sect">4. Полнота паспортов и качество геопривязки</div>
+  <table class="kv">
+    <tr><td>Паспорт с архитектурно-строительными характеристиками (≥ 5 полей)</td><td><b>${pfFull}</b></td></tr>
+    <tr><td>Указано только наименование учреждения</td><td><b>${pfName}</b></td></tr>
+    <tr><td>Паспорт не заполнен</td><td><b style="color:${pfNone?SCOL.РИСК:'inherit'}">${pfNone}</b></td></tr>
+  </table>
+  <table class="rows static"><thead><tr><th style="text-align:left">Источник координат</th><th style="width:110px">Объектов</th></tr></thead>
+  <tbody>${Object.entries(geoQ).sort((a,b)=>b[1]-a[1]).map(([g,c])=>`<tr><td style="text-align:left">${esc(g)}</td><td><b>${c}</b></td></tr>`).join('')}</tbody></table>
+  <div class="note">Заполнение паспортов — через карточку объекта (вкладка «Паспорт объекта») либо шаблонную загрузку; привязка координат классов «точный» и «точный (офиц. данные)» является рабочей для картографических слоёв.</div>
+
+  <div class="sect">5. Пообъектный план ремонтно-восстановительных работ · пост. Адм. от 19.03.2026 № 82, Прил. 3</div>
+  <table class="kv">
+    <tr><td>Объектов в пообъектном перечне (детские сады)</td><td><b>${uniq.size}</b> · в базе геопривязано <b>${matched}</b></td></tr>
+    <tr><td>Мероприятий по годам</td><td>${Object.entries(byY).sort((a,b)=>a[0].localeCompare(b[0])).map(([y,c])=>`<b>${y}</b> — ${c}`).join(' · ')||'—'}</td></tr>
+  </table>
+  ${rvr.length?`<div class="resbox"><div class="resbox-h"><span>🏫 Перечень РВР по объектам</span><span class="cnt">${rvr.length} мероприятий · клик по адресу открывает карточку объекта</span></div><div class="reslist"><table class="res"><thead><tr><th style="width:56px">Год</th><th style="width:210px">Объект</th><th style="width:190px">Адрес</th><th>Мероприятия</th></tr></thead><tbody>${rvr.map(r=>{ const k=normA(r.a), has=addrIdx[k]!==undefined; return `<tr><td>${esc(String(r.y))}</td><td>${esc(r.obj||'')}</td><td>${has?`<a href="#" data-skbobj="${esc(k)}">${esc(r.a)}</a>`:esc(r.a)}</td><td style="font-size:11.8px">${esc(r.w)}${r.n?` <span class="note">(${esc(r.n)})</span>`:''}</td></tr>`; }).join('')}</tbody></table></div></div>`:'<div class="note">Пообъектный перечень не загружен.</div>'}
+  <div class="note">Источник: приложение № 3 к постановлению Администрации г. Норильска от 19.03.2026 № 82 (муниц. программа № 590 от 07.12.2016); заказчик работ — МКУ «УКРиС». Программные позиции без конкретного адреса ведутся в карточках подразделений.</div>
+
+  <div class="sect">6. Климатические индексы территории (метеоряд${sp?', норма '+sp.period:''})</div>
+  <table class="kv">
+    <tr><td>Индекс промерзания Ω_f: норма / последний полный год</td><td>${sp?('<b>'+sp.OmF+'</b> °C·сут'):'—'}${lastFull?(' / <b>'+lastFull.F+'</b> ('+lastFull.y+')'):''}</td></tr>
+    <tr><td>Индекс оттаивания Ω_t: норма / последний полный год</td><td>${sp?('<b>'+sp.OmT+'</b> °C·сут'):'—'}${lastFull?(' / <b>'+lastFull.T+'</b> ('+lastFull.y+')'):''}</td></tr>
+    <tr><td>Текущий (неполный) год</td><td>${curYear?('Ω_f <b>'+curYear.F+'</b> · Ω_t <b>'+curYear.T+'</b> °C·сут'):'—'}</td></tr>
+  </table>
+  <div class="note">Индексы едины для всей территории города и используются в модели сезонного оттаивания при постановке объектов на мониторинг.</div>
+
+  <div class="sect">7. Остаточный ресурс объектов РИСК / КРИТИЧНО / АВАРИЯ</div>
+  ${resRows.length?`<div class="resbox"><div class="resbox-h"><span>🏚 Реестр по приоритету ресурса</span><span class="cnt">${resRows.length} объектов · минимальный ресурс — сверху · клик по адресу открывает карточку</span></div><div class="reslist"><table class="res"><thead><tr><th>Адрес</th><th style="width:118px">Статус</th><th style="width:150px">T на контр. глубине, °C</th><th style="width:118px">Тренд, °C/год</th><th style="width:120px">Ресурс</th></tr></thead><tbody>${resRows.map(x=>`<tr><td><a href="#" data-skbaddr="${esc(x.o.a)}">${esc(x.o.a)}</a></td><td><span class="badge b-${BMAP[x.st]}">${x.st}</span></td><td>${x.r?x.r.tcur:'—'}</td><td>${x.r&&x.r.k!==null&&x.r.k!==undefined?((x.r.k>0?'+':'')+x.r.k.toFixed(2)):'—'}</td><td>${rpill(x.r)}</td></tr>`).join('')}</tbody></table></div></div>
+  <div class="note">Ресурс — расчётное число лет до достижения предельной температуры основания при сохранении текущего тренда потепления на глубине ${TH.trendDepth} м. Клик по адресу открывает карточку объекта.</div>`:'<div class="note">Объектов со статусами РИСК / КРИТИЧНО / АВАРИЯ в фонде соцкультбыта нет. Раздел заполняется автоматически по мере постановки объектов на геотермический мониторинг.</div>'}
+
+  <div class="note">Модуль является аналитической сводкой по фонду объектов соцкультбыта в совокупности и не заменяет карточки отдельных объектов. Переход к карточке — кликом по адресу в разделах 5 и 7 либо из списка слева.</div>`;
+  d.querySelectorAll('a[data-skbobj]').forEach(a=>{ a.onclick=e=>{ e.preventDefault(); const i=DB.objects.findIndex(o=>branchOf(o)==='skb'&&String(o.a||'').toLowerCase().replace(/ё/g,'е').replace(/\s+/g,' ').trim()===a.dataset.skbobj); skbClose(); if(i>=0) select(i,true); }; });
+  d.querySelectorAll('a[data-skbaddr]').forEach(a=>{ a.onclick=e=>{ e.preventDefault(); const i=DB.objects.findIndex(o=>o.a===a.dataset.skbaddr); skbClose(); if(i>=0) select(i,true); }; });
+  document.getElementById('skbModal').style.display='block';
+  document.getElementById('skbWrap').scrollTop=0;
+}
+function skbClose(){ const m=document.getElementById('skbModal'); if(m) m.style.display='none'; }
+document.getElementById('brSumSkb').onclick=()=>renderSkbSummary();
+document.getElementById('skbClose').onclick=skbClose;
+document.getElementById('skbModal').addEventListener('click',e=>{ if(e.target.id==='skbModal') skbClose(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ sumClose(); skbClose(); } });
 const openStreets=new Set();
 function streetOf(o){ let s=o.a;
   const mc=s.match(/^(.*?),\s*д\.\s*/);              // канонический шаблон «ул. …, д. …»
@@ -7580,7 +7734,7 @@ setTimeout(()=>{ try{
 };
 const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"4WYeKU9t6vhlSW4y"};
 const BUILD="8c06d503";
-const BUILD_DATE="11.09.2026 21:52";
+const BUILD_DATE="13.09.2026 12:13";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
