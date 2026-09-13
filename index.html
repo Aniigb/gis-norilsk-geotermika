@@ -288,6 +288,42 @@
   #legalModal h2{font-size:16px; margin:0 0 8px}
   #legalModal h3{font-size:13.5px; margin:14px 0 4px}
   #legalModal p{margin:4px 0}
+  /* ---------- Центр управления ГТМ ---------- */
+  @keyframes gsBlink{0%,100%{background:#c8372d; color:#fff}50%{background:#7e1f18; color:#ffd9d4}}
+  #gsBox{margin:8px 10px 10px; border:1px solid #b3a8c9; border-top:3px solid #5b4a7a; border-radius:8px; background:linear-gradient(180deg,#e9e4f0,#efeadd 60%); overflow:hidden; flex:none}
+  #gsHead{padding:7px 10px 6px; font-size:12px; font-weight:700; color:#fff; letter-spacing:.3px; border-bottom:1px solid #cfc4e2; background:linear-gradient(90deg,#16283a 0%,#3d5a73 55%,#5b4a7a 100%)}
+  #gsHead small{display:block; font-weight:400; font-size:10px; color:#d3e0ec; letter-spacing:0; margin-top:2px}
+  #gsMenu{display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:7px 8px 8px}
+  #gsMenu button{font-size:11px; line-height:1.25; padding:6px; border:1px solid #bfb2d6; background:#f5f2f9; color:#413266; border-radius:6px; cursor:pointer; text-align:left; position:relative; font-family:inherit}
+  #gsMenu button:hover{border-color:#5b4a7a; background:#ece5f6}
+  #gsMenu button.on{background:#5b4a7a; color:#fff; border-color:#5b4a7a}
+  #gsMenu .bdg{position:absolute; top:3px; right:4px; min-width:15px; padding:0 3px; border-radius:8px; background:#8a7ab0; color:#fff; font-size:9.5px; font-weight:700; text-align:center}
+  #gsMenu .bdg.alarm{animation:gsBlink 1.2s infinite}
+  .gsCard{border:1px solid var(--line); border-left:3px solid #5b4a7a; border-radius:6px; background:#fff; padding:10px 12px; margin-bottom:10px}
+  .gsCard h3{margin:0 0 6px; font-size:13px; color:#3d2f5e}
+  .gsCard .mut{color:var(--mut); font-size:11.5px}
+  .gsTbl{width:100%; border-collapse:collapse; font-size:12px}
+  .gsTbl th{background:#eee8da; padding:4px 6px; text-align:left; border:1px solid var(--line); font-size:11px; white-space:nowrap}
+  .gsTbl td{padding:4px 6px; border:1px solid var(--line); vertical-align:top}
+  .gsTbl tr:hover td{background:#faf7f0}
+  .gsObjChip{display:inline-block; margin:1px; padding:1px 6px; border-radius:8px; background:rgba(255,255,255,.22); border:1px solid rgba(255,255,255,.55); font-size:9.5px; cursor:pointer; color:#fff; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle}
+  .gsObjChip:hover{background:rgba(255,255,255,.45)}
+  .gsBar{height:7px; border-radius:4px; background:#e5e0d5; overflow:hidden; margin:4px 0}
+  .gsBar i{display:block; height:100%; background:#5b4a7a}
+  .gsPill{display:inline-block; padding:1px 8px; border-radius:9px; font-size:10.5px; font-weight:700; color:#fff}
+  .gsSt{padding:2px 6px; border:1px solid var(--line); border-radius:4px; font-size:11.5px; background:#f2eee4; font-family:inherit}
+  #gsModal{display:none; position:fixed; inset:0; z-index:1250; background:rgba(11,21,29,.62)}
+  #gsModal .box{background:var(--panel); width:1080px; max-width:96vw; max-height:92vh; margin:3vh auto; border-radius:10px; padding:18px 22px; box-shadow:0 10px 40px rgba(0,0,0,.42); display:flex; flex-direction:column; border-top:4px solid #5b4a7a; position:relative}
+  #gsModal .close{position:absolute; top:12px; right:14px; border:none; background:none; font-size:22px; cursor:pointer; color:var(--mut); line-height:1}
+  #gsModal .close:hover{color:var(--crit)}
+  #gsModal .box>h2{font-size:16px; margin:0 40px 0 0}
+  #gsModalBody{overflow-y:auto; -webkit-overflow-scrolling:touch; margin-top:8px; padding-right:2px}
+  #gsModalBody .gsCard{overflow-x:auto; -webkit-overflow-scrolling:touch}
+  #gsModalBody .gsCard .gsTbl{min-width:0}
+  @media (max-width:760px){
+    #gsModal .box{width:100vw; max-width:100vw; height:100vh; max-height:100vh; margin:0; border-radius:0; padding:14px 12px}
+    #gsModalBody .gsCard .gsTbl{min-width:540px}
+  }
   .footline{font-size:10.6px; color:#4e5763; border-top:1px solid #b3a98f; padding:6px 12px; line-height:1.5; background:#cfc7b0}
   .footline a{color:#4e5763}
   #pageFoot{grid-column:1/4; order:4; text-align:center}
@@ -420,6 +456,17 @@
     </div>
     <input id="search" placeholder="Поиск по адресу…">
     <div id="list"></div>
+    <div id="gsBox">
+      <div id="gsHead">◉ ЦЕНТР УПРАВЛЕНИЯ ГТМ<small>контур раннего предупреждения и развития геотехнического мониторинга зданий · каждый раздел открывается отдельным окном</small></div>
+      <div id="gsMenu">
+        <button data-gs="alerts" title="Журнал тревог и эскалация при переходе объектов через контрольные критерии превентивной шкалы (НОРМА/ВНИМАНИЕ/РИСК/КРИТИЧНО/АВАРИЯ): СП 25.13330.2020, СП 497.1325800.2020, ГОСТ 31937-2024, ГОСТ 24846-2019">⚠ Тревоги и эскалация<i class="bdg" id="gsBdgA" style="display:none"></i></button>
+        <button data-gs="risk" title="Матрица рисков 5×5 (вероятность × тяжесть последствий по категории здания) и скоринг объектов 0–100">🎯 Матрица рисков и скоринг</button>
+        <button data-gs="prog" title="Тренды температуры на глубине НГК с 95% доверительным интервалом, прогноз выхода на предельную температуру, остаточный ресурс, индексы промерзания/оттаивания">📈 Прогноз состояния ММГ</button>
+        <button data-gs="sensors" title="Действующая измерительная база и контуры её развития: термоскважины, геодезические марки, метеоряд, БПЛА-ЦМР, телеметрия, InSAR">📡 Измерительная база</button>
+        <button data-gs="data" title="Режим хранения, объёмы данных, версия базы, резервное копирование, аудит и интеграции">🗄 Данные·аудит·интеграции</button>
+        <button data-gs="road" title="Этапы А/Б/В развития системы: доказательность данных → непрерывность → прогноз и интеграция">🗺 Дорожная карта<i class="bdg" id="gsBdgR" style="display:none"></i></button>
+      </div>
+    </div>
   </div>
   <div id="map">
     <div class="legend">
@@ -493,11 +540,18 @@
   </div>
 </div>
 
+<div id="gsModal" title="Раздел Центра управления ГТМ">
+  <div class="box">
+    <button class="close" id="gsClose">✕</button>
+    <h2 id="gsModalTitle"></h2>
+    <div id="gsModalBody"></div>
+  </div>
+</div>
+
 <div id="wxDutyModal">
   <div class="box">
     <button class="close" id="wxDutyClose">✕</button>
-    <h2>🛡 Дежурный метеоконтроль · г. Норильск (городская среда: МКД и объекты соцкультбыта)</h2>
-    <div id="wxDutyWrap" style="overflow:auto">Загрузка…</div>
+    <h2>🛡 Дежурный метеоконтроль · г. Норильск (городская среда: МКД и объекты соцкультбыта)</h2>    <div id="wxDutyWrap" style="overflow:auto">Загрузка…</div>
   </div>
 </div>
 
@@ -7730,10 +7784,490 @@ setTimeout(()=>{ try{
   mtAutoupdate().then(()=>{}).catch(()=>{});
 }catch(e){} }, 5000); // тихое ежедневное пополнение метеоряда при открытии приложения
 
+/* ================== ◉ ЦЕНТР УПРАВЛЕНИЯ ГТМ ==================
+   Контур раннего предупреждения и развития геотехнического мониторинга зданий г. Норильска.
+   Журнал тревог, матрица рисков 5×5, прогноз состояния ММГ, измерительная база,
+   данные/аудит/интеграции, дорожная карта. Статусы — превентивная шкала
+   НОРМА/ВНИМАНИЕ/РИСК/КРИТИЧНО/АВАРИЯ (statusDetail); нормативная рамка:
+   СП 25.13330.2020, СП 497.1325800.2020, ГОСТ 25358-2020, ГОСТ 24846-2019, ГОСТ 31937-2024, Правила № 170. */
+const GS_STORE={j:'ngk_gs_j', snap:'ngk_gs_snap', road:'ngk_gs_road', sens:'ngk_gs_sens', out:'ngk_gs_out', ntf:'ngk_gs_ntf', duty:'ngk_gs_duty'};
+function gsLoad(k,dflt){ try{ const v=JSON.parse(localStorage.getItem(k)); return v==null?dflt:v; }catch(e){ return dflt; } }
+function gsSave(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+let gsJournal=gsLoad(GS_STORE.j,[]), gsRoad=gsLoad(GS_STORE.road,{}), gsSens=gsLoad(GS_STORE.sens,{}), gsCur=null, gsSbOff=false;
+let gsNotify=gsLoad(GS_STORE.ntf,[]), gsDuty=gsLoad(GS_STORE.duty,{name:'',phone:'',tg:'',mail:''});
+const GS_ROAD=[
+ {g:'Этап А · 0–3 мес — доказательность данных', items:[
+   {k:'A1', t:'Пятиуровневая шкала состояний (НОРМА/ВНИМАНИЕ/РИСК/КРИТИЧНО/АВАРИЯ) и журнал переходов статусов', d0:'готово'},
+   {k:'A2', t:'Тренды температуры на глубине НГК с 95% ДИ и прогноз выхода на предельную температуру по каждой скважине', d0:'готово'},
+   {k:'A3', t:'Глубина оттаивания грунтов по профилям замеров (ГОСТ 25358-2020, прил. Д) — в карточках объектов', d0:'готово'},
+   {k:'A4', t:'Паспорта объектов ГТМ и автовыгрузка программы ГТМ одним документом (docx) по ГОСТ/СП', d0:'готово'},
+   {k:'A5', t:'Центр управления ГТМ: тревоги и эскалация, скоринг рисков, прогноз, дорожная карта', d0:'готово'},
+   {k:'A6', t:'Версионирование замеров и аудит изменений в общем реестре (кто/когда/что — неизменяемая история)', d0:'план'}]},
+ {g:'Этап Б · 3–9 мес — непрерывность данных', items:[
+   {k:'B1', t:'Дежурный метеоконтроль городской среды (ливни/снегопады/гололёд/сосульки) с авто-предписаниями дежурным службам', d0:'готово'},
+   {k:'B2', t:'Уведомления дежурному при тревогах РИСК/КРИТИЧНО/АВАРИЯ (шлюз WhatsApp/Telegram/e-mail + квитирование) — Центр управления ГТМ', d0:'готово'},
+   {k:'B3', t:'PDF-ингест журналов мерзлотного надзора (НЖЭК, ОК-1, СБ ТГ, архив ЖилКомСервис) — парсер в модуле «Загрузка данных»', d0:'готово'},
+   {k:'B4', t:'API-ингест электронных журналов замеров эксплуатации (термометрия/геодезия) без ручного ввода', d0:'план'},
+   {k:'B5', t:'Автономные термокосы (LoRa/GPRS) на контрольных зданиях — ежесуточная термометрия свайных полей', d0:'план'},
+   {k:'B6', t:'InSAR-пилот по архивам Sentinel-1: деформации застройки между циклами геодезии', d0:'план'}]},
+ {g:'Этап В · 9–24 мес — прогноз и интеграция', items:[
+   {k:'C1', t:'Физическая модель «климат → грунт»: калибровка по архиву скважин, остаточный ресурс, сезонный прогноз оттаивания', d0:'готово'},
+   {k:'C2', t:'ЦМР и гидрология р-на Оганер (5-см цифровая подоснова): модель стоков и зоны возможного затопления', d0:'готово'},
+   {k:'C3', t:'Надстройки для службы строительного надзора и жилищного контроля, УЖКХ/УГХ и руководства города', d0:'в работе'},
+   {k:'C4', t:'Теплотехническая модель t(x,t) оснований по объектам (СП 25.13330.2020, сценарии климата)', d0:'план'},
+   {k:'C5', t:'Городская АМС и валидация метеомодели (Open-Meteo/rp5) по местным замерам', d0:'план'}]}
+];
+const GS_SENSORS=[
+ {k:'s1', t:'Автономные термокосы (LoRa/GPRS)', aim:'ежесуточная термометрия свайных полей объектов РИСК/КРИТИЧНО без выезда бригады', kit:'термокосы с регистраторами и автономным питанием на зимний период — в первую очередь дома со статусом КРИТИЧНО и детские сады/школы', eff:'непрерывные ряды t(z) → ранняя диагностика деградации основания между сезонными циклами замеров'},
+ {k:'s2', t:'API-ингест журналов мерзлотного надзора', aim:'автозагрузка замеров из электронных журналов эксплуатации (НЖЭК, ОК-1, СБ ТГ, ЖилКомСервис)', kit:'парсер форматов + сверка версий (PDF-ингест уже действует в модуле «Загрузка данных»), запись в общий реестр', eff:'актуальность статусов без ручного ввода; устранение ошибок транскрипции'},
+ {k:'s3', t:'Городская АМС', aim:'местные замеры температуры воздуха, осадков, ветра, снеговысоты в черте города', kit:'автоматическая метеостанция с передачей в общий реестр; валидация Open-Meteo/rp5 по факту', eff:'калибровка метеотриггеров дежурного метеоконтроля и индексов промерзания/оттаивания по местным данным'},
+ {k:'s4', t:'БПЛА-ЦМР (ежегодная фотограмметрия)', aim:'цифровая модель рельефа придомовых территорий и контроль подтопления/эрозии', kit:'ортофотопланы + ЦМР 5 см; пилот р-н Оганер действует (периметры объектов, модель стоков, зоны затопления); расширение на Центральный, Талнах, Кайеркан', eff:'точный расчёт подтопления свайных полей талыми и ливневыми водами; контроль состояния отмосток и водоотвода'},
+ {k:'s5', t:'InSAR (Sentinel-1)', aim:'мм-точность смещений застройки между циклами геодезии', kit:'обработка архивов радарных снимков (открытые данные ESA), устойчивые отражатели по зданиям', eff:'непрерывный деформационный контроль фонда без оборудования на объекте; верификация осадочных марок'},
+ {k:'s6', t:'Телеметрия деформационных марок/трещиномеров', aim:'непрерывный контроль раскрытия трещин и осадок на объектах КРИТИЧНО/АВАРИЯ', kit:'автономные трещиномеры и наклономеры с GPRS-передачей', eff:'устранение «слепых промежутков» между осмотрами; прямой автоконтроль контрольных значений деформаций (ГОСТ 24846-2019)'}
+];
+function gsObjs(){ // объекты контура: при изоляции УК — только её объекты
+  const out=[];
+  DB.objects.forEach((o,i)=>{ if(typeof scopePass==='function'&&!scopePass(o)) return; out.push({o,i}); });
+  return out;
+}
+function gsScan(){ return gsObjs().map(({o})=>{ const sd=statusDetail(o); return {id:o.a, name:o.a, ent:(effectiveUK(o)||'')+(o.d?' · '+o.d:''), status:sd.status||'нет данных', reasons:sd.reasons||[]}; }); }
+function gsRoadPct(){ const all=GS_ROAD.flatMap(g=>g.items); return Math.round(100*all.filter(it=>(gsRoad[it.k]||it.d0)==='готово').length/all.length); }
+function gsBadges(added){
+  const snap=gsScan();
+  const critN=snap.filter(s=>s.status==='КРИТИЧНО'||s.status==='АВАРИЯ').length;
+  const actN=snap.filter(s=>s.status==='РИСК'||s.status==='КРИТИЧНО'||s.status==='АВАРИЯ').length;
+  const bA=document.getElementById('gsBdgA');
+  if(bA){ bA.style.display=actN?'':'none'; bA.textContent=actN; bA.classList.toggle('alarm',critN>0); }
+  const bR=document.getElementById('gsBdgR'); const pc=gsRoadPct();
+  if(bR){ bR.style.display=pc?'':'none'; bR.textContent=pc+'%'; }
+  if(gsCur==='alerts'&&added>0) gsOpen('alerts',true);
+}
+function gsJournalSync(){
+  const now=new Date().toISOString(), snap=gsScan(), prev=gsLoad(GS_STORE.snap,{}); const newEv=[];
+  snap.forEach(s=>{ const p=prev[s.id];
+    if(p&&p.status!==s.status) newEv.push({ts:now,obj:s.id,name:s.name,ent:s.ent,from:p.status,to:s.status,reasons:s.reasons.map(r=>((r.level==='crit'||r.level==='avar')?'⛔ ':'⚠️ ')+r.text).slice(0,5)});
+  });
+  if(newEv.length){ gsJournal.push(...newEv); if(gsJournal.length>500) gsJournal=gsJournal.slice(-500); gsSave(GS_STORE.j,gsJournal); gsSbPush(newEv); gsNotifyPush(newEv); }
+  const ns={}; snap.forEach(s=>ns[s.id]={status:s.status}); gsSave(GS_STORE.snap,ns);
+  gsBadges(newEv.length);
+}
+/* --- серверный журнал тревог (Supabase, опционально; при недоступности — локальный режим с офлайн-очередью) --- */
+function gsSbPush(events){
+  try{
+    if(gsSbOff||typeof sbMode!=='function'||!sbMode()||!events||!events.length) return;
+    const rows=events.map(e=>({ts:e.ts,obj:e.obj,name:e.name,ent:e.ent,from_status:e.from,to_status:e.to,reasons:e.reasons}));
+    sbFetch('/rest/v1/gs_journal',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify(rows)})
+      .then(()=>{ const ob=gsLoad(GS_STORE.out,[]); if(ob.length){ gsSave(GS_STORE.out,[]); gsSbPush(ob); } })
+      .catch(()=>{ gsSbOff=true; const ob=gsLoad(GS_STORE.out,[]); ob.push(...events); gsSave(GS_STORE.out,ob.slice(-200)); });
+  }catch(e){ gsSbOff=true; }
+}
+function gsDownload(name,text,mime){
+  const b=new Blob(['﻿'+text],{type:mime||'application/json;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+}
+function gsJournalMerged(){ // журнал Центра (события + квитирования) + журнал переходов базы (ngk_statlog), дедупликация
+  const map=new Map();
+  (typeof statLogRecent==='function'?statLogRecent():[]).forEach(r=>{
+    map.set(r.d+'|'+r.a+'|'+r.from+'|'+r.to,{ts:r.d+'T12:00:00',name:r.a,from:r.from,to:r.to,reasons:[]});
+  });
+  gsJournal.forEach(e=>{ const k=String(e.ts).slice(0,10)+'|'+e.name+'|'+e.from+'|'+e.to; if(!map.has(k)) map.set(k,e); });
+  return [...map.values()].sort((a,b)=>a.ts<b.ts?1:-1);
+}
+function gsExpJournalCsv(){ const rows=[['ts','object','from','to','reasons']].concat(gsJournalMerged().map(e=>[e.ts,e.name,e.from,e.to,(e.reasons||[]).join(' | ')])); gsDownload('gtm_journal_'+new Date().toISOString().slice(0,10)+'.csv', rows.map(r=>r.map(c=>'"'+String(c==null?'':c).replace(/"/g,'""')+'"').join(';')).join('\r\n'),'text/csv;charset=utf-8'); }
+/* --- уведомления дежурному: очередь, шлюз WhatsApp/Telegram/e-mail, квитирование --- */
+const GS_SEV={'нет данных':0,'НОРМА':1,'ВНИМАНИЕ':2,'РИСК':3,'КРИТИЧНО':4,'АВАРИЯ':5};
+function gsNotifyPush(events){ // очередь уведомлений: только ухудшения до РИСК/КРИТИЧНО/АВАРИЯ
+  const items=(events||[]).filter(e=>(GS_SEV[e.to]||0)>=3&&(GS_SEV[e.to]||0)>(GS_SEV[e.from]||0))
+    .map(e=>({id:e.ts+'|'+e.obj, ts:e.ts, obj:e.obj, name:e.name, ent:e.ent, from:e.from, to:e.to, reasons:e.reasons||[], ack:null}));
+  if(!items.length) return;
+  const known=new Set(gsNotify.map(n=>n.id));
+  items.forEach(n=>{ if(!known.has(n.id)) gsNotify.push(n); });
+  if(gsNotify.length>200) gsNotify=gsNotify.slice(-200);
+  gsSave(GS_STORE.ntf,gsNotify);
+}
+function gsNtfText(n){
+  const L=['⚠ ГИС-база геотермического мониторинга зданий г. Норильска — ТРЕВОГА ('+n.to+')',
+    'Объект: '+n.name+(n.ent?' · '+n.ent:''),
+    'Переход статуса: '+n.from+' → '+n.to,
+    'Время фиксации: '+new Date(n.ts).toLocaleString('ru-RU')];
+  if(n.reasons&&n.reasons.length){ L.push('Основания:'); n.reasons.forEach(r=>L.push('· '+r)); }
+  L.push('Действия: подтверждение замера по программе ГТМ объекта; доклад руководителю организации, ведущей мерзлотный надзор. При КРИТИЧНО — внеплановое обследование (ГОСТ 31937-2024) и уведомление УК/подразделения Администрации (Правила № 170). При АВАРИЯ — ограничение эксплуатации и меры по ЖК РФ ст. 20, 161.');
+  return L.join('\n');
+}
+function gsDutyCard(){
+  const canEdit=['edit','admin'].includes(sessionStorage.getItem('ngk_role'));
+  const open=gsNotify.filter(n=>!n.ack).reverse(), hist=gsNotify.filter(n=>n.ack).slice(-10).reverse();
+  const d=gsDuty||{}, tel=(d.phone||'').replace(/\D/g,''), tg=(d.tg||'').replace(/^@/,''), mail=(d.mail||'').trim();
+  const links=n=>{
+    const t=encodeURIComponent(gsNtfText(n));
+    const wa=tel?`<a class="dbtn" target="_blank" rel="noopener" href="https://wa.me/${tel}?text=${t}">WhatsApp</a>`:'';
+    const tgu=tg?`https://t.me/${tg}`:`https://t.me/share/url?url=${encodeURIComponent('Центр управления ГТМ')}&text=${t}`;
+    const tgl=`<a class="dbtn" target="_blank" rel="noopener" href="${tgu}">Telegram</a>`;
+    const ml=mail?`<a class="dbtn" href="mailto:${encodeURIComponent(mail)}?subject=${encodeURIComponent('ТРЕВОГА ГТМ: '+n.name)}&body=${t}">E-mail</a>`:'';
+    return wa+tgl+ml||'<span class="mut">заполните контакты дежурного</span>';
+  };
+  return `<div class="gsCard"><h3>📨 Уведомления дежурному — шлюз эскалации (этап Б2)</h3>
+    <div class="mut" style="margin-bottom:6px">При ухудшении статуса объекта до РИСК/КРИТИЧНО/АВАРИЯ система автоматически формирует карточку уведомления с готовым текстом события. Отправка — одним кликом через приложения дежурного; получение подтверждается квитированием (фиксируется в журнале событий). Полностью серверная автоотправка без участия оператора возможна после подключения почтового шлюза / Telegram-бота на стороне сервера — в статическом контуре GitHub Pages технически недоступна.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;font-size:12px;align-items:center;margin-bottom:8px">
+      <b>Дежурный:</b> ${d.name?`<b>${esc(d.name)}</b>`:'<span class="mut">не назначен</span>'}
+      ${d.phone?`<span class="mut">☎ ${esc(d.phone)}</span>`:''} ${d.tg?`<span class="mut">✈ @${esc(tg)}</span>`:''} ${d.mail?`<span class="mut">✉ ${esc(d.mail)}</span>`:''}
+      ${canEdit?'<button class="dbtn" id="gsDutyEdit">⚙ Контакты дежурного</button>':''}
+    </div>
+    <div id="gsDutyForm" style="display:none;border:1px dashed var(--line);border-radius:8px;padding:8px;margin-bottom:8px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:12px;align-items:center">
+        <input id="gsDutyName" placeholder="ФИО / смена" value="${esc(d.name||'')}" style="flex:1;min-width:140px">
+        <input id="gsDutyPhone" placeholder="Телефон +7…" value="${esc(d.phone||'')}" style="width:150px">
+        <input id="gsDutyTg" placeholder="Telegram @ник" value="${esc(d.tg||'')}" style="width:140px">
+        <input id="gsDutyMail" placeholder="e-mail" value="${esc(d.mail||'')}" style="width:170px">
+        <button class="dbtn" id="gsDutySave">💾 Сохранить</button>
+      </div>
+      <div class="mut" style="margin-top:4px">Контакты хранятся локально на рабочем месте дежурного (localStorage), в базу и на сервер не передаются.</div>
+    </div>
+    ${open.length?`<table class="gsTbl"><tr><th>Время</th><th>Объект / переход</th><th>Отправить дежурному</th><th>Квитирование</th></tr>${open.map(n=>`<tr>
+      <td style="white-space:nowrap">${new Date(n.ts).toLocaleString('ru-RU')}</td>
+      <td><b>${esc(n.name)}</b><br><span class="gsPill" style="background:${n.to==='АВАРИЯ'?'#5a0d0d':n.to==='КРИТИЧНО'?'#c8372d':'#e08a00'}">${esc(n.from)} → ${esc(n.to)}</span><br><span class="mut">${(n.reasons||[]).map(esc).join('<br>')}</span></td>
+      <td style="white-space:nowrap">${links(n)}</td>
+      <td><button class="dbtn" data-gsack="${esc(n.id)}">✓ Квитировать</button></td></tr>`).join('')}</table>`
+      :'<div class="mut">Неквитированных уведомлений нет — очередь формируется автоматически при первом ухудшении статуса.</div>'}
+    ${hist.length?`<details style="margin-top:6px"><summary class="mut" style="cursor:pointer;font-size:12px">Квитированные уведомления (${hist.length})</summary>
+      <table class="gsTbl" style="margin-top:4px"><tr><th>Событие</th><th>Объект</th><th>Квитировано</th></tr>${hist.map(n=>`<tr><td style="white-space:nowrap">${new Date(n.ts).toLocaleString('ru-RU')}</td><td>${esc(n.name)} · ${esc(n.from)} → ${esc(n.to)}</td><td style="white-space:nowrap">${new Date(n.ack).toLocaleString('ru-RU')}</td></tr>`).join('')}</table></details>`:''}
+  </div>`;
+}
+function gsAckNtf(id){
+  const n=gsNotify.find(x=>x.id===id); if(!n||n.ack) return;
+  n.ack=new Date().toISOString(); gsSave(GS_STORE.ntf,gsNotify);
+  const ev={ts:n.ack,obj:n.obj,name:n.name,ent:n.ent,from:'уведомление дежурному',to:'квитировано',reasons:['Дежурный подтвердил получение тревоги «'+n.from+' → '+n.to+'» от '+new Date(n.ts).toLocaleString('ru-RU')]};
+  gsJournal.push(ev); if(gsJournal.length>500) gsJournal=gsJournal.slice(-500); gsSave(GS_STORE.j,gsJournal); gsSbPush([ev]);
+  gsOpen('alerts',true);
+}
+/* --- актуальность замеров по видам наблюдений (рабочая периодичность, СП 497.1325800.2020) --- */
+const GS_PERIOD={term:270, geod:270, meteo:30}; // сутки: термометрия и геодезия — два цикла в год, метеоряд — ежедневное пополнение
+function gsMaxDate(series){ let mx=null; Object.values(series||{}).forEach(wd=>{ (wd.s||wd||[]).forEach(en=>{ const d=en[0]; if(d&&(!mx||d>mx)) mx=d; }); }); return mx; }
+function gsAge(d){ return d?Math.floor((Date.now()-new Date(d).getTime())/864e5):null; }
+function gsFreshCard(){
+  const cell=(have,last,period)=>{
+    if(!have) return '<td class="mut" style="text-align:center">—</td>';
+    const age=gsAge(last), over=age!==null&&age>period;
+    return `<td style="text-align:center;white-space:nowrap;${over?'background:#fdecea;color:#b3202c;font-weight:600':''}">${last||'—'}<br><span class="mut" style="font-size:10.5px">${age!==null?age+' сут.':'—'} / ${period} сут.${over?' · просрочено':''}</span></td>`;
+  };
+  const rows=gsObjs().filter(({o})=>o.prof||o.geod).map(({o,i})=>({o,i,term:gsMaxDate(o.prof),geod:gsMaxDate(o.geod)}));
+  rows.sort((a,b)=>Math.max(gsAge(b.term)||0,gsAge(b.geod)||0)-Math.max(gsAge(a.term)||0,gsAge(a.geod)||0));
+  let nOver=0;
+  rows.forEach(r=>{ const at=gsAge(r.term), ag=gsAge(r.geod); if(r.o.prof&&at!==null&&at>GS_PERIOD.term) nOver++; if(r.o.geod&&ag!==null&&ag>GS_PERIOD.geod) nOver++; });
+  let mtLast=null; try{ const md=mtData(); mtLast=md&&md.length?md[md.length-1].d:null; }catch(e){}
+  const mtAge=gsAge(mtLast), mtOver=mtAge!==null&&mtAge>GS_PERIOD.meteo;
+  return `<div class="gsCard"><h3>🗓 Актуальность замеров по видам наблюдений <span class="mut" style="font-weight:400">(этап А · СП 497.1325800.2020)</span></h3>
+    <div class="mut" style="margin-bottom:6px">Для каждого вида наблюдений — дата последнего замера и возраст ряда против рабочей периодичности (термометрия ${GS_PERIOD.term} сут. · геодезия ${GS_PERIOD.geod} сут. · метеоряд ${GS_PERIOD.meteo} сут.; уточняются программой ГТМ объекта). «—» — вид на объекте не ведётся. Показаны только объекты с действующим мониторингом (${rows.length}); сортировка — по максимальной просрочке.</div>
+    <table class="gsTbl"><tr><th style="text-align:left">Объект</th><th>Термометрия</th><th>Геодезия</th></tr>
+    <tr><td><b>Метеоряд г. Норильск (общий)</b></td>${cell(true,mtLast,GS_PERIOD.meteo)}<td class="mut" style="text-align:center">фон</td></tr>
+    ${rows.slice(0,80).map(r=>`<tr><td><a href="#" data-gsobj="${r.i}" style="color:#5b4a7a;font-weight:600">${esc(r.o.a)}</a></td>${cell(!!r.o.prof,r.term,GS_PERIOD.term)}${cell(!!r.o.geod,r.geod,GS_PERIOD.geod)}</tr>`).join('')}
+    </table>
+    ${rows.length>80?`<div class="mut" style="margin-top:4px">показаны первые 80 из ${rows.length} объектов с мониторингом</div>`:''}
+    <div class="mut" style="margin-top:4px">Просроченных видов наблюдений сейчас: <b>${nOver}</b>${mtOver?' · <b style="color:#b3202c">метеоряд устарел ('+mtAge+' сут.) — обновите в разделе «Метеоданные»</b>':''}. Рабочая периодичность макета: термометрия и геодезия — два цикла в год (весенний и осенний), метеоряд — ежедневное пополнение; при утверждении программ ГТМ значения заменяются на объектные.</div>
+  </div>`;
+}
+/* --- 1. Тревоги и эскалация --- */
+function gsViewAlerts(){
+  const snap=gsScan();
+  const avar=snap.filter(s=>s.status==='АВАРИЯ'), crit=snap.filter(s=>s.status==='КРИТИЧНО'), risk=snap.filter(s=>s.status==='РИСК'),
+        attn=snap.filter(s=>s.status==='ВНИМАНИЕ'), norm=snap.filter(s=>s.status==='НОРМА'), nod=snap.filter(s=>s.status==='нет данных');
+  const active=snap.filter(s=>s.status==='АВАРИЯ'||s.status==='КРИТИЧНО'||s.status==='РИСК');
+  const j=gsJournalMerged();
+  return `<h2>◉ ЦЕНТР УПРАВЛЕНИЯ ГТМ · Тревоги и эскалация</h2>
+  <div class="gsCard"><div style="display:flex;gap:8px;flex-wrap:wrap;font-size:12px;align-items:center">
+    <span class="gsPill" style="background:#5a0d0d">АВАРИЯ: ${avar.length}</span>
+    <span class="gsPill" style="background:#c8372d">КРИТИЧНО: ${crit.length}</span>
+    <span class="gsPill" style="background:#e08a00">РИСК: ${risk.length}</span>
+    <span class="gsPill" style="background:#c9a800">ВНИМАНИЕ: ${attn.length}</span>
+    <span class="gsPill" style="background:#2e7d32">НОРМА: ${norm.length}</span>
+    <span class="gsPill" style="background:#8a8a8a">без данных: ${nod.length}</span>
+    <span class="mut" style="margin-left:auto">автосверка статусов каждые 5 мин · событий в журнале: ${j.length}</span>
+  </div></div>
+  <div class="gsCard"><h3>Активные превышения контрольных критериев</h3>
+    ${active.length?`<table class="gsTbl"><tr><th>Объект</th><th>Статус</th><th>Сработавшие правила</th></tr>${active.map(s=>{
+      const i=DB.objects.findIndex(o=>o.a===s.id);
+      const pillCol=s.status==='АВАРИЯ'?'#5a0d0d':s.status==='КРИТИЧНО'?'#c8372d':'#e08a00';
+      return `<tr><td><a href="#" data-gsobj="${i}" style="color:#5b4a7a;font-weight:600">${esc(s.name)}</a><br><span class="mut">${esc(s.ent||'')}</span></td>
+      <td><span class="gsPill" style="background:${pillCol}">${s.status}</span></td>
+      <td>${s.reasons.map(r=>`<div style="margin:2px 0;font-size:12px">${(r.level==='crit'||r.level==='avar')?'⛔':'⚠️'} ${esc(r.text)}</div>`).join('')}</td></tr>`;
+    }).join('')}</table>`:'<div class="mut">Превышений нет — все объекты в пределах контрольных критериев превентивной шкалы.</div>'}
+  </div>
+  ${gsDutyCard()}
+  ${gsFreshCard()}
+  <div class="gsCard"><h3>Маршрут эскалации (городская среда: ЖК РФ, Правила № 170, ГОСТ 31937-2024, СП 497.1325800.2020)</h3>
+    <div style="font-size:12px;line-height:1.7">
+      1️⃣ <b>Событие</b> — переход статуса объекта через превентивные критерии фиксируется в журнале ниже автоматически (первый уровень документирования);<br>
+      2️⃣ <b>Дежурный</b> — подтверждение замера (повторная термометрия/геодезия по программе ГТМ объекта); при метеособытии — авто-предписание дежурным службам из модуля «Дежурный метеоконтроль»;<br>
+      3️⃣ <b>УК / подразделение Администрации</b> — режимные меры по содержанию (Правила № 170: водоотвод, расчистка кровель, отмосток, ливнёвки и дренажей), плановые и внеплановые осмотры;<br>
+      4️⃣ <b>Организация, ведущая мерзлотный надзор</b> — при КРИТИЧНО: внеплановое обследование (ГОСТ 31937-2024), корректировка программы ГТМ (СП 497.1325800.2020);<br>
+      5️⃣ <b>Служба строительного надзора и жилищного контроля / Администрация города</b> — при АВАРИЯ: ограничение эксплуатации и предписания (ЖК РФ ст. 20, 161), контроль исполнения.<br>
+      <span class="mut">Карточки уведомлений формируются автоматически — панель «Уведомления дежурному» выше (шлюз WhatsApp/Telegram/e-mail с квитированием; этап Б2 реализован).</span>
+    </div>
+  </div>
+  <div class="gsCard"><h3>Метеотриггеры риска для городской среды</h3>
+    <table class="gsTbl"><tr><th>Явление</th><th>Триггер</th><th>Наиболее чувствительные объекты</th><th>Превентивные меры</th></tr>
+      <tr><td>Ливневый дождь</td><td>≥ 20 мм/сут или ≥ 5 мм/ч</td><td>дома на свайных основаниях в статусе РИСК/КРИТИЧНО (приток воды к свайному полю), подвалы</td><td>водоотлив, очистка ливнёвки и дренажей, ограждение опасных зон</td></tr>
+      <tr><td>Зимняя оттепель</td><td>T &gt; −2 °C более 72 ч зимой</td><td>здания на принципе I (сохранение мёрзлого состояния), термосвайные основания</td><td>внеплановая термометрия контрольных скважин, сверка с T расч в карточках</td></tr>
+      <tr><td>Интенсивное снеготаяние</td><td>T &gt; 0 °C при снегозапасе; ΣT⁺ растёт 5+ сут</td><td>весь фонд: талые воды у отмосток, наледи, подтопление подполий</td><td>очистка водоотводных лотков и отмосток, контроль отвода воды от здания</td></tr>
+      <tr><td>Снегопад / метель</td><td>≥ 10 мм/сут (вод. экв.), ветер ≥ 15 м/с</td><td>кровли (снеговая нагрузка), занос КИА и подходов к скважинам/маркам</td><td>расчистка кровель и подходов, контроль снеговысоты против нормативного h_sn (флаг в паспорте ГТМ)</td></tr>
+      <tr><td>Гололёд / сосульки</td><td>осадки при T −5…0 °C, оттаивание кровли</td><td>пешеходные зоны у МКД и объектов соцкультбыта</td><td>очистка кровель от сосулек и снега, ограждения (Правила благоустройства г. Норильска, ГОСТ Р 50597-2017)</td></tr>
+      <tr><td>Сильный ветер</td><td>выше среднемесячного значения за текущий месяц</td><td>кровельные покрытия, вибрации каркасов</td><td>осмотр кровель и ограждающих конструкций после явления (СП 20.13330.2016)</td></tr>
+    </table>
+    <div class="mut" style="margin-top:4px">Оперативные предупреждения по текущему прогнозу — постоянная полоса дежурного метеоконтроля в шапке реестра и его окно (🛡).</div>
+  </div>
+  <div class="gsCard"><h3>Журнал событий (переходы статусов)</h3>
+    <div style="margin-bottom:6px"><button class="dbtn" id="gsExpJson">⬇ JSON</button> <button class="dbtn" id="gsExpCsv">⬇ CSV</button> <span class="mut">локальный журнал (до 500 событий Центра) + журнал переходов базы; при настройке Supabase — общий серверный журнал с офлайн-очередью</span></div>
+    ${j.length?`<table class="gsTbl"><tr><th>Дата/время</th><th>Объект</th><th>Переход</th><th>Основания</th></tr>${j.slice(0,100).map(e=>`<tr><td style="white-space:nowrap">${new Date(e.ts).toLocaleString('ru-RU')}</td><td>${esc(e.name)}</td><td style="white-space:nowrap">${esc(e.from)} → <b>${esc(e.to)}</b></td><td class="mut">${(e.reasons||[]).map(esc).join('<br>')||'—'}</td></tr>`).join('')}</table>${j.length>100?`<div class="mut">показаны последние 100 из ${j.length}</div>`:''}`:'<div class="mut">Событий пока нет — журнал наполняется автоматически при первом изменении статуса любого объекта.</div>'}
+  </div>`;
+}
+/* --- 2. Матрица рисков --- */
+function gsConsClass(o){ // тяжесть последствий C1–C5 по категории здания
+  const nm=((o.a||'')+' '+(o.cat||'')+' '+((o.pf2&&o.pf2.project)||'')).toLowerCase();
+  if(/детск|садик|родничок|улыбка|снежинка|школ|лицей|гимназ|образоват/.test(nm)) return 5; // детские сады и школы — массовое пребывание детей
+  let fl=NaN;
+  const f=(o.pf&&o.pf.floors)||(o.pf2&&(o.pf2.arc_floors||o.pf2.floors_txt))||'';
+  const m=String(f).match(/\d{1,2}/); if(m) fl=+m[0];
+  if(branchOf(o)==='skb') return 4; // прочие объекты соцкультбыта — массовое посещение
+  if(!isNaN(fl)) return fl>=5?4:3;
+  return 3; // МКД без данных об этажности
+}
+function gsRiskOf(o){
+  const sd=statusDetail(o), st=sd.status||'нет данных';
+  let score=st==='АВАРИЯ'?70:st==='КРИТИЧНО'?55:st==='РИСК'?30:st==='ВНИМАНИЕ'?15:st==='НОРМА'?5:15;
+  const C=gsConsClass(o);
+  score+=C;
+  if(!o.prof)score+=5; if(!o.geod)score+=5;
+  const res=(typeof pmResource==='function')?pmResource(o):null;
+  if(res&&res.years!==null){ if(res.years<=5) score+=10; else if(res.years<=15) score+=5; }
+  const crits=sd.reasons.filter(r=>r.level==='crit'||r.level==='avar').length;
+  if(crits>1) score+=5*(crits-1);
+  score=Math.min(100,Math.round(score));
+  const L=score>=60?5:score>=45?4:score>=30?3:score>=15?2:1;
+  return {score,L,C,st,cov:`т:${o.prof?'+':'−'} г:${o.geod?'+':'−'}`, resY:(res&&res.years!==null)?res.years:null};
+}
+function gsViewRisk(){
+  const rows=gsObjs().map(({o,i})=>Object.assign({o,i},gsRiskOf(o))).sort((a,b)=>b.score-a.score);
+  const grid={}; rows.forEach(r=>{ const k=r.C+'_'+r.L; (grid[k]=grid[k]||[]).push(r); });
+  const cc=(C,L)=>{const p=C*L; return p>=15?'#c8372d':p>=8?'#e08a00':p>=4?'#b39600':'#2e7d32';};
+  const cName={5:'C5 · детсады/школы',4:'C4 · МКД ≥5 эт. и проч. СКБ',3:'C3 · МКД 1–4 эт./н.у.',2:'C2 · прочие',1:'C1'};
+  const lName={1:'L1 низкая',2:'L2 умеренная',3:'L3 средняя',4:'L4 высокая',5:'L5 очень высокая'};
+  const shown=rows.slice(0,150);
+  return `<h2>🎯 Матрица рисков и скоринг объектов ГТМ</h2>
+  <div class="gsCard"><h3>Матрица 5×5: вероятность события × тяжесть последствий (категория здания)</h3>
+    <table class="gsTbl" style="text-align:center"><tr><th style="text-align:left">последствия ↓ / вероятность →</th>${[1,2,3,4,5].map(L=>`<th style="white-space:normal">${lName[L]}</th>`).join('')}</tr>
+    ${[5,4,3,2,1].map(C=>`<tr><th style="text-align:left;white-space:nowrap">${cName[C]}</th>${[1,2,3,4,5].map(L=>{const cell=grid[C+'_'+L]||[];return `<td style="background:${cc(C,L)};color:#fff">${cell.map(r=>`<span class="gsObjChip" data-gsobj="${r.i}" title="${esc(r.o.a)} — балл ${r.score}">${esc(r.o.a)}</span>`).join('')||'<span style="opacity:.45">·</span>'}</td>`;}).join('')}</tr>`).join('')}
+    </table>
+    <div class="mut" style="margin-top:4px">Клик по объекту — открыть его карточку. Цвет ячейки — произведение L×C: ≥15 недопустимый, 8–14 высокий, 4–7 умеренный, &lt;4 приемлемый риск. Объекты без мониторинга также размещаются в матрице (вероятность оценивается по косвенным признакам и пробелам охвата).</div>
+  </div>
+  <div class="gsCard"><h3>Скоринг объектов (0–100 баллов) — топ-${shown.length} из ${rows.length}</h3>
+    <table class="gsTbl"><tr><th>Объект</th><th>УК / подразделение</th><th>Статус</th><th>C</th><th>Охват</th><th>Ресурс, лет</th><th>Балл</th></tr>
+    ${shown.map(r=>`<tr><td><span class="gsObjChip" style="background:#5b4a7a;border:none;max-width:none" data-gsobj="${r.i}">${esc(r.o.a)}</span></td><td>${esc(effectiveUK(r.o)||'')}</td>
+      <td><span class="gsPill" style="background:${SCOL[r.st]||'#8a8a8a'}">${r.st}</span></td>
+      <td>${r.C}</td><td style="white-space:nowrap">${r.cov}</td>
+      <td>${r.resY===null?'—':(r.resY<=5?'<b style="color:#c8372d">'+r.resY+'</b>':r.resY<=15?'<b style="color:#e08a00">'+r.resY+'</b>':r.resY)}</td>
+      <td><div class="gsBar"><i style="width:${r.score}%"></i></div><b>${r.score}</b></td></tr>`).join('')}
+    </table>
+    <div class="mut" style="margin-top:4px">Балл = статус (АВАРИЯ 70 / КРИТИЧНО 55 / РИСК 30 / ВНИМАНИЕ 15 / НОРМА 5 / без данных 15) + тяжесть последствий C (5…2) + пробелы охвата наблюдений (нет термометрии/геодезии — по +5) + остаточный ресурс (≤5 лет +10, ≤15 лет +5) + множественные превышения (+5 за каждое сверх первого). Охват: т — термометрия, г — геодезия. C5 — детские сады и школы (массовое пребывание детей), C4 — МКД ≥ 5 этажей и прочие объекты соцкультбыта, C3 — МКД 1–4 этажа.</div>
+  </div>`;
+}
+/* --- 3. Прогноз состояния ММГ --- */
+function gsViewProg(){
+  const rows=[];
+  gsObjs().forEach(({o,i})=>{ if(!o.prof||!o.ngc) return;
+    const K2=(TCALC[o.a]!==undefined?TCALC[o.a]:TH.tcrit);
+    Object.entries(o.prof).forEach(([w,wd])=>{
+      if(!wd.s||wd.s.length<2) return;
+      const s=wellDepthSeries(wd,o.ngc.h); if(s.ys.length<2) return;
+      const k=linreg(s.xs,s.ys); if(k===null) return;
+      const t=s.ys[s.ys.length-1];
+      let ci='';
+      if(s.ys.length>=3){
+        const xy=s.xs.map(d=>(new Date(d)-new Date(s.xs[0]))/3.15576e10);
+        const n=xy.length, mx=xy.reduce((a,b)=>a+b,0)/n, my=s.ys.reduce((a,b)=>a+b,0)/n;
+        const a0=my-k*mx; let sr=0,sxx=0;
+        for(let jj=0;jj<n;jj++){ const r=s.ys[jj]-(a0+k*xy[jj]); sr+=r*r; sxx+=(xy[jj]-mx)**2; }
+        if(sxx>0){ const se=Math.sqrt(sr/(n-2)/sxx); ci=` (${(k-1.96*se).toFixed(3)}…${(k+1.96*se).toFixed(3)})`; }
+      }
+      let fc, fcCls, sortKey;
+      if(t>=K2){ fc='⚠ достигнута (текущий замер)'; fcCls='#c8372d'; sortKey=-1; }
+      else if(k>0.002){
+        const years=(K2-t)/k;
+        const y=new Date(s.xs[s.xs.length-1]).getFullYear()+years;
+        fc='≈ '+Math.round(y)+' г. (через '+years.toFixed(1)+' лет)';
+        fcCls=years<=5?'#c8372d':years<=15?'#e08a00':'#2e7d32'; sortKey=years;
+      } else { fc='стабильно (тренд ≤ 0)'; fcCls='#2e7d32'; sortKey=1e9; }
+      rows.push({o,i,w,ngc:o.ngc.h,t,k,ci,K2,fc,fcCls,sortKey,lastDt:s.xs[s.xs.length-1],decl:TCALC[o.a]!==undefined});
+    });
+  });
+  rows.sort((a,b)=>a.sortKey-b.sortKey);
+  return `<h2>📈 Прогноз состояния ММГ по фактическим рядам</h2>
+  <div class="gsCard"><h3>Тренды температуры грунта на глубине НГК и прогноз выхода на предельную температуру</h3>
+  ${rows.length?`<table class="gsTbl"><tr><th>Объект</th><th>Скважина</th><th>НГК, м</th><th>t на НГК, °C</th><th>Тренд, °C/год (95% ДИ)</th><th>Предел, °C</th><th>Прогноз выхода на предел</th></tr>
+  ${rows.map(r=>`<tr><td><span class="gsObjChip" style="background:#5b4a7a;border:none;max-width:none" data-gsobj="${r.i}">${esc(r.o.a)}</span></td>
+    <td style="white-space:nowrap">${esc(r.w)}</td><td>${r.ngc}</td>
+    <td>${r.t.toFixed(2)}<br><span class="mut">замер ${esc(r.lastDt)}</span></td>
+    <td style="white-space:nowrap">${r.k>=0?'+':''}${r.k.toFixed(3)}${r.ci}</td>
+    <td>${r.K2}${r.decl?'<br><span class="mut">расчётная</span>':'<br><span class="mut">порог</span>'}</td>
+    <td><b style="color:${r.fcCls}">${r.fc}</b></td></tr>`).join('')}
+  </table>
+  <div class="mut" style="margin-top:4px">Методика: линейный тренд МНК по ряду температуры на глубине нулевых годовых колебаний (НГК — ниже зоны сезонных колебаний, СП 25.13330.2020); в скобках — 95% доверительный интервал наклона. Год выхода на предел = последний замер + (предел − t)/k при положительном тренде. Предел — расчётная температура основания здания (где задана в карточке) либо превентивный порог системы (⚙ Пороги). Сводный прогноз остаточного ресурса по фонду — карточки «📊 Свод МКД» / «📊 Свод СКБ».</div>`
+  :'<div class="mut">Нет скважин с рядами из ≥ 2 замеров и определённой глубиной НГК.</div>'}
+  </div>
+  <div class="gsCard"><h3>Индексы промерзания Ω_f / оттаивания Ω_t по метеоряду г. Норильска</h3>
+    ${gsStefanHtml()}
+  </div>
+  <div class="gsCard"><h3>Климатический контур и сценарии</h3>
+    <div style="font-size:12px;line-height:1.65">Прогноз на текущем этапе строится по фактическим трендам рядов (таблица выше) и откалиброванной модели «климат → грунт» (сводные карточки фонда: калибровка по архиву скважин и метеоряду, сезонный прогноз глубины оттаивания со сверкой ±20 %, теплотехнические сценарии подполья). Численная теплотехника t(x,t) по объектам с климатическими сценариями — этап В4 дорожной карты.</div>
+  </div>`;
+}
+function gsStefanHtml(){
+  try{
+    if(typeof mtYearIdx!=='function'||typeof mtData!=='function') return '<span class="mut">Метеомодуль не инициализирован.</span>';
+    const md=mtData();
+    const idx=mtYearIdx(md).filter(x=>!x.part).slice(-10);
+    if(!idx.length) return '<span class="mut">Метеоряд не загружен — откройте раздел «Метеоданные» для пополнения.</span>';
+    const sp=(typeof mtSP==='function')?mtSP(md):null;
+    return `<table class="gsTbl"><tr><th>Сезон (сент–авг)</th><th>Ω_f промерзание, °C·сут</th><th>Ω_t оттаивание, °C·сут</th></tr>${idx.map(x=>`<tr><td>${x.y}–${x.y+1}</td><td>${Math.round(x.F)}</td><td>${Math.round(x.T)}</td></tr>`).join('')}</table>
+    <div class="mut" style="margin-top:4px">${sp&&sp.MGT!==undefined?`Среднегодовая температура воздуха по ряду: <b>${sp.MGT} °C</b> (норма СП 131.13330 для г. Норильска — около −9,6 °C). `:''}Рост Ω_t и падение |Ω_f| сезон к сезону = увеличение глубины сезонного протаивания и нагрузки на мерзлотные основания (стефановская аппроксимация: h ∝ √Ω_t). Индексы считаются по загруженному метеоряду базы (rp5/Open-Meteo), полные сезоны, последние ${idx.length}.</div>`;
+  }catch(e){ return '<span class="mut">Расчёт индексов недоступен: '+esc(e.message||e)+'</span>'; }
+}
+/* --- 4. Измерительная база --- */
+function gsViewSensors(){
+  let wN=0,mN=0,gN=0,gMeas=0,objM=0;
+  gsObjs().forEach(({o})=>{
+    if(o.prof){ wN+=Object.keys(o.prof).length; Object.values(o.prof).forEach(wd=>mN+=(wd.s||[]).length); }
+    if(o.geod){ gN+=Object.keys(o.geod).length; Object.values(o.geod).forEach(s=>gMeas+=(s||[]).length); }
+    if(o.prof||o.geod) objM++;
+  });
+  let mtN=0; try{ mtN=(mtData()||[]).length; }catch(e){}
+  const opts=v=>['план','пилот','в работе','действует'].map(s=>`<option ${s===v?'selected':''}>${s}</option>`).join('');
+  const defSt={s1:'план',s2:'пилот',s3:'план',s4:'действует',s5:'план',s6:'план'};
+  return `<h2>📡 Измерительная база и контуры её развития</h2>
+  <div class="gsCard"><h3>Действующая база наблюдений</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:12px">
+      <span class="gsPill" style="background:#5b4a7a">объектов с мониторингом: ${objM}</span>
+      <span class="gsPill" style="background:#5b4a7a">термоскважин: ${wN}</span>
+      <span class="gsPill" style="background:#5b4a7a">замеров термометрии: ${mN}</span>
+      <span class="gsPill" style="background:#5b4a7a">геодезических марок: ${gN}</span>
+      <span class="gsPill" style="background:#5b4a7a">осадочных замеров: ${gMeas}</span>
+      <span class="gsPill" style="background:#3d5a73">метеоряд: ${mtN} сут.</span>
+      <span class="gsPill" style="background:#63666a">ЦМР/гидрология: р-н Оганер (пилот)</span>
+    </div>
+  </div>
+  <div class="gsCard"><h3>Контуры развития измерительной базы</h3>
+  ${GS_SENSORS.map(s=>{const v=gsSens[s.k]||defSt[s.k]||'план'; return `<div style="border-top:1px dashed var(--line); padding:7px 0">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b style="font-size:12.5px">${s.t}</b><select class="gsSt" data-gsk="${s.k}">${opts(v)}</select></div>
+    <div style="font-size:12px;margin-top:3px"><span class="mut">Цель:</span> ${s.aim}.<br><span class="mut">Состав:</span> ${s.kit}.<br><span class="mut">Эффект:</span> ${s.eff}.</div>
+  </div>`;}).join('')}
+  </div>`;
+}
+/* --- 5. Данные, аудит, интеграции --- */
+function gsViewData(){
+  let mN=0,gMeas=0; gsObjs().forEach(({o})=>{ if(o.prof) Object.values(o.prof).forEach(wd=>mN+=(wd.s||[]).length); if(o.geod) Object.values(o.geod).forEach(s=>gMeas+=(s||[]).length); });
+  const sb=(typeof sbMode==='function'&&sbMode());
+  const mode=sb?'Supabase — общий реестр, облачная синхронизация':'локальный режим (localStorage + файлы выгрузки) + шифрованная база (AES-GCM, сегменты db_p1..8)';
+  const bd=(typeof BUILD_DATE!=='undefined')?BUILD_DATE:'—';
+  const infra=[
+    ['Ролевой доступ (6 ролей, изоляция УК/подразделения)','реализовано'],
+    ['Шифрование базы данных (AES-GCM, сегментированная загрузка)','реализовано'],
+    ['Журнал переходов статусов объектов (неизменяемый, с экспортом JSON/CSV)','реализовано'],
+    ['Версионирование сборки (BUILD + дата — правовой блок и футер)','реализовано'],
+    ['Автоматизация планов ремонтов (Power BI регоператора, краткосрочные планы)','реализовано'],
+    ['Регламентные документы docx: программа ГТМ, предписания дежурным службам','реализовано'],
+    ['PDF-ингест журналов мерзлотного надзора (НЖЭК, ОК-1, СБ ТГ, ЖилКомСервис)','реализовано (пилот)'],
+    ['Серверный общий журнал тревог (Supabase) — настраивается в контуре БД','опционально'],
+    ['Версионирование замеров и аудит изменений (кто/когда/что)','план — этап А6'],
+    ['API-ингест электронных журналов замеров эксплуатации','план — этап Б4'],
+    ['Регламентные отчёты по расписанию (автоформирование)','план']
+  ];
+  return `<h2>🗄 Данные · аудит · интеграции</h2>
+  <div class="gsCard"><h3>Режим хранения и объёмы</h3>
+    <table class="kv">
+      <tr><td>Режим</td><td><b>${mode}</b></td></tr>
+      <tr><td>Версия базы (BUILD)</td><td><b>${esc(String(bd))}</b></td></tr>
+      <tr><td>Объектов в контуре доступа</td><td>${gsObjs().length} (всего в базе: ${DB.objects.length})</td></tr>
+      <tr><td>Замеров термометрии / геодезии</td><td>${mN} / ${gMeas}</td></tr>
+      <tr><td>Событий в журнале Центра</td><td>${gsJournal.length} (слито с журналом базы: ${gsJournalMerged().length})</td></tr>
+    </table>
+    <div style="margin-top:8px">
+      <button class="dbtn" id="gsBackup">⬇ Резервная копия журналов и настроек (JSON)</button>
+      <button class="dbtn" id="gsExpJ">⬇ Журнал событий (JSON)</button>
+      <button class="dbtn" id="gsExpC">⬇ Журнал событий (CSV)</button>
+    </div>
+    <div class="mut" style="margin-top:4px">Полная выгрузка базы объектов — модуль «Загрузка данных» / резервное копирование в настройках; здесь выгружаются журналы тревог, очередь уведомлений, статусы дорожной карты и измерительных контуров.</div>
+  </div>
+  <div class="gsCard"><h3>Инфраструктурные меры (доказательность и интеграция)</h3>
+    <table class="gsTbl"><tr><th>Мера</th><th>Статус</th></tr>
+    ${infra.map(r=>`<tr><td>${r[0]}</td><td style="white-space:nowrap">${r[1]}</td></tr>`).join('')}
+    </table>
+  </div>`;
+}
+/* --- 6. Дорожная карта --- */
+function gsViewRoad(){
+  const opts=v=>['план','в работе','готово'].map(s=>`<option ${s===v?'selected':''}>${s}</option>`).join('');
+  const total=gsRoadPct();
+  return `<h2>🗺 Дорожная карта развития системы ГТМ</h2>
+  <div class="gsCard"><h3>Общий прогресс: ${total}%</h3><div class="gsBar"><i style="width:${total}%"></i></div>
+  <div class="mut">Статусы этапов сохраняются локально; редактирование — роли «Оператор» и «Администрация города Норильска».</div></div>
+  ${GS_ROAD.map(g=>{
+    const done=g.items.filter(it=>(gsRoad[it.k]||it.d0)==='готово').length;
+    const pct=Math.round(100*done/g.items.length);
+    return `<div class="gsCard"><h3>${g.g} — ${pct}%</h3><div class="gsBar"><i style="width:${pct}%"></i></div>
+    ${g.items.map(it=>{const v=gsRoad[it.k]||it.d0; return `<div style="border-top:1px dashed var(--line); padding:6px 0; display:flex; gap:8px; align-items:flex-start">
+      <span class="gsPill" style="background:${v==='готово'?'#2e7d32':v==='в работе'?'#e08a00':'#8a8a8a'}; min-width:30px; text-align:center">${it.k}</span>
+      <div style="flex:1; font-size:12px">${it.t}</div>
+      <select class="gsSt" data-grk="${it.k}">${opts(v)}</select></div>`;}).join('')}
+    </div>`;
+  }).join('')}`;
+}
+/* --- диспетчер --- */
+const GS_VIEWS={alerts:gsViewAlerts, risk:gsViewRisk, prog:gsViewProg, sensors:gsViewSensors, data:gsViewData, road:gsViewRoad};
+function gsBindCommon(){
+  const d=document.getElementById('gsModalBody');
+  d.querySelectorAll('[data-gsobj]').forEach(el=>el.addEventListener('click',ev=>{ ev.preventDefault(); const i=+el.dataset.gsobj; if(i>=0) select(i); }));
+  d.querySelectorAll('select.gsSt[data-gsk]').forEach(el=>el.addEventListener('change',()=>{ gsSens[el.dataset.gsk]=el.value; gsSave(GS_STORE.sens,gsSens); }));
+  d.querySelectorAll('select.gsSt[data-grk]').forEach(el=>el.addEventListener('change',()=>{ gsRoad[el.dataset.grk]=el.value; gsSave(GS_STORE.road,gsRoad); gsBadges(0); gsOpen('road',true); }));
+  const bB=document.getElementById('gsBackup'); if(bB) bB.onclick=()=>gsDownload('gtm_center_backup_'+new Date().toISOString().slice(0,10)+'.json', JSON.stringify({ts:new Date().toISOString(), build:(typeof BUILD_DATE!=='undefined')?BUILD_DATE:null, gsJournal, gsNotify, gsRoad, gsSens},null,1));
+  const eJ=document.getElementById('gsExpJ'); if(eJ) eJ.onclick=()=>gsDownload('gtm_journal_'+new Date().toISOString().slice(0,10)+'.json', JSON.stringify(gsJournalMerged(),null,1));
+  const eC=document.getElementById('gsExpC'); if(eC) eC.onclick=gsExpJournalCsv;
+  const eJ2=document.getElementById('gsExpJson'); if(eJ2) eJ2.onclick=()=>gsDownload('gtm_journal_'+new Date().toISOString().slice(0,10)+'.json', JSON.stringify(gsJournalMerged(),null,1));
+  const eC2=document.getElementById('gsExpCsv'); if(eC2) eC2.onclick=gsExpJournalCsv;
+  const dE=document.getElementById('gsDutyEdit'); if(dE) dE.onclick=()=>{ const f=document.getElementById('gsDutyForm'); if(f) f.style.display=(f.style.display==='none'||!f.style.display)?'':'none'; };
+  const dS=document.getElementById('gsDutySave'); if(dS) dS.onclick=()=>{ gsDuty={name:document.getElementById('gsDutyName').value.trim(), phone:document.getElementById('gsDutyPhone').value.trim(), tg:document.getElementById('gsDutyTg').value.trim().replace(/^@/,''), mail:document.getElementById('gsDutyMail').value.trim()}; gsSave(GS_STORE.duty,gsDuty); gsOpen('alerts',true); };
+  d.querySelectorAll('[data-gsack]').forEach(el=>el.addEventListener('click',()=>gsAckNtf(el.dataset.gsack)));
+}
+function gsOpen(key, silent){
+  const m=document.getElementById('gsModal');
+  if(silent && m.style.display!=='block') return; // тихая синхронизация — только когда окно раздела открыто
+  gsCur=key;
+  document.querySelectorAll('#gsMenu button').forEach(b=>b.classList.toggle('on', b.dataset.gs===key));
+  let html=GS_VIEWS[key](); // карточка объекта за окном сохраняется — curObj не сбрасываем
+  const mt=html.match(/^\s*<h2>([\s\S]*?)<\/h2>/); // заголовок раздела — в шапку окна, без дублирования в теле
+  if(mt){ document.getElementById('gsModalTitle').innerHTML=mt[1]; html=html.slice(mt[0].length); }
+  document.getElementById('gsModalBody').innerHTML=html;
+  m.style.display='block';
+  document.body.style.overflow='hidden';
+  gsBindCommon();
+}
+function gsCloseModal(){
+  const m=document.getElementById('gsModal');
+  if(m) m.style.display='none';
+  document.body.style.overflow='';
+  gsCur=null;
+  document.querySelectorAll('#gsMenu button').forEach(b=>b.classList.remove('on'));
+}
+document.getElementById('gsClose').addEventListener('click',gsCloseModal);
+document.getElementById('gsModal').addEventListener('click',ev=>{ if(ev.target&&ev.target.id==='gsModal') gsCloseModal(); });
+document.addEventListener('keydown',ev=>{ if(ev.key==='Escape'&&document.getElementById('gsModal').style.display==='block') gsCloseModal(); });
+document.querySelectorAll('#gsMenu button').forEach(b=>b.addEventListener('click',()=>gsOpen(b.dataset.gs)));
+setTimeout(()=>{ try{ gsJournalSync(); }catch(e){ console.error('gsJournalSync:',e); } }, 6000); // первая сверка после полной инициализации приложения
+setInterval(()=>{ try{ gsJournalSync(); }catch(e){} }, 300000); // далее — каждые 5 минут
+
 };
 const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"E5FuITDjDv9LUtjr"};
 const BUILD="3e8b6bb4";
-const BUILD_DATE="14.09.2026 01:32";
+const BUILD_DATE="14.09.2026 02:20";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
