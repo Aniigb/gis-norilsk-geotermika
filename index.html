@@ -1202,6 +1202,231 @@ function pmScenarios(){ // теплотехнические сценарии п�
   return r;
 }
 
+/* ================== C4. Теплотехническая модель t(x,t) основания ==================
+   Эмпирическая сезонная модель, калибруемая по архиву замеров каждой скважины:
+   по каждой глубине z (узел) МНК подбирается модель
+     T_z(t) = m_z + a1·sin ωt + b1·cos ωt [+ a2·sin 2ωt + b2·cos 2ωt] + k_z·(t − t̄)/365,25,
+   ω = 2π/365,25 сут⁻¹; t — сутки (Unix/86400000). Полугодовая гармоника — при ≥ 8
+   замерах на глубине; тренд k_z — при охвате ряда ≥ 700 суток (иначе не идентифицируем).
+   Точки z < 0,5 м исключаются: температура поверхности — погода дня замера, а не
+   климатический сигнал. Поле t(x,t) — вертикальная линейная интерполяция между
+   узлами-глубинами (как в графике термоизоплет, ГОСТ 25358-2020, прил. Д).
+   Выбор класса модели — по точности на архиве фонда: медиана СКО 0,63–0,68 °C
+   (физические аналоги — одногармоничная модель теплопроводности 1,4 °C, ядерная
+   свёртка помесячного метеоряда с n-факторами 1,3 °C — проигрывают из-за
+   микроклимата подполья и погодной изменчивости поверхности).
+   Связь «климат → грунт»: медианный по фонду профиль параметров (m, A, φ, k) по
+   классам глубин, отклик тренда грунта на тренд воздуха, затухание амплитуды
+   A(z)/A_возд и запаздывание фазы Δφ(z) — по ним строится оценочная (синтетическая)
+   модель для скважин с недостаточным архивом и выполняется сценарный прогноз.
+   Методическая база: СП 25.13330.2020 (разд. 6, прил. Г), ГОСТ 25358-2020 (прил. Д). */
+function tmSolve(M, v){ // решение нормальных уравнений (n×n): гаусс с частичным выбором
+  const n=v.length, A=M.map(r=>r.slice()), b=v.slice();
+  for(let c=0;c<n;c++){
+    let pp=c; for(let r=c+1;r<n;r++) if(Math.abs(A[r][c])>Math.abs(A[pp][c])) pp=r;
+    if(Math.abs(A[pp][c])<1e-12) return null;
+    if(pp!==c){ const t1=A[pp];A[pp]=A[c];A[c]=t1; const t2=b[pp];b[pp]=b[c];b[c]=t2; }
+    for(let r=c+1;r<n;r++){
+      const f=A[r][c]/A[c][c];
+      for(let k=c;k<n;k++) A[r][k]-=f*A[c][k];
+      b[r]-=f*b[c];
+    }
+  }
+  const x=new Array(n);
+  for(let r=n-1;r>=0;r--){ let s=b[r]; for(let k=r+1;k<n;k++) s-=A[r][k]*x[k]; x[r]=s/A[r][r]; }
+  return x;
+}
+const TM_W=2*Math.PI/365.25;
+function tmFitEval(f, t, tbar){ // значение модели узла глубины
+  let v=f.m + f.s1*Math.sin(TM_W*t) + f.c1*Math.cos(TM_W*t);
+  if(f.nh===2) v+=f.s2*Math.sin(2*TM_W*t) + f.c2*Math.cos(2*TM_W*t);
+  if(f.tr) v+=f.k*((t-tbar)/365.25);
+  return v;
+}
+function tmAmp(f){ return Math.hypot(f.s1, f.c1); } // амплитуда годовой волны узла
+function tmPhi(f){ // день максимума годовой волны узла (по первой гармонике)
+  let p=(Math.PI/2-Math.atan2(f.c1,f.s1))/TM_W; return ((p%365.25)+365.25)%365.25;
+}
+function tmCalWell(wd){ // калибровка модели по архиву замеров одной скважины
+  const s=(wd.s||[]).filter(x=>x[1]&&x[1].length>=1);
+  if(s.length<6) return {ok:false, why:'менее 6 дат замеров'};
+  const ts=s.map(x=>new Date(x[0]).getTime()/864e5);
+  const span=Math.max.apply(null,ts)-Math.min.apply(null,ts);
+  if(span<400) return {ok:false, why:'охват ряда менее 400 суток'};
+  const useTr=span>=700;
+  const byZ={};
+  s.forEach((x,i)=>x[1].forEach(pp=>{ if(pp[0]<0.5) return; (byZ[pp[0]]=byZ[pp[0]]||[]).push([ts[i],pp[1]]); }));
+  const zsAll=Object.keys(byZ).map(Number).sort((a,b)=>a-b);
+  const zs=zsAll.filter(z=>byZ[z].length>=6);
+  if(zs.length<3) return {ok:false, why:'менее 3 глубин с ≥ 6 замерами (z ≥ 0,5 м)'};
+  const tbar=ts.reduce((a,b)=>a+b,0)/ts.length;
+  const fits={}; let sse=0, N=0, sb=0;
+  for(const z of zs){
+    const rows=byZ[z];
+    const nh=rows.length>=8?2:1;
+    const NP=1+2*nh+(useTr?1:0);
+    const M=Array.from({length:NP},()=>new Array(NP).fill(0)), v=new Array(NP).fill(0);
+    for(const rr of rows){
+      const t=rr[0], T=rr[1];
+      const f=[1, Math.sin(TM_W*t), Math.cos(TM_W*t)];
+      if(nh===2) f.push(Math.sin(2*TM_W*t), Math.cos(2*TM_W*t));
+      if(useTr) f.push((t-tbar)/365.25);
+      for(let i=0;i<NP;i++){ v[i]+=f[i]*T; for(let j=0;j<NP;j++) M[i][j]+=f[i]*f[j]; }
+    }
+    const sol=tmSolve(M,v); if(!sol) continue;
+    const f={m:sol[0], s1:sol[1], c1:sol[2], nh, tr:useTr, k:0};
+    if(nh===2){ f.s2=sol[3]; f.c2=sol[4]; }
+    if(useTr) f.k=sol[NP-1];
+    fits[z]=f;
+    for(const rr of rows){ const mm=tmFitEval(f,rr[0],tbar); sse+=(rr[1]-mm)*(rr[1]-mm); sb+=(mm-rr[1]); N++; }
+  }
+  if(!N||Object.keys(fits).length<3) return {ok:false, why:'нормальные уравнения вырождены'};
+  return {ok:true, fits, zs:Object.keys(fits).map(Number).sort((a,b)=>a-b), useTr, tbar,
+    rmse:Math.sqrt(sse/N), bias:sb/N, n:N, nd:s.length,
+    zmax:zsAll[zsAll.length-1], d0:s[0][0], d1:s[s.length-1][0]};
+}
+function tmT(c, z, t){ // T грунта, °C: вертикальная интерполяция между узлами-глубинами
+  const zs=c.zs, f=c.fits;
+  if(!zs||!zs.length) return null;
+  if(z<=zs[0]) return tmFitEval(f[zs[0]],t,c.tbar);
+  const zl=zs[zs.length-1];
+  if(z>=zl) return tmFitEval(f[zl],t,c.tbar);
+  let i=1; while(zs[i]<z) i++;
+  const z0=zs[i-1], z1=zs[i], fr=(z-z0)/(z1-z0);
+  return tmFitEval(f[z0],t,c.tbar)*(1-fr)+tmFitEval(f[z1],t,c.tbar)*fr;
+}
+function tmShift(c, dT){ // сценарный сдвиг среднегодовой температуры (равномерно по глубине)
+  const fits={};
+  Object.keys(c.fits).forEach(z=>{ fits[z]=Object.assign({},c.fits[z],{m:c.fits[z].m+dT}); });
+  return Object.assign({},c,{fits});
+}
+function tmAirHarm(){ // годовая гармоника температуры воздуха по помесячной климатологии метеоряда
+  try{
+    const d=mtData(); if(!d) return null;
+    const c=mtClim(d,'t'); if(!c||c.mean.some(v=>v===null)) return null;
+    let cum=0; const xs=MT_DAYS.map(dd=>{ const x=cum+dd/2; cum+=dd; return x; });
+    const M=[[0,0,0],[0,0,0],[0,0,0]], v=[0,0,0];
+    for(let i=0;i<12;i++){
+      const f1=Math.sin(TM_W*xs[i]), f2=Math.cos(TM_W*xs[i]), T=c.mean[i], w=MT_DAYS[i];
+      v[0]+=w*T; v[1]+=w*f1*T; v[2]+=w*f2*T;
+      M[0][0]+=w; M[0][1]+=w*f1; M[0][2]+=w*f2;
+      M[1][1]+=w*f1*f1; M[1][2]+=w*f1*f2; M[2][2]+=w*f2*f2;
+    }
+    M[1][0]=M[0][1]; M[2][0]=M[0][2]; M[2][1]=M[1][2];
+    const sol=tmSolve(M,v); if(!sol) return null;
+    return {MGT:sol[0], A:Math.hypot(sol[1],sol[2]), phi:tmPhi({s1:sol[1],c1:sol[2]})};
+  }catch(e){ return null; }
+}
+const TM_ZCLS=[1,2,3,5,8,10,12,15];
+function tmZClass(z){ // ближайший класс глубины с допуском
+  let best=null, bd=1e9;
+  TM_ZCLS.forEach(q=>{ const d=Math.abs(q-z); if(d<bd){bd=d;best=q;} });
+  return bd<=Math.max(0.3,best*0.2)?best:null;
+}
+let _tmFundCache=null;
+function tmFundCal(){ // медианные параметры и точность модели по архиву всех скважин фонда
+  if(_tmFundCache) return _tmFundCache;
+  const empty={n:0, wells:0, rmseMed:null, okShare3:null, okShare5:null, ktMed:null, nDeep:0, cls:null, air:null, airTr:null, dTdeepMed:null};
+  if(typeof DB==='undefined'||!DB||!DB.objects) return empty; // БД ещё не расшифрована — без кэша
+  const r={n:0, wells:0, rmseMed:null, okShare3:null, okShare5:null, ktMed:null, nDeep:0, cls:null, air:null, airTr:null, dTdeepMed:null};
+  try{
+    const air=tmAirHarm(); r.air=air;
+    const sp=(typeof mtSP==='function')?mtSP(mtData()):null;
+    try{
+      const ag=mtYearAgg(mtData(),'t').filter(x=>x.full).slice(-30);
+      if(ag.length>=10){ const l=mtLin(ag.map(x=>x.y), ag.map(x=>x.v)); if(l) r.airTr=l.k; }
+    }catch(e){}
+    const rm=[],kt=[],dTdeep=[];
+    const byCls={}; TM_ZCLS.forEach(z=>{ byCls[z]={m:[],A:[],phi:[],k:[]}; });
+    DB.objects.forEach(o=>{
+      if(!o.prof) return;
+      Object.values(o.prof).forEach(wd=>{
+        r.wells++;
+        const c=tmCalWell(wd); if(!c.ok) return;
+        r.n++; rm.push(c.rmse);
+        c.zs.forEach(z=>{
+          const q=tmZClass(z); if(q===null) return;
+          const f=c.fits[z], cc=byCls[q];
+          cc.m.push(f.m); cc.A.push(tmAmp(f)); cc.phi.push(tmPhi(f));
+          if(f.tr&&typeof f.k==='number') cc.k.push(f.k);
+        });
+        const dzs=c.zs.filter(z=>z>=8&&c.fits[z]);
+        if(dzs.length){
+          const zD=Math.max.apply(null,dzs), fD=c.fits[zD];
+          if(fD.tr&&typeof fD.k==='number'){ kt.push(fD.k); r.nDeep++; }
+          if(sp&&typeof sp.MGT==='number') dTdeep.push(fD.m-sp.MGT);
+        }
+      });
+    });
+    r.rmseMed=pmMedian(rm);
+    r.okShare3=rm.length?Math.round(100*rm.filter(x=>x<=0.3).length/rm.length):null;
+    r.okShare5=rm.length?Math.round(100*rm.filter(x=>x<=0.5).length/rm.length):null;
+    r.ktMed=pmMedian(kt); r.dTdeepMed=pmMedian(dTdeep);
+    const cls={};
+    TM_ZCLS.forEach(z=>{
+      const cc=byCls[z]; if(cc.m.length<5) return;
+      // медиана фазы — по повёрнутому кругу (максимумы лета/осени)
+      const ph2=cc.phi.map(pp=>((pp+182.625)%365.25));
+      let pm=pmMedian(ph2); pm=pm===null?null:((pm-182.625)+365.25)%365.25;
+      cls[z]={m:pmMedian(cc.m), A:pmMedian(cc.A), phi:pm, k:pmMedian(cc.k), n:cc.m.length};
+    });
+    r.cls=Object.keys(cls).length?cls:null;
+  }catch(e){}
+  _tmFundCache=r; return r;
+}
+let _tmWellCache={};
+function tmWellModel(o, w){ // модель скважины: индивидуальная калибровка либо оценочная по медианам фонда
+  const key=o.a+'|'+w;
+  if(_tmWellCache[key]) return _tmWellCache[key];
+  const wd=o.prof&&o.prof[w]; if(!wd) return null;
+  let m=tmCalWell(wd);
+  if(!m.ok){
+    const f=tmFundCal();
+    if(!f.n||!f.cls){ m.fundOk=false; return m; } // без кэша: фонд мог быть не готов
+    const cz=Object.keys(f.cls).map(Number).sort((a,b)=>a-b);
+    const fits={};
+    cz.forEach(z=>{
+      const cc=f.cls[z];
+      const phi0=Math.PI/2-TM_W*(cc.phi===null?196:cc.phi);
+      const A=cc.A===null?0:cc.A;
+      fits[z]={m:cc.m, s1:A*Math.cos(phi0), c1:A*Math.sin(phi0), nh:1, tr:cc.k!==null&&cc.k!==undefined, k:cc.k||0};
+    });
+    if(Object.keys(fits).length<3){ m.fundOk=false; return m; }
+    m={ok:true, synthetic:true, why:m.why, fits, zs:Object.keys(fits).map(Number).sort((a,b)=>a-b),
+      useTr:true, tbar:Date.UTC(new Date().getFullYear(),6,1)/864e5,
+      rmse:null, bias:null, n:0, nd:(wd.s||[]).length,
+      zmax:Math.max.apply(null,cz),
+      d0:wd.s&&wd.s[0]?wd.s[0][0]:'', d1:wd.s&&wd.s.length?wd.s[wd.s.length-1][0]:''};
+  }
+  _tmWellCache[key]=m; return m;
+}
+function tmThawYear(c, year, zlim){ // сезонный максимум оттаивания по модели: глубина изотермы 0 °C
+  zlim=zlim||Math.min(5, c.zmax||5);
+  let best=null, warm=false;
+  const t0=Date.UTC(year,3,15)/864e5, t1=Date.UTC(year,10,15)/864e5;
+  for(let t=t0; t<=t1; t+=2){
+    if(tmT(c,c.zs[0],t)<=0) continue; // верхний узел мёрзлый — сезонного фронта нет
+    let zr=null, prevT=tmT(c,0.5,t), prevZ=0.5;
+    for(let z=0.6; z<=zlim+1e-9; z+=0.1){
+      const v=tmT(c,z,t);
+      if(prevT>0&&v<=0) zr=prevZ+(0-prevT)*(z-prevZ)/(v-prevT); // глубочайший переход (сезонный фронт)
+      prevT=v; prevZ=z;
+    }
+    if(zr===null&&prevT>0){ zr=zlim; warm=true; } // весь расчётный столб тёплый
+    if(zr!==null&&(best===null||zr>best)) best=zr;
+  }
+  if(best===null) return null;
+  if(warm&&best>=zlim) return {z:zlim, gt:true};
+  return {z:+best.toFixed(2)};
+}
+function tmDayLabel(d){ // день от 1 янв → «15 июля»
+  let dd=Math.round(d)+1, mo=0;
+  while(mo<11&&dd>MT_DAYS[mo]){ dd-=MT_DAYS[mo]; mo++; }
+  const MN=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  return dd+' '+MN[mo];
+}
+let txScen=0; // сценарий ΔT среднегодовой t воздуха для блока t(x,t)
+
 /* ---------- карта ---------- */
 const map = L.map('map',{zoomControl:true}).setView([69.355,88.20], 12);
 window.addEventListener('resize', ()=>map.invalidateSize());
@@ -1742,6 +1967,12 @@ function renderMkdSummary(){
     curYear=idx.filter(x=>x.part)[0]||null;
   }catch(e){}
   const cal=pmCalib();
+  const tm=tmFundCal();
+  const _c3=(tm.cls&&tm.cls[3])||null, _c10=(tm.cls&&tm.cls[10])||null, _air=tm.air||null;
+  const tmA3=(_c3&&_air&&_air.A&&_c3.A!==null&&_c3.A!==undefined)?(_c3.A/_air.A):null;
+  const tmA10=(_c10&&_air&&_air.A&&_c10.A!==null&&_c10.A!==undefined)?(_c10.A/_air.A):null;
+  const tmP3=(_c3&&_air&&_c3.phi!==null&&_c3.phi!==undefined&&_air.phi!==null&&_air.phi!==undefined)?Math.round(((_c3.phi-_air.phi)+365.25)%365.25):null;
+  const tmP10=(_c10&&_air&&_c10.phi!==null&&_c10.phi!==undefined&&_air.phi!==null&&_air.phi!==undefined)?Math.round(((_c10.phi-_air.phi)+365.25)%365.25):null;
   // ресурс объектов РИСК/КРИТИЧНО/АВАРИЯ
   const resRows=[];
   objs.forEach(o=>{
@@ -1800,7 +2031,14 @@ function renderMkdSummary(){
   <table class="kv">
     <tr><td>Смещение T грунта на НГК относительно МГТ воздуха (медиана)</td><td>${cal.dTMed!==null&&cal.dTMed!==undefined?('<b>'+(cal.dTMed>0?'+':'')+cal.dTMed.toFixed(2)+' °C</b> · '+cal.nObj+' объектов'):'—'}</td></tr>
     <tr><td>Коэффициент оттаивания a в модели z = a·√Ω_t (медиана)</td><td>${cal.aMed!==null&&cal.aMed!==undefined?('<b>'+cal.aMed.toFixed(4)+' м/√(°C·сут)</b> · '+cal.nWell+' скважин'):'—'}</td></tr>
+    <tr><td>Теплотехническая модель t(x,t): калибровано скважин</td><td>${tm.n?('<b>'+tm.n+'</b> из '+tm.wells+' с архивом (≥ 6 дат, охват ≥ 400 сут, ≥ 3 глубин с ≥ 6 замерами)'):'—'}</td></tr>
+    <tr><td>Точность hindcast по архиву: медиана СКО / доля скважин с СКО ≤ 0,5 °C</td><td>${tm.rmseMed!==null&&tm.rmseMed!==undefined?('<b>'+tm.rmseMed.toFixed(2)+' °C</b> / <b>'+tm.okShare5+' %</b> скважин (≤ 0,3 °C — '+tm.okShare3+' %)'):'—'}</td></tr>
+    <tr><td>Межгодовой тренд T грунта на глубине ≥ 8 м · тренд воздуха за 30 лет</td><td>${tm.ktMed!==null&&tm.ktMed!==undefined?('<b>'+(tm.ktMed>0?'+':'')+tm.ktMed.toFixed(3)+' °C/год</b> ('+tm.nDeep+' рядов)'):'—'}${tm.airTr!==null&&tm.airTr!==undefined?(' · воздух <b>'+(tm.airTr>0?'+':'')+tm.airTr.toFixed(3)+' °C/год</b>'):''}</td></tr>
+    <tr><td>Затухание годовой волны: A(3 м) / A(10 м) от амплитуды воздуха</td><td>${tmA3!==null?('<b>'+Math.round(100*tmA3)+' %</b>'):'—'}${tmA10!==null?(' / <b>'+Math.round(100*tmA10)+' %</b>'):''}${_air&&_air.A?(' (A воздуха '+_air.A.toFixed(1)+' °C)'):''}</td></tr>
+    <tr><td>Запаздывание максимума годовой волны Δφ на 3 м / 10 м</td><td>${tmP3!==null?('<b>+'+tmP3+' сут</b>'):'—'}${tmP10!==null?(' / <b>+'+tmP10+' сут</b>'):''}</td></tr>
+    <tr><td>Смещение T грунта на глубине ≥ 8 м относительно МГТ воздуха (медиана)</td><td>${tm.dTdeepMed!==null&&tm.dTdeepMed!==undefined?('<b>'+(tm.dTdeepMed>0?'+':'')+tm.dTdeepMed.toFixed(2)+' °C</b>'):'—'}</td></tr>
   </table>
+  <div class="note">Модель t(x,t): эмпирическая сезонная модель по глубинам-узлам — годовая (при ряде ≥ 8 замеров — и полугодовая) гармоника + линейный межгодовой тренд; калибровка МНК по архиву каждой скважины, вертикальное поле — интерполяция между узлами. Связь с климатом — через годовую гармонику метеоряда и медианные параметры фонда (затухание амплитуды, запаздывание фазы максимума, смещение к МГТ воздуха). Индивидуальная калибровка, модельные профили и поле t(x,t) — в карточке объекта, раздел «Геотермика», блок «Теплотехническая модель t(x,t)».</div>
 
   <div class="sect">6. Остаточный ресурс объектов РИСК / КРИТИЧНО / АВАРИЯ</div>
   ${resRows.length?`<div class="resbox"><div class="resbox-h"><span>🏚 Реестр по приоритету ресурса</span><span class="cnt">${resRows.length} объектов · минимальный ресурс — сверху · клик по адресу открывает карточку</span></div><div class="reslist"><table class="res"><thead><tr><th>Адрес</th><th style="width:118px">Статус</th><th style="width:150px">T на контр. глубине, °C</th><th style="width:118px">Тренд, °C/год</th><th style="width:120px">Ресурс</th></tr></thead><tbody>${resRows.map(x=>`<tr><td><a href="#" data-sumobj="${esc(x.o.a)}">${esc(x.o.a)}</a></td><td><span class="badge b-${BMAP[x.st]}">${x.st}</span></td><td>${x.r?x.r.tcur:'—'}</td><td>${x.r&&x.r.k!==null&&x.r.k!==undefined?((x.r.k>0?'+':'')+x.r.k.toFixed(2)):'—'}</td><td>${rpill(x.r)}</td></tr>`).join('')}</tbody></table></div></div>
@@ -1880,6 +2118,7 @@ function renderSkbSummary(){
     lastFull=idx.filter(x=>!x.part).slice(-1)[0]||null;
     curYear=idx.filter(x=>x.part)[0]||null;
   }catch(e){}
+  const tm=tmFundCal();
   /* 7. ресурс объектов РИСК/КРИТИЧНО/АВАРИЯ */
   const resRows=[];
   objs.forEach(o=>{ const st=statusOf(o);
@@ -1950,8 +2189,9 @@ function renderSkbSummary(){
     <tr><td>Индекс промерзания Ω_f: норма / последний полный год</td><td>${sp?('<b>'+sp.OmF+'</b> °C·сут'):'—'}${lastFull?(' / <b>'+lastFull.F+'</b> ('+lastFull.y+')'):''}</td></tr>
     <tr><td>Индекс оттаивания Ω_t: норма / последний полный год</td><td>${sp?('<b>'+sp.OmT+'</b> °C·сут'):'—'}${lastFull?(' / <b>'+lastFull.T+'</b> ('+lastFull.y+')'):''}</td></tr>
     <tr><td>Текущий (неполный) год</td><td>${curYear?('Ω_f <b>'+curYear.F+'</b> · Ω_t <b>'+curYear.T+'</b> °C·сут'):'—'}</td></tr>
+    <tr><td>Теплотехническая модель t(x,t): калибровка по архиву скважин фонда</td><td>${tm.n?('скважин <b>'+tm.n+'</b> · медиана СКО hindcast <b>'+(tm.rmseMed!==null&&tm.rmseMed!==undefined?tm.rmseMed.toFixed(2)+' °C':'—')+'</b> · тренд k_t <b>'+(tm.ktMed!==null&&tm.ktMed!==undefined?((tm.ktMed>0?'+':'')+tm.ktMed.toFixed(3)):'—')+' °C/год</b>'):'—'}</td></tr>
   </table>
-  <div class="note">Индексы едины для всей территории города и используются в модели сезонного оттаивания при постановке объектов на мониторинг.</div>
+  <div class="note">Индексы едины для всей территории города и используются в модели сезонного оттаивания при постановке объектов на мониторинг.${tm.n?' Модель t(x,t): эмпирическая сезонная модель по глубинам-узлам (годовая/полугодовая гармоники + межгодовой тренд), калибровка МНК по архиву скважин; индивидуальные параметры и модельное поле — в карточке объекта, раздел «Геотермика».':''}</div>
 
   <div class="sect">7. Остаточный ресурс объектов РИСК / КРИТИЧНО / АВАРИЯ</div>
   ${resRows.length?`<div class="resbox"><div class="resbox-h"><span>🏚 Реестр по приоритету ресурса</span><span class="cnt">${resRows.length} объектов · минимальный ресурс — сверху · клик по адресу открывает карточку</span></div><div class="reslist"><table class="res"><thead><tr><th>Адрес</th><th style="width:118px">Статус</th><th style="width:150px">T на контр. глубине, °C</th><th style="width:118px">Тренд, °C/год</th><th style="width:120px">Ресурс</th></tr></thead><tbody>${resRows.map(x=>`<tr><td><a href="#" data-skbaddr="${esc(x.o.a)}">${esc(x.o.a)}</a></td><td><span class="badge b-${BMAP[x.st]}">${x.st}</span></td><td>${x.r?x.r.tcur:'—'}</td><td>${x.r&&x.r.k!==null&&x.r.k!==undefined?((x.r.k>0?'+':'')+x.r.k.toFixed(2)):'—'}</td><td>${rpill(x.r)}</td></tr>`).join('')}</tbody></table></div></div>
@@ -2676,6 +2916,227 @@ function drawIsopleth(cv, o, wliter){
   ctx.fillText('+'+tmax.toFixed(0)+' °C', sw0+sww, swy+18);
 }
 
+/* ---------- C4: панель теплотехнической модели t(x,t) в карточке (вкладка «Геотермика») ---------- */
+function renderTxModel(o){
+  const box=document.getElementById('txBody'); if(!box) return;
+  const w=curWell;
+  const m=tmWellModel(o,w);
+  if(!m||!m.ok){
+    box.innerHTML='<div class="note">Модель по скважине '+esc(w)+' не построена: '+esc(m&&m.why||'нет данных')+(m&&m.fundOk===false?'; медианный профиль фонда также недоступен':'')+'. Минимальные требования к архиву: ≥ 6 дат замеров, охват ≥ 400 суток, ≥ 3 глубин с ≥ 6 замерами (z ≥ 0,5 м).</div>';
+    return;
+  }
+  const sc=txScen||0;
+  const mm=sc?tmShift(m,sc):m;
+  const ngcH=o.ngc?o.ngc.h:null;
+  const nowD=Date.now()/864e5, yNow=new Date().getFullYear();
+  const thawM=tmThawYear(mm,yNow), thawN=tmThawYear(mm,yNow+1);
+  const thawS=x=>x===null?'— (сезонного оттаивания по модели нет)':('<b>'+(x.gt?'&gt; ':'')+x.z.toFixed(2)+' м</b>');
+  const tmMax=wellThawMax(o.prof[w]);
+  const fct=pmThawFc(o); const sqw=fct?fct.wells.find(x=>x.w===w):null;
+  const tNgcNow=ngcH!==null?tmT(mm,ngcH,nowD):null;
+  const tNgcNext=ngcH!==null?tmT(mm,ngcH,nowD+365.25):null;
+  const dzs=m.zs.filter(z=>z>=8);
+  const zD=dzs.length?Math.max.apply(null,dzs):m.zs[m.zs.length-1];
+  const fD=m.fits[zD];
+  const fund=tmFundCal();
+  const nodeRows=m.zs.filter((z,i)=>m.zs.length<=10||i%2===0||z===m.zs[m.zs.length-1]).map(z=>{
+    const f=m.fits[z];
+    return `<tr><td>${z} м</td><td>${f.m.toFixed(2)} °C</td><td>${tmAmp(f).toFixed(2)} °C</td><td>${tmDayLabel(tmPhi(f))}</td><td>${f.tr?((f.k>0?'+':'')+f.k.toFixed(3)+' °C/год'):'—'}</td></tr>`;
+  }).join('');
+  box.innerHTML=`
+    ${m.synthetic?`<div class="note" style="border-left:3px solid #c8871a; padding-left:8px">Скважина ${esc(w)}: архива недостаточно для индивидуальной калибровки (${esc(m.why)}). Показана <b>оценочная модель</b> по медианному профилю параметров фонда (связь «климат → грунт»); точность по замерам этой скважины не верифицирована.</div>`:''}
+    <table class="kv">
+      <tr><td>Узлы-глубины модели</td><td><b>${m.zs.length}</b> (${m.zs.slice(0,12).join(', ')}${m.zs.length>12?', …':''} м) · поле t(x,t) — интерполяция между узлами</td></tr>
+      ${m.rmse!==null?`<tr><td>Верификация по архиву (hindcast)</td><td>СКО <b>${m.rmse.toFixed(2)} °C</b> · смещение ${m.bias>0?'+':''}${m.bias.toFixed(2)} °C · ${m.n} точек, ${m.nd} дат, охват ${m.d0} — ${m.d1}${fund.rmseMed!==null?(' <span class="note">· медиана СКО по фонду: '+fund.rmseMed.toFixed(2)+' °C</span>'):''}</td></tr>`:''}
+      <tr><td>Тренд T грунта на глубине ${zD} м${m.synthetic?' (медиана фонда)':''}</td><td>${fD.tr?('<b>'+(fD.k>0?'+':'')+fD.k.toFixed(3)+' °C/год</b>'):'— (охват ряда &lt; 700 сут)'}${fund.airTr!==null&&fund.airTr!==undefined?(' <span class="note">· тренд t воздуха за 30 лет: '+(fund.airTr>0?'+':'')+fund.airTr.toFixed(3)+' °C/год</span>'):''}</td></tr>
+      ${o.ngc?`<tr><td>Модельная T на уровне НГК (${o.ngc.h} м), средняя за год</td><td><b>${(function(){ let s=0; for(let i=0;i<12;i++) s+=tmT(m,o.ngc.h,Date.UTC(yNow,i,15)/864e5); return (s/12).toFixed(2); })()} °C</b> <span class="note">· замеренная T на НГК: ${o.ngc.t} °C</span></td></tr>`:''}
+    </table>
+    <table class="rows static"><thead><tr><th>Глубина, м</th><th style="width:20%">Среднегодовая m_z</th><th style="width:20%">Амплитуда A_z</th><th style="width:22%">Максимум годовой волны</th><th style="width:20%">Тренд k_z</th></tr></thead>
+    <tbody>${nodeRows}</tbody></table>
+    <canvas class="plot" id="txProf"></canvas>
+    <div class="note">Профили температуры по глубине: сплошные кривые с точками — замеры по датам; штриховые — модель t(x,t) на те же даты (z &lt; 0,5 м в калибровке не участвует: поверхностная точка — погода дня замера). Расхождение характеризует СКО калибровки.</div>
+    <canvas class="plot" id="txIso"></canvas>
+    <div class="note">Модельное температурное поле t(x,t): ретроспектива (3 года до последнего замера) и прогноз на 14 мес. Тёмно-синяя линия — нулевая изотерма; штриховая вертикаль — дата последнего замера (правее — прогнозная область).</div>
+    <div class="sect" style="margin-top:8px">Прогноз модели и теплотехнический сценарий</div>
+    <div class="note" style="margin:0 0 2px">Сценарий изменения среднегодовой t воздуха (сдвиг m_z): <span id="txScenBtns"></span></div>
+    <table class="kv">
+      <tr><td>Сезонный максимум оттаивания ${yNow} г. (модель)</td><td>${thawS(thawM)}${tmMax?(' <span class="note">· фактический максимум по замерам: '+(tmMax.gt?'&gt; ':'')+tmMax.z.toFixed(2)+' м ('+tmMax.date+')</span>'):''}</td></tr>
+      <tr><td>Прогноз сезонного максимума оттаивания ${yNow+1} г.</td><td>${thawS(thawN)}${sqw?(' <span class="note">· sqrt-модель z = a·√Ω_t: '+sqw.fc+' м</span>'):''}</td></tr>
+      ${ngcH!==null&&tNgcNow!==null?`<tr><td>T на уровне НГК (${ngcH} м): сейчас / +1 год</td><td><b>${tNgcNow.toFixed(2)} °C</b> / <b>${tNgcNext.toFixed(2)} °C</b></td></tr>`:''}
+      ${sc?`<tr><td>Учтён сценарий ΔT = +${String(sc).replace('.',',')} °C</td><td><span class="note">m_z сдвинута на +${String(sc).replace('.',',')} °C (верхняя оценка прогрева: сдвиг принят равномерным по глубине); строки прогноза пересчитаны</span></td></tr>`:''}
+    </table>
+    <div class="normref">Модель t(x,t): эмпирическая сезонная модель, калиброванная МНК по архиву замеров скважины — по каждой глубине среднегодовая температура, годовая (и полугодовая при ≥ 8 замерах) гармоника и линейный межгодовой тренд (при охвате ≥ 700 сут); поле — интерполяция между узлами-глубинами. Для скважин с недостаточным архивом — оценочная модель по медианному профилю фонда (связь «климат → грунт» — «📊 Свод», раздел калибровки). Выбор класса модели выполнен по точности на архиве фонда: медиана СКО ${fund.rmseMed!==null?fund.rmseMed.toFixed(2)+' °C':'—'} против 1,3–1,4 °C у физических аналогов (гармоническая модель теплопроводности, ядерная свёртка метеоряда с n-факторами). Методическая база: СП 25.13330.2020 (разд. 6, прил. Г), ГОСТ 25358-2020 (прил. Д). Модель — инструмент превентивного мониторинга (интерполяция и краткосрочный прогноз); для проектных решений не заменяет численный теплотехнический расчёт с учётом фазовых переходов.</div>`;
+  const sb=document.getElementById('txScenBtns');
+  [0,0.5,1,2].forEach(v=>{
+    const b=document.createElement('button');
+    b.className='dbtn'+((txScen||0)===v?' on':'');
+    b.textContent=v?('+'+String(v).replace('.',',')+' °C'):'база';
+    b.onclick=()=>{ txScen=v; renderDetail(o); };
+    sb.appendChild(b);
+  });
+  drawTxProfile(document.getElementById('txProf'), o, w, mm);
+  drawTxIso(document.getElementById('txIso'), o, w, mm);
+}
+/* --- C4: профили «замеры vs модель» (геометрия — как у графика прил. Д, рис. Д.1) --- */
+function drawTxProfile(cv, o, wliter, m){
+  const ctx=cv.getContext('2d');
+  const W=cv.clientWidth, H=Math.max(430, cv.clientHeight||430);
+  cv.width=W*2; cv.height=H*2; cv.style.height=H+'px'; ctx.scale(2,2);
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+  const wd=o.prof[wliter]; if(!wd) return;
+  let all=[]; wd.s.forEach(([dt,pts])=>pts.forEach(p=>all.push(p)));
+  if(!all.length) return;
+  const dmaxW=Math.max.apply(null,all.map(p=>p[0]));
+  let tmin=Math.min(0,...all.map(p=>p[1])), tmax=Math.max(0.5,...all.map(p=>p[1]));
+  wd.s.forEach(([dt])=>{ const tD=new Date(dt).getTime()/864e5;
+    for(let z=0;z<=dmaxW;z+=0.5){ const v=tmT(m,z,tD); if(v<tmin)tmin=v; if(v>tmax)tmax=v; } });
+  tmin=Math.floor(tmin-0.5); tmax=Math.ceil(tmax+0.5);
+  const dmax=Math.ceil(dmaxW/5)*5;
+  const L=64,R=16,T=96,B=34;
+  const px=t=>L+(t-tmin)/(tmax-tmin)*(W-L-R);
+  const py=d=>T+d/dmax*(H-T-B);
+  ctx.strokeStyle='#000'; ctx.fillStyle='#000'; ctx.lineWidth=1;
+  ctx.strokeRect(L,T,W-L-R,H-T-B);
+  ctx.font='10px "Times New Roman",serif'; ctx.textAlign='center';
+  for(let t=tmin;t<=tmax;t++){
+    ctx.beginPath();ctx.moveTo(px(t),T);ctx.lineTo(px(t),T-7);ctx.stroke();
+    ctx.fillText(t.toFixed(0),px(t),T-11);
+    ctx.beginPath();ctx.moveTo(px(t),T);ctx.lineTo(px(t),H-B);ctx.strokeStyle='#d9d9d9';ctx.stroke();ctx.strokeStyle='#000';
+    if(t<tmax){ctx.beginPath();ctx.moveTo(px(t+0.5),T);ctx.lineTo(px(t+0.5),T-4);ctx.stroke();}
+  }
+  ctx.font='italic 12px "Times New Roman",serif'; ctx.fillText('t, °C',(L+W-R)/2,T-30);
+  ctx.textAlign='right'; ctx.font='10px "Times New Roman",serif';
+  for(let d=0;d<=dmax;d++){
+    ctx.beginPath();ctx.moveTo(L,py(d));ctx.lineTo(L-7,py(d));ctx.stroke();
+    if(d%5===0) ctx.fillText(d,L-11,py(d)+3);
+  }
+  ctx.save(); ctx.translate(16,(T+H-B)/2); ctx.rotate(-Math.PI/2);
+  ctx.textAlign='center'; ctx.font='italic 12px "Times New Roman",serif'; ctx.fillText('d, м',0,0); ctx.restore();
+  ctx.strokeStyle='#000'; ctx.lineWidth=1.6;
+  ctx.beginPath();ctx.moveTo(px(0),T);ctx.lineTo(px(0),H-B);ctx.stroke();
+  ctx.lineWidth=1;
+  ctx.textAlign='left'; ctx.font='11px "Times New Roman",serif';
+  ctx.fillText('Объект: '+o.a+'   Скважина № '+wliter, 10, 16);
+  ctx.textAlign='right';
+  ctx.fillText('теплотехническая модель t(x,t)'+(m.rmse!==null?(', СКО '+m.rmse.toFixed(2)+' °C'):' (оценочная)'), W-10, 16);
+  ctx.textAlign='center'; ctx.font='italic 11.5px "Times New Roman",serif';
+  ctx.fillText('Профили температуры: замеры (сплошные) и модель (штриховые)', W/2, 62);
+  wd.s.forEach(([dt,pts],si)=>{
+    const col=DATE_COLORS[si%DATE_COLORS.length];
+    const tD=new Date(dt).getTime()/864e5;
+    ctx.strokeStyle=col; ctx.lineWidth=1.1; ctx.setLineDash([5,4]);
+    ctx.beginPath();
+    for(let z=0;z<=dmaxW;z+=0.25){ const x=px(tmT(m,z,tD)), y=py(z); z?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+    ctx.stroke(); ctx.setLineDash([]);
+    ctx.lineWidth=1.4; ctx.fillStyle=col;
+    ctx.beginPath();
+    pts.forEach((p,i)=>{const x=px(p[1]),y=py(p[0]); i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+    ctx.stroke();
+    pts.forEach(p=>{ctx.beginPath();ctx.arc(px(p[1]),py(p[0]),2.4,0,7);ctx.fill();});
+    ctx.lineWidth=1;
+  });
+  ctx.textAlign='left'; ctx.font='10.5px "Times New Roman",serif';
+  wd.s.forEach(([dt],si)=>{
+    const col=DATE_COLORS[si%DATE_COLORS.length];
+    const y=H-B+18, x=L+si*96;
+    ctx.strokeStyle=col; ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(x,y-3);ctx.lineTo(x+16,y-3);ctx.stroke();
+    ctx.fillStyle='#000'; ctx.fillText(dt, x+20, y);
+    ctx.lineWidth=1;
+  });
+}
+/* --- C4: модельное температурное поле t(x,t) — ретроспектива 3 года + прогноз 14 мес --- */
+function drawTxIso(cv, o, wliter, m){
+  const ctx=cv.getContext('2d');
+  const W=cv.clientWidth, H=340; cv.width=W*2; cv.height=H*2; cv.style.height=H+'px'; ctx.scale(2,2);
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+  const wd=o.prof[wliter]; if(!wd) return;
+  const dates=wd.s.map(x=>x[0]).sort();
+  let dmaxW=0; wd.s.forEach(x=>x[1].forEach(p=>{ if(p[0]>dmaxW) dmaxW=p[0]; }));
+  const dmax=Math.min(20, Math.max(10, Math.ceil(dmaxW)));
+  const tLast=new Date(dates[dates.length-1]).getTime()/864e5;
+  const t0=Math.max(new Date(dates[0]).getTime()/864e5, tLast-3*365.25), t1=tLast+425;
+  const L=58,R=16,T=64,B=42;
+  const px=t=>L+(t-t0)/(t1-t0)*(W-L-R);
+  const py=d=>T+d/dmax*(H-T-B);
+  let tmin=1e9,tmax=-1e9;
+  for(let i=0;i<=60;i++){ const t=t0+(t1-t0)*i/60;
+    for(let z=0;z<=dmax;z+=dmax/40){ const v=tmT(m,z,t); if(v<tmin)tmin=v; if(v>tmax)tmax=v; } }
+  if(tmin>0)tmin=0; if(tmax<0)tmax=0;
+  const img=ctx.createImageData(W-L-R, H-T-B);
+  for(let yy=0; yy<H-T-B; yy++){
+    const d=yy/(H-T-B)*dmax;
+    for(let xx=0; xx<W-L-R; xx++){
+      const t=t0+(t1-t0)*xx/(W-L-R-1);
+      const col=isoColor(tmT(m,d,t),tmin,tmax).match(/\d+/g).map(Number);
+      const off=(yy*(W-L-R)+xx)*4;
+      img.data[off]=col[0]; img.data[off+1]=col[1]; img.data[off+2]=col[2]; img.data[off+3]=255;
+    }
+  }
+  const tmp=document.createElement('canvas'); tmp.width=W-L-R; tmp.height=H-T-B;
+  tmp.getContext('2d').putImageData(img,0,0);
+  ctx.imageSmoothingEnabled=true; ctx.drawImage(tmp,L,T);
+  // изотермы: целые °C (аналитический корень по глубине — модель монотонна по z при фикс. t)
+  function contourLv(lv, color, width){
+    ctx.strokeStyle=color; ctx.lineWidth=width; ctx.beginPath();
+    let started=false;
+    for(let xx=0; xx<W-L-R; xx+=2){
+      const t=t0+(t1-t0)*xx/(W-L-R-1);
+      const tg=tmT(m,0,t)-lv, tb=tmT(m,dmax,t)-lv;
+      if((tg>0&&tb<0)||(tg<0&&tb>0)){
+        let za=0, zb=dmax;
+        for(let it=0;it<36;it++){ const zm=(za+zb)/2; if((tmT(m,zm,t)-lv>0)===(tg>0)) za=zm; else zb=zm; }
+        const x=px(t), y=py((za+zb)/2);
+        if(started) ctx.lineTo(x,y); else ctx.moveTo(x,y);
+        started=true;
+      } else started=false;
+    }
+    ctx.stroke();
+  }
+  for(let Lv=Math.ceil(tmin);Lv<=Math.floor(tmax);Lv++){
+    if(Lv===0) continue;
+    contourLv(Lv,'rgba(60,60,60,.55)',0.7);
+  }
+  if(tmin<0&&tmax>0) contourLv(0,'#08306b',2);
+  // граница архива и прогноза
+  ctx.strokeStyle='#333'; ctx.lineWidth=1; ctx.setLineDash([6,4]);
+  ctx.beginPath(); ctx.moveTo(px(tLast),T); ctx.lineTo(px(tLast),H-B); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#333'; ctx.font='9.5px "Times New Roman",serif'; ctx.textAlign='left';
+  ctx.fillText('прогноз →', px(tLast)+4, T+10);
+  ctx.textAlign='right'; ctx.fillText('архив', px(tLast)-4, T+10);
+  // рамка и оси
+  ctx.strokeStyle='#000'; ctx.lineWidth=1; ctx.strokeRect(L,T,W-L-R,H-T-B);
+  ctx.fillStyle='#000'; ctx.font='10px "Times New Roman",serif';
+  ctx.textAlign='right';
+  for(let d=0;d<=dmax;d++){ ctx.beginPath();ctx.moveTo(L,py(d));ctx.lineTo(L-6,py(d));ctx.stroke();
+    if(d%5===0) ctx.fillText(d, L-9, py(d)+3); }
+  ctx.textAlign='center';
+  const y0=new Date(t0*864e5).getUTCFullYear(), y1=new Date(t1*864e5).getUTCFullYear();
+  for(let y=y0;y<=y1;y++){
+    const tj=Date.UTC(y,0,1)/864e5;
+    if(tj<t0||tj>t1) continue;
+    ctx.beginPath();ctx.moveTo(px(tj),H-B);ctx.lineTo(px(tj),H-B+6);ctx.stroke();
+    ctx.fillText(String(y), px(tj), H-B+16);
+  }
+  ctx.save();ctx.translate(15,(T+H-B)/2);ctx.rotate(-Math.PI/2);
+  ctx.font='italic 12px "Times New Roman",serif';ctx.fillText('d, м',0,0);ctx.restore();
+  ctx.font='italic 12px "Times New Roman",serif';ctx.fillText('время (модель)',(L+W-R)/2,H-8);
+  ctx.textAlign='left'; ctx.font='11px "Times New Roman",serif';
+  ctx.fillText('Объект: '+o.a+'   Скважина № '+wliter, 10, 16);
+  ctx.textAlign='right'; ctx.fillText('модель t(x,t) · узлов '+m.zs.length+(m.rmse!==null?(' · СКО '+m.rmse.toFixed(2)+' °C'):' · оценочная'), W-10, 16);
+  ctx.textAlign='center'; ctx.font='italic 11.5px "Times New Roman",serif';
+  ctx.fillText('Температурное поле t(x,t) по теплотехнической модели', W/2, 34);
+  ctx.fillText('ретроспектива 3 года + прогноз 14 мес', W/2, 50);
+  const sww=Math.min(200,(W-L-R)/3), sw0=W-R-sww, swy=H-B+6;
+  for(let xx=0;xx<sww;xx++){ const v=tmin+(tmax-tmin)*xx/sww;
+    ctx.fillStyle=isoColor(v,tmin,tmax); ctx.fillRect(sw0+xx,swy,1,8); }
+  ctx.strokeStyle='#999'; ctx.strokeRect(sw0,swy,sww,8);
+  ctx.fillStyle='#000'; ctx.font='9.5px "Times New Roman",serif'; ctx.textAlign='left';
+  ctx.fillText(tmin.toFixed(0)+' °C', sw0, swy+18); ctx.textAlign='right';
+  ctx.fillText('+'+tmax.toFixed(0)+' °C', sw0+sww, swy+18);
+}
+
 /* ---------- карточка объекта ---------- */
 function fmt(v,u){return (v===null||v===undefined)?'—':v+(u||'')}
 function esc(s){return String(s===null||s===undefined?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -3099,7 +3560,9 @@ function tabGeoterm(o, el){
     <div class="sect">Прогноз температуры основания до 2050 г. (среднее по всем скважинам)</div>
     <div class="note" style="margin:0 0 2px">Глубина прогноза: <span id="fcBtns"></span></div>
     <canvas class="plot" id="fcChart"></canvas>
-    <div class="note">Прогноз оценочный: сплошная линия — ряд наблюдений; штриховая — линейная экстраполяция наблюдаемого тренда; пунктир — тренд с климатической поправкой потепления воздуха Арктической зоны ≈ +0,35 °C/декаду (сценарий SSP2-4.5, оценочно) с затуханием по глубине (5 м — ×0,6; 10 м — ×0,8; 15 м — ×0,9). Красная линия — 0 °C (граница мёрзлого состояния). Подлежит уточнению теплотехническим расчётом.</div>
+    <div class="note">Прогноз оценочный: сплошная линия — ряд наблюдений; штриховая — линейная экстраполяция наблюдаемого тренда; пунктир — тренд с климатической поправкой потепления воздуха Арктической зоны ≈ +0,35 °C/декаду (сценарий SSP2-4.5, оценочно) с затуханием по глубине (5 м — ×0,6; 10 м — ×0,8; 15 м — ×0,9). Красная линия — 0 °C (граница мёрзлого состояния). Уточняется теплотехнической моделью t(x,t) — блок ниже.</div>
+    <div class="sect">Теплотехническая модель t(x,t) основания · калибровка «климат → грунт» по архиву скважины и метеоряду</div>
+    <div id="txBody"></div>
     <div class="sect">Несущая способность вмороженной сваи в динамике F_d(t) · СП 25.13330.2020, прил. В</div>
     <div id="bearingBody"></div>`
   : '<div class="empty" style="text-align:left;padding:8px 0">Числовые замеры по объекту в файлах не найдены — запись зарезервирована в структуре БД.<br>Замеры можно добавить через «⬆ Загрузка данных» в шапке.</div>';
@@ -3151,6 +3614,7 @@ function tabGeoterm(o, el){
       fcb.appendChild(b);
     });
     drawForecast(document.getElementById('fcChart'), o, fcDepth);
+    renderTxModel(o);
     renderBearing(o);
   }
 }
@@ -8512,12 +8976,13 @@ document.getElementById('gsModal').addEventListener('click',ev=>{ if(ev.target&&
 document.addEventListener('keydown',ev=>{ if(ev.key==='Escape'&&document.getElementById('gsModal').style.display==='block') gsCloseModal(); });
 document.querySelectorAll('#gsMenu button').forEach(b=>b.addEventListener('click',()=>gsOpen(b.dataset.gs)));
 setTimeout(()=>{ try{ gsJournalSync(); }catch(e){ console.error('gsJournalSync:',e); } }, 6000); // первая сверка после полной инициализации приложения
+setTimeout(()=>{ try{ tmFundCal(); }catch(e){ console.error('tmFundCal warm:',e); } }, 9000); // C4: фоновый прогрев калибровки t(x,t) по архиву фонда
 setInterval(()=>{ try{ gsJournalSync(); }catch(e){} }, 300000); // далее — каждые 5 минут
 
 };
 const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"E5FuITDjDv9LUtjr"};
 const BUILD="3e8b6bb4";
-const BUILD_DATE="14.09.2026 14:41";
+const BUILD_DATE="15.09.2026 00:29";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
