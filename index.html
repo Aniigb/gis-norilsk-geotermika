@@ -345,33 +345,48 @@
   #wxDutyModal .box{background:var(--panel); width:980px; max-width:96vw; max-height:92vh; margin:3vh auto; border-radius:10px; padding:18px 22px; box-shadow:0 10px 40px rgba(0,0,0,.4); display:flex; flex-direction:column}
   #wxDutyModal h2{font-size:15px; margin-right:30px}
   #wxDutyModal .close{float:right; border:none; background:none; font-size:20px; cursor:pointer; color:var(--mut)}
-  #sumModal,#skbModal{display:none; position:fixed; inset:0; z-index:1140; background:rgba(10,20,30,.62); backdrop-filter:blur(3px)}
-  #sumModal .box,#skbModal .box{background:var(--panel); width:1020px; max-width:96vw; max-height:92vh; margin:3vh auto; border-radius:14px; overflow:hidden; box-shadow:0 18px 60px rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.28); display:flex; flex-direction:column; animation:sumIn .18s ease-out}
+  #sumModal,#skbModal,#nzModal{display:none; position:fixed; inset:0; z-index:1140; background:rgba(10,20,30,.62); backdrop-filter:blur(3px)}
+  #sumModal .box,#skbModal .box,#nzModal .box{background:var(--panel); width:1020px; max-width:96vw; max-height:92vh; margin:3vh auto; border-radius:14px; overflow:hidden; box-shadow:0 18px 60px rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.28); display:flex; flex-direction:column; animation:sumIn .18s ease-out}
   @keyframes sumIn{from{transform:translateY(14px) scale(.985); opacity:0} to{transform:none; opacity:1}}
-  #sumModal .sumh,#skbModal .sumh{background:linear-gradient(120deg,#0b151d 0%,#16324a 70%,#1f4a66 100%); color:#fff; padding:14px 20px 12px; position:relative; flex:none}
+  #sumModal .sumh,#skbModal .sumh,#nzModal .sumh{background:linear-gradient(120deg,#0b151d 0%,#16324a 70%,#1f4a66 100%); color:#fff; padding:14px 20px 12px; position:relative; flex:none}
   #skbModal .sumh{background:linear-gradient(120deg,#101a13 0%,#1d4230 70%,#2a5a41 100%)}
-  #sumModal .sumh h2,#skbModal .sumh h2{font-size:16.5px; margin:0 44px 3px 0}
-  #sumModal .sumh .sub,#skbModal .sumh .sub{font-size:11.8px; color:#b8c8d6; line-height:1.45}
-  #sumModal .close,#skbModal .close{position:absolute; top:12px; right:14px; width:30px; height:30px; border-radius:50%; border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.08); color:#fff; font-size:14px; cursor:pointer; line-height:1}
-  #sumModal .close:hover,#skbModal .close:hover{background:rgba(255,255,255,.22)}
-  #sumModal .sumb,#skbModal .sumb{overflow-y:auto; padding:14px 22px 20px}
-  #sumModal .rayon,#skbModal .rayon{font-size:12.5px; color:var(--mut); margin-bottom:10px}
-  #sumModal .resbox,#skbModal .resbox{border:1px solid var(--line); border-radius:10px; overflow:hidden; box-shadow:0 2px 10px rgba(20,30,40,.07); margin-bottom:8px}
-  #sumModal .resbox-h,#skbModal .resbox-h{display:flex; justify-content:space-between; align-items:center; background:#dcd5c4; padding:7px 12px; font-size:12px; font-weight:600}
-  #sumModal .resbox-h .cnt,#skbModal .resbox-h .cnt{font-weight:400; color:var(--mut); font-size:11.5px}
-  #sumModal .reslist,#skbModal .reslist{max-height:340px; overflow-y:auto}
-  #sumModal table.res,#skbModal table.res{width:100%; border-collapse:collapse; font-size:12.3px}
-  #sumModal table.res thead th,#skbModal table.res thead th{position:sticky; top:0; background:#efe9db; padding:6px 10px; text-align:left; font-size:11px; color:var(--mut); text-transform:uppercase; letter-spacing:.4px; border-bottom:1px solid #d2cab8; z-index:1}
-  #sumModal table.res td,#skbModal table.res td{padding:5px 10px; border-bottom:1px solid #e8e2d2; vertical-align:middle}
-  #sumModal table.res tbody tr:nth-child(even),#skbModal table.res tbody tr:nth-child(even){background:#faf7ee}
-  #sumModal table.res tbody tr:hover,#skbModal table.res tbody tr:hover{background:#f1ecdd}
-  #sumModal .rpill,#skbModal .rpill{display:inline-block; min-width:64px; text-align:center; padding:2px 8px; border-radius:20px; font-size:11.5px; font-weight:600}
-  #sumModal .rpill.r-g,#skbModal .rpill.r-g{background:#d8ecd9; color:#2e7d32}
-  #sumModal .rpill.r-y,#skbModal .rpill.r-y{background:#f7e9a0; color:#6b5300}
-  #sumModal .rpill.r-o,#skbModal .rpill.r-o{background:#fbe8c8; color:#b05e00}
-  #sumModal .rpill.r-r,#skbModal .rpill.r-r{background:#f7dcd7; color:#c8372d}
-  #sumModal .rpill.r-x,#skbModal .rpill.r-x{background:#5a0d0d; color:#fff}
-  #sumModal .rpill.r-n,#skbModal .rpill.r-n{background:#ece7da; color:var(--mut); font-weight:400}
+  #nzModal .sumh{background:linear-gradient(120deg,#17110a 0%,#3a2c14 70%,#524120 100%)}
+  #sumModal .sumh h2,#skbModal .sumh h2,#nzModal .sumh h2{font-size:16.5px; margin:0 44px 3px 0}
+  #sumModal .sumh .sub,#skbModal .sumh .sub,#nzModal .sumh .sub{font-size:11.8px; color:#b8c8d6; line-height:1.45}
+  #nzModal .sumh .sub{color:#d8cfb9}
+  #sumModal .close,#skbModal .close,#nzModal .close{position:absolute; top:12px; right:14px; width:30px; height:30px; border-radius:50%; border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.08); color:#fff; font-size:14px; cursor:pointer; line-height:1}
+  #sumModal .close:hover,#skbModal .close:hover,#nzModal .close:hover{background:rgba(255,255,255,.22)}
+  #sumModal .sumb,#skbModal .sumb,#nzModal .sumb{overflow-y:auto; padding:14px 22px 20px}
+  #sumModal .rayon,#skbModal .rayon,#nzModal .rayon{font-size:12.5px; color:var(--mut); margin-bottom:10px}
+  #sumModal .resbox,#skbModal .resbox,#nzModal .resbox{border:1px solid var(--line); border-radius:10px; overflow:hidden; box-shadow:0 2px 10px rgba(20,30,40,.07); margin-bottom:8px}
+  #sumModal .resbox-h,#skbModal .resbox-h,#nzModal .resbox-h{display:flex; justify-content:space-between; align-items:center; background:#dcd5c4; padding:7px 12px; font-size:12px; font-weight:600}
+  #sumModal .resbox-h .cnt,#skbModal .resbox-h .cnt,#nzModal .resbox-h .cnt{font-weight:400; color:var(--mut); font-size:11.5px}
+  #sumModal .reslist,#skbModal .reslist,#nzModal .reslist{max-height:340px; overflow-y:auto}
+  #sumModal table.res,#skbModal table.res,#nzModal table.res{width:100%; border-collapse:collapse; font-size:12.3px}
+  #sumModal table.res thead th,#skbModal table.res thead th,#nzModal table.res thead th{position:sticky; top:0; background:#efe9db; padding:6px 10px; text-align:left; font-size:11px; color:var(--mut); text-transform:uppercase; letter-spacing:.4px; border-bottom:1px solid #d2cab8; z-index:1}
+  #sumModal table.res td,#skbModal table.res td,#nzModal table.res td{padding:5px 10px; border-bottom:1px solid #e8e2d2; vertical-align:middle}
+  #sumModal table.res tbody tr:nth-child(even),#skbModal table.res tbody tr:nth-child(even),#nzModal table.res tbody tr:nth-child(even){background:#faf7ee}
+  #sumModal table.res tbody tr:hover,#skbModal table.res tbody tr:hover,#nzModal table.res tbody tr:hover{background:#f1ecdd}
+  #sumModal .rpill,#skbModal .rpill,#nzModal .rpill{display:inline-block; min-width:64px; text-align:center; padding:2px 8px; border-radius:20px; font-size:11.5px; font-weight:600}
+  #sumModal .rpill.r-g,#skbModal .rpill.r-g,#nzModal .rpill.r-g{background:#d8ecd9; color:#2e7d32}
+  #sumModal .rpill.r-y,#skbModal .rpill.r-y,#nzModal .rpill.r-y{background:#f7e9a0; color:#6b5300}
+  #sumModal .rpill.r-o,#skbModal .rpill.r-o,#nzModal .rpill.r-o{background:#fbe8c8; color:#b05e00}
+  #sumModal .rpill.r-r,#skbModal .rpill.r-r,#nzModal .rpill.r-r{background:#f7dcd7; color:#c8372d}
+  #sumModal .rpill.r-x,#skbModal .rpill.r-x,#nzModal .rpill.r-x{background:#5a0d0d; color:#fff}
+  #sumModal .rpill.r-n,#skbModal .rpill.r-n,#nzModal .rpill.r-n{background:#ece7da; color:var(--mut); font-weight:400}
+  /* --- надстройка «Надзор» (C3): вкладки, значки индикаторов, карточки предписаний --- */
+  #nzModal .nztabs{display:flex; gap:6px; margin:2px 0 12px; flex-wrap:wrap}
+  #nzModal .nztabs button{border:1px solid var(--line); background:#efe9db; border-radius:8px; padding:7px 14px; font-size:12.5px; cursor:pointer; font-family:inherit}
+  #nzModal .nztabs button.on{background:#524120; color:#fff; border-color:#524120}
+  #nzModal .nzcard{border:1px solid var(--line); border-radius:10px; padding:9px 12px; margin-bottom:8px; background:#fbf9f3; font-size:12.3px}
+  #nzModal .nzcard.over{border-color:#c8372d; background:#fbf1ef}
+  #nzModal .nzcard.soon{border-color:#e08a00; background:#fdf6e8}
+  #nzModal .nzcard.done{background:#f1f6f1}
+  #nzModal .ib{display:inline-block; min-width:26px; text-align:center; padding:1px 6px; border-radius:12px; font-size:10.5px; font-weight:700; background:#524120; color:#fff; margin:1px 3px 1px 0; cursor:default}
+  #nzModal .ib.off{background:#d9d2c2; color:#8a8474}
+  #nzModal .nzbtn{border:1px solid var(--c-centr); background:var(--c-centr); color:#fff; border-radius:6px; padding:5px 12px; font-size:12px; cursor:pointer; font-family:inherit}
+  #nzModal .nzbtn.ghost{background:#f2eee4; color:var(--c-centr)}
+  #nzModal .nzbtn.del{background:none; border-color:#c8372d; color:#c8372d}
   .wxd-duty{border:1px solid var(--line); border-radius:8px; background:#f2eee4; padding:10px 14px; margin-bottom:10px; font-size:12.5px; line-height:1.55}
   .wxd-regBtn{border:1px solid var(--c-centr); background:var(--c-centr); color:#fff; border-radius:6px; padding:6px 14px; font-size:12.5px; cursor:pointer; margin-top:4px}
   .mt-kpi{display:flex; gap:10px; flex-wrap:wrap; margin:8px 0}
@@ -431,6 +446,7 @@
     <div class="stats" id="hstats"></div>
     <span id="roleBadge" style="font-size:11px; color:#9fb0bf; border:1px solid #3a4c5c; border-radius:10px; padding:2px 10px"></span>
     <button id="regBtn" title="Сводный реестр объектов РИСК/КРИТИЧНО" style="background:none; border:1px solid #3a4c5c; color:#cdd8e2; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:13px">▤ Реестр</button>
+    <button id="nzBtn" title="Надстройка «Надзор» — рабочее место службы строительного надзора и жилищного контроля: индикаторы риска по ч. 13 ст. 20 ЖК РФ, журнал предписаний с контролем исполнения, лицензионный свод по УК (ПП № 1090)" style="background:none; border:1px solid #5a4a2c; color:#e8d9b0; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:13px">🏛 Надзор</button>
     <button id="meteoBtn" title="Метеоданные г. Норильска: история с 1950 г., автопополнение из открытых метеоархивов, аномалии, тренды, прогноз, параметры для теплотехнических расчётов (СП 25.13330.2020, прил. Г)" style="background:none; border:1px solid #3a4c5c; color:#cdd8e2; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:13px">🌦 Метеоданные</button>
     <a href="presentacia_gis_geotermika_norilsk.pdf" download="ГИС-база геотермического мониторинга зданий. Норильск — презентация.pdf" title="Скачать презентацию проекта (PDF)" style="background:none; border:1px solid #3a4c5c; color:#cdd8e2; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:13px; text-decoration:none">📑 Презентация (PDF)</a>
     <button id="repBtn" title="Формирование сводного отчёта" style="background:none; border:1px solid #3a4c5c; color:#cdd8e2; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:13px">📄 Отчёт</button>
@@ -581,6 +597,17 @@
       <div class="sub">Фонд объектов социально-культурно-бытового назначения Администрации г. Норильска в совокупности · состав фонда, шкала состояний, полнота паспортов и геопривязка, план ремонтно-восстановительных работ, климатические индексы, прогноз ресурса основания</div>
     </div>
     <div class="sumb" id="skbWrap"></div>
+  </div>
+</div>
+
+<div id="nzModal">
+  <div class="box">
+    <div class="sumh">
+      <button class="close" id="nzClose" title="Закрыть (Esc)">✕</button>
+      <h2>🏛 Надзор <span class="badge b-card" style="vertical-align:2px">надстройка · служба строительного надзора и жилищного контроля</span></h2>
+      <div class="sub">Рабочее место инспектора: индикаторы риска по ч. 13 ст. 20 ЖК РФ · журнал предписаний с контролем исполнения · лицензионный свод по управляющим компаниям (ПП РФ № 1090) · сведения носят информационно-аналитический характер</div>
+    </div>
+    <div class="sumb" id="nzWrap"></div>
   </div>
 </div>
 
@@ -8247,6 +8274,7 @@ async function wxDutyDoc(x){
   a2.href=URL.createObjectURL(blob);
   a2.download='Предписание_дежурным_службам_'+String(x.d).replace(/[\s\/]+/g,'_')+'_'+x.date+'.docx';
   a2.click();
+  try{ nzRegisterFromDuty(x, num, rows); }catch(e){ console.error('nzRegisterFromDuty:', e); } // C3: регистрация в журнале предписаний надстройки «Надзор»
 }
 document.getElementById('wxDutyClose').onclick=()=>document.getElementById('wxDutyModal').style.display='none';
 document.getElementById('wxDutyModal').addEventListener('click',e=>{ if(e.target.id==='wxDutyModal') e.target.style.display='none'; });
@@ -8286,7 +8314,7 @@ const GS_ROAD=[
  {g:'Этап В · 9–24 мес — прогноз и интеграция', items:[
    {k:'C1', t:'Физическая модель «климат → грунт»: калибровка по архиву скважин, остаточный ресурс, сезонный прогноз оттаивания', d0:'готово'},
    {k:'C2', t:'ЦМР и гидрология р-на Оганер (5-см цифровая подоснова): модель стоков и зоны возможного затопления', d0:'готово'},
-   {k:'C3', t:'Надстройки для службы строительного надзора и жилищного контроля, УЖКХ/УГХ и руководства города', d0:'в работе'},
+   {k:'C3', t:'Надстройки для службы строительного надзора и жилищного контроля, УЖКХ/УГХ и руководства города: модуль «🏛 Надзор» (индикаторы риска ч. 13 ст. 20 ЖК РФ, журнал предписаний с контролем исполнения, лицензионный свод по УК) внедрён; досье для проверки (docx/PDF) — следующий модуль', d0:'в работе'},
    {k:'C4', t:'Теплотехническая модель t(x,t) оснований по объектам (эмпирическая сезонная калибровка МНК по архиву скважин, сценарии климата +0,5/+1/+2 °C)', d0:'готово'},
    {k:'C5', t:'Городская АМС и валидация метеомодели (Open-Meteo/rp5) по местным замерам', d0:'в работе'}]}
 ];
@@ -8979,10 +9007,362 @@ setTimeout(()=>{ try{ gsJournalSync(); }catch(e){ console.error('gsJournalSync:'
 setTimeout(()=>{ try{ tmFundCal(); }catch(e){ console.error('tmFundCal warm:',e); } }, 9000); // C4: фоновый прогрев калибровки t(x,t) по архиву фонда
 setInterval(()=>{ try{ gsJournalSync(); }catch(e){} }, 300000); // далее — каждые 5 минут
 
+/* ================== ◉ C3. НАДСТРОЙКА «НАДЗОР» ==================
+   Рабочее место службы строительного надзора и жилищного контроля (и УЖКХ/УГХ):
+   1) автовычисляемые индикаторы риска по ч. 13 ст. 20 ЖК РФ (основания для
+      планирования проверок): И1 переход в РИСК/КРИТИЧНО/АВАРИЯ за 12 мес.;
+      И2 контрольные значения осадок КВ-2/КВ-3 (ГОСТ 24846-2019); И3 глубина
+      оттаивания выше расчётной (z = a·√Ω_t по климатической норме, +20 %);
+      И4 снежный покров выше нормативного при рискованном состоянии основания;
+      И5 повторяемость предписаний (≥ 2 за скользящие 12 мес.).
+   2) журнал предписаний с контролем исполнения: выдано → исполнено/просрочено,
+      авто-регистрация предписаний дежурного метеоконтроля (docx), ручная
+      регистрация, выгрузка CSV; хранение — localStorage ngk_presc.
+   3) лицензионный свод по УК (ПП РФ № 1090): доля домов РИСК/КРИТИЧНО/АВАРИЯ,
+      переходы за 12 мес., предписания и их просрочка, признак повторяемости.
+   Модуль информационно-аналитический: юридически значимые акты оформляются
+   Службой по своим регламентам (248-ФЗ, ПП КК № 143-п от 03.04.2012). */
+const NZ_STORE='ngk_presc';
+let NZ_TAB='ind';
+const NZ_F={d:'',k:''};
+function nzLoad(){ try{ const v=JSON.parse(localStorage.getItem(NZ_STORE)||'[]'); return Array.isArray(v)?v:[]; }catch(e){ return []; } }
+function nzSave(l){ try{ localStorage.setItem(NZ_STORE, JSON.stringify(l)); }catch(e){} }
+function nzToday(){ return new Date().toISOString().slice(0,10); }
+function nzRole(){ return sessionStorage.getItem('ngk_role')||'view'; }
+function nzCanEdit(){ return ['edit','admin','stroy','nadzor'].includes(nzRole()); }
+function nzCanDel(){ return ['edit','admin'].includes(nzRole()); }
+function nzStatus(r){
+  if(r.done) return 'исполнено';
+  if(r.deadline&&r.deadline<nzToday()) return 'просрочено';
+  return 'выдано';
+}
+/* авто-регистрация предписания дежурного метеоконтроля (вызывается из wxDutyDoc после формирования docx) */
+function nzRegisterFromDuty(x, num, rows){
+  const list=nzLoad();
+  if(list.some(r=>r.num===num)) return;
+  const isProc=!!x.proc;
+  const hz=isProc?(WD_PROC[x.proc]||{nm:x.proc}):(WD_HAZ[x.haz]||{nm:x.haz});
+  list.push({
+    id:'nz'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36),
+    ts:nzToday(), num:num,
+    type:isProc?'proc':'meteo',
+    district:x.d||'',
+    addressee:'Дежурные службы УК и подразделений района «'+(x.d||'—')+'»',
+    objects:(rows||[]).map(r=>r&&r.o?r.o.a:r).filter(Boolean),
+    text:(isProc?'Прогнозируемый опасный процесс: ':'Метеопредупреждение: ')+hz.nm+' — '+String(x.date).split('-').reverse().join('.')+', '+x.pt+' ('+x.val+')',
+    deadline:x.date||'',
+    done:false, doneDate:null, doneBy:null,
+    by:(ROLES[nzRole()]||{}).name||'—',
+    src:'дежурный метеоконтроль'
+  });
+  nzSave(list);
+}
+/* все предписания объекта из подсистемы телефонограмм: базовые (o.tg, с учётом переопределений) + пользовательские (TG.recs) */
+function nzTgObjRecs(o){
+  const out=[];
+  try{
+    const ovr=(typeof TG!=='undefined'&&TG&&TG.ovr)||{};
+    (o.tg||[]).forEach(r=>{ const ov=ovr[String(r.id)]||{}; out.push(Object.assign({},r,{done:!!(ov.done||r.done)})); });
+    if(typeof TG!=='undefined'&&TG&&TG.recs&&TG.recs[o.a]) out.push(...TG.recs[o.a]);
+  }catch(e){}
+  return out;
+}
+/* число предписаний по каждому объекту за скользящие 12 мес.: журнал «Надзора» + телефонограммы */
+function nzPrescObjCount(){
+  const cut=gsDayAdd(nzToday(),-365), m={};
+  nzLoad().forEach(r=>{ if((r.ts||'')<cut) return; (r.objects||[]).forEach(a=>{ m[a]=(m[a]||0)+1; }); });
+  DB.objects.forEach(o=>{ nzTgObjRecs(o).forEach(r=>{ if((r.date||'')>=cut) m[o.a]=(m[o.a]||0)+1; }); });
+  return m;
+}
+/* --- И1–И5: автовычисляемые индикаторы риска по каждому МКД (ч. 13 ст. 20 ЖК РФ) --- */
+function nzIndicators(){
+  const out=[];
+  const cut=gsDayAdd(nzToday(),-365);
+  const log=statLogGet();
+  const sc=(typeof snowCheck==='function')?snowCheck():null;
+  const snowExc=(sc&&sc.exceeded)?sc:null;
+  const presc=nzPrescObjCount();
+  let cal=null, spOmT=null;
+  try{ cal=pmCalib(); const sp=mtSP(mtData()); spOmT=(sp&&sp.OmT)?sp.OmT:null; }catch(e){}
+  DB.objects.forEach(o=>{
+    if(branchOf(o)!=='mkd') return;
+    if(!scopePass(o)) return;
+    const sd=statusDetail(o);
+    const inds=[];
+    /* И1 — переход в РИСК/КРИТИЧНО/АВАРИЯ за последние 12 мес. (только ухудшение: переходы из «—» — первичное наполнение журнала, не деградация) */
+    const rec=log[o.a];
+    if(rec&&rec.hist){
+      const sRk2={'—':-1,НОРМА:0,ВНИМАНИЕ:1,РИСК:2,КРИТИЧНО:3,АВАРИЯ:4};
+      const hits=rec.hist.filter(h=>h[0]>=cut&&(h[2]==='РИСК'||h[2]==='КРИТИЧНО'||h[2]==='АВАРИЯ')&&h[1]!=='—'&&(sRk2[h[2]]===undefined?0:sRk2[h[2]])>(sRk2[h[1]]===undefined?-1:sRk2[h[1]]));
+      if(hits.length){ const h=hits[hits.length-1];
+        inds.push({k:'И1', lvl:(h[2]==='РИСК'?'risk':'crit'), text:'переход '+h[1]+' → '+h[2]+' '+h[0].split('-').reverse().join('.')+' — деградация состояния за последние 12 мес.'}); }
+    }
+    /* И2 — контрольные значения деформаций КВ-2/КВ-3 (ГОСТ 24846-2019) */
+    const gm=geodMetrics(o);
+    if(gm){
+      if(gm.maxSpeed>=TH.geodCritSpeed||gm.maxOsad>=TH.geodCritTotal)
+        inds.push({k:'И2', lvl:'crit', text:'КВ-3: скорость осадки '+gm.maxSpeed.toFixed(1)+' мм/год (порог '+TH.geodCritSpeed+' мм/год, марка '+gm.speedMark+') / суммарная осадка '+gm.maxOsad.toFixed(0)+' мм (порог '+TH.geodCritTotal+' мм, марка '+gm.osadMark+')'});
+      else if(gm.maxSpeed>=TH.geodRiskSpeed)
+        inds.push({k:'И2', lvl:'risk', text:'КВ-2: скорость осадки '+gm.maxSpeed.toFixed(1)+' мм/год ≥ контрольного значения '+TH.geodRiskSpeed+' мм/год (марка '+gm.speedMark+')'});
+    }
+    /* И3 — глубина оттаивания последнего сезона выше расчётной (z = a·√Ω_t по климатической норме) более чем на 20 % */
+    if(o.prof&&cal&&cal.aMed!==null&&cal.aMed!==undefined&&spOmT){
+      let worst=null;
+      Object.entries(o.prof).forEach(([w,wd])=>{
+        const byY={};
+        wellThawSeries(wd).forEach(p=>{ if(p.gt) return; const y=+String(p.d).slice(0,4); if(!byY[y]||p.z>byY[y]) byY[y]=p.z; });
+        const ys=Object.keys(byY).map(Number).sort((a2,b2)=>a2-b2);
+        if(!ys.length) return;
+        const z=byY[ys[ys.length-1]], y=ys[ys.length-1];
+        const a=pmThawA(wd)||cal.aMed;
+        const fc=a*Math.sqrt(spOmT); // расчётная глубина по климатической норме индекса оттаивания
+        if(fc>0&&z>fc*1.2&&(!worst||(z/fc)>worst.r)) worst={w,z,y,fc,r:z/fc};
+      });
+      if(worst) inds.push({k:'И3', lvl:'risk', text:'глубина оттаивания '+worst.z.toFixed(2)+' м (сезон '+worst.y+') выше расчётной '+worst.fc.toFixed(2)+' м на '+Math.round((worst.r-1)*100)+' % (> 20 %; скв. '+worst.w+'; z = a·√Ω_t по климатической норме)'});
+    }
+    /* И4 — снежный покров выше нормативного h_sn при рискованном состоянии основания */
+    if(snowExc&&(sd.status==='РИСК'||sd.status==='КРИТИЧНО'||sd.status==='АВАРИЯ'))
+      inds.push({k:'И4', lvl:'risk', text:'снежный покров зимы '+snowExc.season+': '+snowExc.v+' см при нормативе '+snowExc.snH+' см ('+snowExc.snPeriod+') — снижение промерзания основания при статусе объекта '+sd.status});
+    /* И5 — повторяемость предписаний: ≥ 2 за скользящие 12 мес. */
+    const pc=presc[o.a]||0;
+    if(pc>=2) inds.push({k:'И5', lvl:'risk', text:'повторяемость: '+pc+' предписания(-й) за последние 12 мес. — признак системности нарушений содержания (ПП РФ № 1090)'});
+    if(inds.length) out.push({o, status:sd.status, inds});
+  });
+  const sRk={АВАРИЯ:0,КРИТИЧНО:1,РИСК:2,ВНИМАНИЕ:3,НОРМА:4};
+  out.sort((a,b)=>{
+    const ca=a.inds.some(i=>i.lvl==='crit')?0:1, cb=b.inds.some(i=>i.lvl==='crit')?0:1;
+    return ca-cb || (sRk[a.status]===undefined?5:sRk[a.status])-(sRk[b.status]===undefined?5:sRk[b.status]) || b.inds.length-a.inds.length || a.o.a.localeCompare(b.o.a,'ru');
+  });
+  return out;
+}
+/* --- лицензионный свод по УК (ПП РФ № 1090) --- */
+function nzUkRollup(){
+  const cut=gsDayAdd(nzToday(),-365), today=nzToday();
+  const log=statLogGet();
+  const prescObj=nzPrescObjCount();
+  const byUk={};
+  const row=uk=>byUk[uk]||(byUk[uk]={uk, n:0, mon:0, riskN:0, critN:0, avarN:0, tr12:0, repObjs:0, p12:0, pOver:0});
+  DB.objects.forEach(o=>{
+    if(branchOf(o)!=='mkd') return;
+    if(!scopePass(o)) return;
+    const r=row(effectiveUK(o));
+    r.n++;
+    const st=statusOf(o);
+    if(st){ r.mon++; if(st==='РИСК') r.riskN++; else if(st==='КРИТИЧНО'){ r.riskN++; r.critN++; } else if(st==='АВАРИЯ'){ r.riskN++; r.avarN++; } }
+    const rec=log[o.a];
+    if(rec&&rec.hist){ const sRk2={'—':-1,НОРМА:0,ВНИМАНИЕ:1,РИСК:2,КРИТИЧНО:3,АВАРИЯ:4};
+      r.tr12+=rec.hist.filter(h=>h[0]>=cut&&(h[2]==='РИСК'||h[2]==='КРИТИЧНО'||h[2]==='АВАРИЯ')&&h[1]!=='—'&&(sRk2[h[2]]===undefined?0:sRk2[h[2]])>(sRk2[h[1]]===undefined?-1:sRk2[h[1]])).length; }
+    if((prescObj[o.a]||0)>=2) r.repObjs++;
+  });
+  /* предписания журнала «Надзор» за 12 мес. по УК (атрибуция по объектам) + просроченные */
+  const ukOf={};
+  DB.objects.forEach(o=>{ if(branchOf(o)==='mkd') ukOf[o.a]=effectiveUK(o); });
+  nzLoad().forEach(p=>{
+    if((p.ts||'')<cut) return;
+    const od=!p.done&&p.deadline&&p.deadline<today;
+    const uks={};
+    (p.objects||[]).forEach(a=>{ const u=ukOf[a]; if(u&&(!UK_SCOPE||u===UK_SCOPE)) uks[u]=1; });
+    Object.keys(uks).forEach(u=>{ const r=row(u); r.p12++; if(od) r.pOver++; });
+  });
+  /* телефонограммы за 12 мес.: всего и просроченные */
+  DB.objects.forEach(o=>{
+    if(branchOf(o)!=='mkd'||!scopePass(o)) return;
+    nzTgObjRecs(o).forEach(t=>{
+      if((t.date||'')<cut) return;
+      const r=row(t.uk||effectiveUK(o));
+      r.p12++;
+      if(!t.done&&t.deadline&&t.deadline<today) r.pOver++;
+    });
+  });
+  const rows=Object.values(byUk);
+  rows.forEach(r=>{ r.share=r.mon?Math.round(100*r.riskN/r.mon):0; r.gross=r.repObjs>=2; });
+  rows.sort((a,b)=>b.share-a.share || b.riskN-a.riskN || a.uk.localeCompare(b.uk,'ru'));
+  return rows;
+}
+/* --- вкладка 1: индикаторы риска --- */
+const NZ_IND_NAMES={'И1':'переход в РИСК/КРИТИЧНО/АВАРИЯ за 12 мес.','И2':'контрольные значения осадок КВ-2/КВ-3 (ГОСТ 24846-2019)','И3':'глубина оттаивания выше расчётной более чем на 20 %','И4':'снежный покров выше нормы при рискованном основании','И5':'повторяемость предписаний (≥ 2 за 12 мес.)'};
+function nzTabInd(){
+  const rows=nzIndicators();
+  const cnt={'И1':0,'И2':0,'И3':0,'И4':0,'И5':0};
+  rows.forEach(r=>{ const seen={}; r.inds.forEach(i=>{ if(!seen[i.k]){ seen[i.k]=1; cnt[i.k]++; } }); });
+  const BMAP={НОРМА:'ok',ВНИМАНИЕ:'attn',РИСК:'risk',КРИТИЧНО:'crit',АВАРИЯ:'avar'};
+  let h='<div class="rayon">Автовычисляемые индикаторы риска по жилому фонду — основания для планирования проверок и выдачи предписаний (ч. 13 ст. 20 ЖК РФ): объектов с индикаторами — <b>'+rows.length+'</b> · сформировано '+new Date().toLocaleString('ru-RU')+'</div>';
+  h+='<table class="kv">'+Object.keys(NZ_IND_NAMES).map(k=>'<tr><td><span class="ib">'+k+'</span> '+NZ_IND_NAMES[k]+'</td><td><b>'+cnt[k]+'</b> объектов</td></tr>').join('')+'</table>';
+  const ds=[...new Set(rows.map(r=>r.o.d))].sort((a,b)=>a.localeCompare(b,'ru'));
+  h+='<div style="display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 10px; align-items:center">'
+    +'<label style="font-size:12px">Район <select id="nzFD"><option value="">все</option>'+ds.map(d=>'<option'+(NZ_F.d===d?' selected':'')+'>'+esc(d)+'</option>').join('')+'</select></label>'
+    +'<label style="font-size:12px">Индикатор <select id="nzFK"><option value="">все</option>'+Object.keys(NZ_IND_NAMES).map(k=>'<option'+(NZ_F.k===k?' selected':'')+'>'+k+'</option>').join('')+'</select></label>'
+    +'<span class="note">значок индикатора — с расшифровкой при наведении · клик по адресу открывает карточку объекта</span></div>';
+  const flt=rows.filter(r=>(!NZ_F.d||r.o.d===NZ_F.d)&&(!NZ_F.k||r.inds.some(i=>i.k===NZ_F.k)));
+  if(!flt.length){ h+='<div class="note">По текущему фильтру объектов с индикаторами нет.</div>'; return h; }
+  h+='<div class="resbox"><div class="resbox-h"><span>⚠ Объекты со сработавшими индикаторами</span><span class="cnt">'+flt.length+' объектов · сортировка: критичность, статус, число индикаторов</span></div>'
+    +'<div class="reslist"><table class="res"><thead><tr><th>Адрес</th><th style="width:92px">Район</th><th style="width:170px">УК</th><th style="width:104px">Статус</th><th style="width:190px">Индикаторы</th></tr></thead><tbody>'
+    +flt.map(r=>'<tr><td><a href="#" data-nzobj="'+esc(r.o.a)+'">'+esc(r.o.a)+'</a></td>'
+      +'<td><b style="color:'+(DCOL[r.o.d]||'#666')+'">'+esc(r.o.d)+'</b></td>'
+      +'<td style="font-size:11.5px">'+esc(effectiveUK(r.o))+'</td>'
+      +'<td>'+(r.status?'<span class="badge b-'+BMAP[r.status]+'">'+r.status+'</span>':'<span class="rpill r-n">нет данных</span>')+'</td>'
+      +'<td>'+['И1','И2','И3','И4','И5'].map(k=>{ const f=r.inds.find(i=>i.k===k); return f?'<span class="ib" title="'+esc(f.text)+'">'+k+'</span>':'<span class="ib off">'+k+'</span>'; }).join('')+'</td></tr>').join('')
+    +'</tbody></table></div></div>';
+  h+='<div class="note">Состав индикаторов — рабочий превентивный набор макета по мотивам ч. 13 ст. 20 ЖК РФ (угроза причинения вреда жизни и тяжкого вреда здоровью граждан) и Правил № 170; пороги статусов — текущие настройки «⚙ Пороги». Индикаторы не являются актами надзора: они задают приоритеты проверок, обследований (ГОСТ 31937-2024) и предписаний.</div>';
+  return h;
+}
+/* --- вкладка 2: журнал предписаний с контролем исполнения --- */
+function nzTabPrs(can){
+  const list=nzLoad();
+  const st={выдано:0, просрочено:0, исполнено:0};
+  list.forEach(r=>st[nzStatus(r)]++);
+  let h='<div class="rayon">Журнал предписаний дежурным службам и УК: авто-регистрация при формировании предписаний дежурного метеоконтроля (docx) + ручная регистрация · контроль исполнения: выдано → исполнено / просрочено · хранение локальное (ngk_presc)</div>';
+  h+='<div style="display:flex; gap:14px; font-size:12.5px; margin:4px 0 8px; flex-wrap:wrap; align-items:center">'
+    +'<span>всего: <b>'+list.length+'</b></span>'
+    +'<span>выдано: <b>'+st['выдано']+'</b></span>'
+    +'<span>просрочено: <b style="color:'+SCOL['КРИТИЧНО']+'">'+st['просрочено']+'</b></span>'
+    +'<span>исполнено: <b style="color:'+SCOL['НОРМА']+'">'+st['исполнено']+'</b></span>'
+    +'<span style="flex:1"></span>'
+    +'<button class="nzbtn ghost" id="nzCsv">⬇ Выгрузить журнал (CSV)</button>'
+    +(can?'<button class="nzbtn" id="nzNew">+ Зарегистрировать предписание</button>':'')
+    +'</div>';
+  if(can) h+='<div id="nzNewArea"></div>';
+  const rows=list.slice().sort((a,b)=>{
+    const rk=r=>nzStatus(r)==='просрочено'?0:(nzStatus(r)==='выдано'?1:2);
+    return rk(a)-rk(b) || String(b.ts).localeCompare(String(a.ts));
+  });
+  if(!rows.length){ h+='<div class="note">Предписаний пока нет: они регистрируются автоматически при формировании предписаний дежурного метеоконтроля (кнопки «📄 Предписание дежурным службам» в карточках предупреждений и вероятностных процессов) либо вручную кнопкой выше.</div>'; return h; }
+  const ic={meteo:'🌦', proc:'🧬', manual:'✍'};
+  const today=nzToday();
+  rows.forEach(r=>{
+    const stt=nzStatus(r);
+    const soon=!r.done&&r.deadline&&r.deadline>=today&&gsDayAdd(r.deadline,-3)<=today;
+    const cls=stt==='просрочено'?'over':(stt==='исполнено'?'done':(soon?'soon':''));
+    const pill=stt==='исполнено'?'<span class="rpill r-g">исполнено</span>':(stt==='просрочено'?'<span class="rpill r-r">просрочено</span>':(soon?'<span class="rpill r-o">срок истекает</span>':'<span class="rpill r-y">выдано</span>'));
+    const objs=(r.objects||[]);
+    h+='<div class="nzcard '+cls+'">'
+      +'<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:baseline"><b>'+(ic[r.type]||'📄')+' '+esc(r.num||'—')+'</b>'
+      +'<span class="note">от '+esc(r.ts||'—')+' · '+(r.src?esc(r.src):'ручная регистрация')+' · выдал: '+esc(r.by||'—')+'</span>'
+      +'<span style="flex:1"></span>'+pill+'</div>'
+      +'<div style="margin-top:4px"><b>Основание:</b> '+esc(r.text||'—')+'</div>'
+      +'<div class="note" style="margin-top:2px">район: <b>'+esc(r.district||'—')+'</b> · адресат: '+esc(r.addressee||'—')+' · срок исполнения: <b>'+(r.deadline?esc(r.deadline.split('-').reverse().join('.')):'не установлен')+'</b>'
+      +(r.done&&r.doneDate?' · <b style="color:'+SCOL['НОРМА']+'">исполнено '+esc(String(r.doneDate).split('-').reverse().join('.'))+'</b> ('+esc(r.doneBy||'')+')':'')+'</div>'
+      +(objs.length?'<div style="margin-top:4px; font-size:11.8px">Объекты ('+objs.length+'): '+objs.slice(0,5).map(a=>'<a href="#" data-nzobj="'+esc(a)+'">'+esc(a)+'</a>').join(', ')+(objs.length>5?' <span class="note">и ещё '+(objs.length-5)+'</span>':'')+'</div>':'')
+      +(can?'<div style="margin-top:6px; display:flex; gap:6px">'
+        +(!r.done?'<button class="nzbtn" data-nzdone="'+r.id+'">✔ Отметить исполненным</button>':'')
+        +(nzCanDel()?'<button class="nzbtn del" data-nzdel="'+r.id+'">Удалить</button>':'')
+        +'</div>':'')
+      +'</div>';
+  });
+  h+='<div class="note">Контроль исполнения: статус «просрочено» выставляется автоматически при истечении срока без отметки об исполнении; предписания со сроком ≤ 3 суток подсвечиваются. Юридически значимый учёт предписаний ведётся Службой в своих системах — журнал макета служит оперативным зеркалом для дежурных и УК.</div>';
+  return h;
+}
+/* --- вкладка 3: лицензионный свод по УК (ПП РФ № 1090) --- */
+function nzTabUk(){
+  const rows=nzUkRollup();
+  let h='<div class="rayon">Лицензионный контроль управляющих компаний: доля домов в статусах РИСК/КРИТИЧНО/АВАРИЯ, динамика за 12 мес., предписания и повторяемость нарушений — ориентиры для представлений в ГЖН по линии лицензионного контроля (ПП РФ № 1090, № 493, № 1110) · сформировано '+new Date().toLocaleString('ru-RU')+'</div>';
+  if(!rows.length){ h+='<div class="note">Данных по УК нет.</div>'; return h; }
+  const tot={n:0, mon:0, riskN:0, tr12:0, p12:0, pOver:0, repObjs:0};
+  rows.forEach(r=>{ tot.n+=r.n; tot.mon+=r.mon; tot.riskN+=r.riskN; tot.tr12+=r.tr12; tot.p12+=r.p12; tot.pOver+=r.pOver; tot.repObjs+=r.repObjs; });
+  const sharePill=s=>s>=20?'<span class="rpill r-r">'+s+' %</span>':(s>=10?'<span class="rpill r-o">'+s+' %</span>':(s>0?'<span class="rpill r-y">'+s+' %</span>':'<span class="rpill r-g">0 %</span>'));
+  h+='<div class="resbox"><div class="resbox-h"><span>🏢 Свод по управляющим компаниям</span><span class="cnt">'+rows.length+' УК · сортировка по доле домов РИСК/КРИТИЧНО/АВАРИЯ</span></div>'
+    +'<div class="reslist" style="max-height:420px"><table class="res"><thead><tr><th>УК</th><th style="width:56px">Домов</th><th style="width:70px">Монито-ринг</th><th style="width:56px" title="дома в статусах РИСК/КРИТИЧНО/АВАРИЯ">РИСК и выше</th><th style="width:66px">Доля</th><th style="width:72px">Пере-ходы 12 мес</th><th style="width:86px">Пред-писания 12 мес</th><th style="width:72px">Просро-чено</th><th style="width:90px">Повторяе-мость</th><th style="width:110px">ПП № 1090</th></tr></thead><tbody>'
+    +rows.map(r=>'<tr><td style="font-size:11.8px"><b>'+esc(r.uk)+'</b></td>'
+      +'<td>'+r.n+'</td><td>'+r.mon+'</td>'
+      +'<td>'+(r.riskN?('<b style="color:'+(r.avarN?SCOL['АВАРИЯ']:(r.critN?SCOL['КРИТИЧНО']:SCOL['РИСК']))+'" title="в т.ч. КРИТИЧНО: '+r.critN+' · АВАРИЯ: '+r.avarN+'">'+r.riskN+'</b>'):'0')+'</td>'
+      +'<td>'+sharePill(r.share)+'</td>'
+      +'<td>'+(r.tr12||'—')+'</td>'
+      +'<td>'+(r.p12||'—')+'</td>'
+      +'<td>'+(r.pOver?('<b style="color:'+SCOL['КРИТИЧНО']+'">'+r.pOver+'</b>'):'—')+'</td>'
+      +'<td>'+(r.repObjs?('<b>'+r.repObjs+'</b> дом(а)'):'—')+'</td>'
+      +'<td>'+(r.gross?'<span class="rpill r-r">признак грубого</span>':'<span class="rpill r-g">нет</span>')+'</td></tr>').join('')
+    +'<tr style="font-weight:700; background:#efe9db"><td>ИТОГО по фонду</td><td>'+tot.n+'</td><td>'+tot.mon+'</td><td>'+tot.riskN+'</td><td>'+(tot.mon?Math.round(100*tot.riskN/tot.mon):0)+' %</td><td>'+(tot.tr12||'—')+'</td><td>'+(tot.p12||'—')+'</td><td>'+(tot.pOver||'—')+'</td><td>'+(tot.repObjs||'—')+'</td><td>—</td></tr>'
+    +'</tbody></table></div></div>';
+  h+='<div class="note">«Повторяемость» — дома УК с ≥ 2 предписаниями за скользящие 12 мес.; признак грубого нарушения лицензионных требований (ПП РФ № 1090) выставляется при ≥ 2 таких домах у одной УК — ориентир для направления материалов в орган ГЖН. Переходы 12 мес — число переходов домов в статусы РИСК/КРИТИЧНО/АВАРИЯ по журналу статусов. Сведения информационно-аналитические: лицензионные решения принимает орган жилищного надзора по своим процедурам.</div>';
+  return h;
+}
+/* --- рендер и события --- */
+function nzRender(){
+  const w=document.getElementById('nzWrap');
+  const can=nzCanEdit();
+  const tabs=[['ind','⚠ Индикаторы риска'],['prs','📋 Журнал предписаний'],['uk','🏢 Лицензионный контроль УК']];
+  let h='<div class="nztabs">'+tabs.map(t=>'<button data-nztab="'+t[0]+'" class="'+(NZ_TAB===t[0]?'on':'')+'">'+t[1]+'</button>').join('')+'</div>';
+  h+='<div class="normref">Нормативная рамка: ЖК РФ ст. 20 (государственный жилищный надзор; ч. 13 — основания внеплановых проверок), ФЗ № 248 «О государственном контроле (надзоре)», ПП Красноярского края № 143-п от 03.04.2012 (Положение о Службе строительного надзора и жилищного контроля КК), ПП РФ № 1090 / № 493 / № 1110 (лицензионный контроль УК), Правила № 170, ГОСТ 24846-2019, СП 25.13330.2020. Модуль информационно-аналитический: юридически значимые акты оформляются Службой по своим регламентам.</div>';
+  if(NZ_TAB==='ind') h+=nzTabInd();
+  else if(NZ_TAB==='prs') h+=nzTabPrs(can);
+  else h+=nzTabUk();
+  w.innerHTML=h;
+  w.querySelectorAll('[data-nztab]').forEach(b=>b.onclick=()=>{ NZ_TAB=b.dataset.nztab; nzRender(); });
+  w.querySelectorAll('a[data-nzobj]').forEach(a=>a.onclick=e=>{ e.preventDefault(); const i=DB.objects.findIndex(o=>o.a===a.dataset.nzobj); nzClose(); if(i>=0) select(i,true); });
+  const fd=document.getElementById('nzFD'); if(fd) fd.onchange=()=>{ NZ_F.d=fd.value; nzRender(); };
+  const fk=document.getElementById('nzFK'); if(fk) fk.onchange=()=>{ NZ_F.k=fk.value; nzRender(); };
+  const csv=document.getElementById('nzCsv'); if(csv) csv.onclick=()=>{
+    const rows=[['Номер','Дата','Тип','Источник','Район','Адресат','Объектов','Объекты','Срок','Статус','Исполнено','Кем','Основание']];
+    nzLoad().forEach(r=>rows.push([r.num||'', r.ts||'', ({meteo:'метеопредупреждение',proc:'опасный процесс',manual:'ручная'})[r.type]||r.type||'', r.src||'', r.district||'', r.addressee||'', (r.objects||[]).length, (r.objects||[]).join(', '), r.deadline||'', nzStatus(r), r.doneDate||'', r.doneBy||'', (r.text||'').replace(/[\r\n]+/g,' ')]));
+    const q=v=>'"'+String(v===null||v===undefined?'':v).replace(/"/g,'""')+'"';
+    gsDownload('журнал_предписаний_'+nzToday()+'.csv', rows.map(r2=>r2.map(q).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
+  };
+  const nb=document.getElementById('nzNew'); if(nb) nb.onclick=()=>{
+    const ds=Object.keys(DCOL);
+    const area=document.getElementById('nzNewArea');
+    area.innerHTML='<div class="nzcard" style="background:#f2eee4">'
+      +'<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">'
+      +'<label style="font-size:12px">Район <select id="nzND">'+ds.map(d=>'<option>'+esc(d)+'</option>').join('')+'</select></label>'
+      +'<label style="font-size:12px">Срок исполнения <input type="date" id="nzNDl" value="'+gsDayAdd(nzToday(),14)+'"></label>'
+      +'<label style="font-size:12px; flex:1; min-width:220px">Адресат <input id="nzNAdr" style="width:100%" value="Дежурная служба УК"></label>'
+      +'</div>'
+      +'<label style="font-size:12px; display:block; margin-top:6px">Объекты (удерживайте Ctrl для выбора нескольких; пусто — весь район):</label>'
+      +'<select id="nzNObj" multiple size="6" style="width:100%; font-size:12px"></select>'
+      +'<textarea id="nzNTxt" rows="2" style="width:100%; margin-top:6px" placeholder="Основание и требование предписания (что устранить, к какому сроку)"></textarea>'
+      +'<div style="margin-top:6px; display:flex; gap:6px"><button class="nzbtn" id="nzNSave">Зарегистрировать</button><button class="nzbtn ghost" id="nzNCancel">Отмена</button></div>'
+      +'</div>';
+    const fill=()=>{
+      const d=document.getElementById('nzND').value;
+      const oo=DB.objects.filter(o=>o.d===d&&scopePass(o)).map(o=>o.a).sort((a,b)=>a.localeCompare(b,'ru'));
+      document.getElementById('nzNObj').innerHTML=oo.map(a=>'<option>'+esc(a)+'</option>').join('');
+    };
+    fill();
+    document.getElementById('nzND').onchange=fill;
+    document.getElementById('nzNCancel').onclick=()=>{ area.innerHTML=''; };
+    document.getElementById('nzNSave').onclick=()=>{
+      const txt=document.getElementById('nzNTxt').value.trim();
+      if(!txt){ alert('Заполните основание и требование предписания.'); return; }
+      const sel=[...document.getElementById('nzNObj').selectedOptions].map(x=>x.value);
+      const list=nzLoad();
+      list.push({
+        id:'nz'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36),
+        ts:nzToday(),
+        num:'НДЗ-'+nzToday().replace(/-/g,'')+'-'+String(Date.now()).slice(-4),
+        type:'manual',
+        district:document.getElementById('nzND').value,
+        addressee:document.getElementById('nzNAdr').value.trim()||'Дежурная служба УК',
+        objects:sel,
+        text:txt,
+        deadline:document.getElementById('nzNDl').value||'',
+        done:false, doneDate:null, doneBy:null,
+        by:(ROLES[nzRole()]||{}).name||'—',
+        src:'ручная регистрация'
+      });
+      nzSave(list); nzRender();
+    };
+  };
+  w.querySelectorAll('[data-nzdone]').forEach(b=>b.onclick=()=>{
+    const list=nzLoad(); const r=list.find(x=>x.id===b.dataset.nzdone);
+    if(!r) return;
+    r.done=true; r.doneDate=nzToday(); r.doneBy=(ROLES[nzRole()]||{}).name||'—';
+    nzSave(list); nzRender();
+  });
+  w.querySelectorAll('[data-nzdel]').forEach(b=>b.onclick=()=>{
+    if(!confirm('Удалить предписание из журнала?')) return;
+    nzSave(nzLoad().filter(x=>x.id!==b.dataset.nzdel)); nzRender();
+  });
+}
+function nzOpen(){ nzRender(); const m=document.getElementById('nzModal'); m.style.display='block'; document.getElementById('nzWrap').scrollTop=0; }
+function nzClose(){ const m=document.getElementById('nzModal'); if(m) m.style.display='none'; }
+document.getElementById('nzBtn').onclick=()=>nzOpen();
+document.getElementById('nzClose').onclick=nzClose;
+document.getElementById('nzModal').addEventListener('click',e=>{ if(e.target.id==='nzModal') nzClose(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.getElementById('nzModal').style.display==='block') nzClose(); });
+
 };
 const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"E5FuITDjDv9LUtjr"};
 const BUILD="3e8b6bb4";
-const BUILD_DATE="15.09.2026 00:33";
+const BUILD_DATE="15.09.2026 06:14";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
