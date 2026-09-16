@@ -292,6 +292,36 @@
     canvas.plot{min-height:220px}
   }
 
+  /* ---------- NAV: профессиональная навигация (бургер-меню, возврат, полноэкранные окна) ---------- */
+  #hBurger{display:none; background:none; border:1px solid #3a4c5c; color:#cdd8e2; border-radius:6px; padding:4px 12px; cursor:pointer; font-size:16px; line-height:1}
+  #hBurger:hover{background:#1b2c3a}
+  #hMenuBd{display:none; position:fixed; top:0;right:0;bottom:0;left:0; z-index:1500; background:rgba(15,28,38,.55)}
+  #hMenu{display:none; position:fixed; top:0; right:0; bottom:0; z-index:1501; width:min(84vw,330px); background:var(--panel); box-shadow:-6px 0 30px rgba(0,0,0,.35); flex-direction:column; overflow-y:auto; animation:hMenuIn .18s ease-out}
+  @keyframes hMenuIn{from{transform:translateX(40px); opacity:.4}to{transform:none; opacity:1}}
+  #hMenuH{display:flex; justify-content:space-between; align-items:center; background:linear-gradient(120deg,#0b151d 0%,#16324a 70%,#1f4a66 100%); color:#fff; padding:12px 16px; font-size:15px; font-weight:600; position:sticky; top:0; z-index:2}
+  #hMenuClose{border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.08); color:#fff; font-size:14px; cursor:pointer; width:30px; height:30px; border-radius:50%; line-height:1}
+  #hMenuClose:hover{background:rgba(255,255,255,.22)}
+  #hMenuStats{padding:10px 16px; font-size:12px; color:var(--mut); border-bottom:1px solid var(--line); display:flex; flex-wrap:wrap; gap:8px}
+  #hMenuBody{display:flex; flex-direction:column; padding:8px 10px 18px}
+  #hMenuBody>button, #hMenuBody>a{display:block; width:100%; text-align:left; margin:2px 0; padding:11px 12px; border:1px solid var(--line); border-radius:8px; background:#f7f3e8; color:#2c3947; font-size:13.5px; cursor:pointer; text-decoration:none; line-height:1.3}
+  #hMenuBody>button:hover, #hMenuBody>a:hover{background:#eee7d5; filter:none}
+  #backChip{display:none; position:fixed; left:50%; transform:translateX(-50%); bottom:14px; z-index:1400; border:1px solid #2c4a5a; background:rgba(15,28,38,.92); color:#d8e6f0; border-radius:22px; padding:8px 18px; font-size:13px; cursor:pointer; box-shadow:0 6px 20px rgba(0,0,0,.35)}
+  #backChip:hover{background:rgba(31,60,80,.95)}
+  @media (max-width:900px){
+    #hBurger{display:inline-block}
+    header>.stats, header>#regBtn, header>#nzBtn, header>#admBtn, header>#meteoBtn, header>#presLink, header>#repBtn, header>#uploadBtn, header>#gear, header>#logoutBtn{display:none}
+    header{flex-wrap:nowrap; align-items:center; gap:8px}
+    header>div:first-child{flex:1 1 auto; min-width:0}
+    header h1{font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+    header .sub{font-size:10.5px}
+    #roleBadge{flex:0 0 auto; font-size:10px !important; padding:2px 8px !important}
+  }
+  @media (max-width:760px){
+    #uplModal .box,#repModal .box,#regModal .box,#tgModal .box,#meteoModal .box,#legalModal .box,#wxDutyModal .box,#sumModal .box,#skbModal .box,#nzModal .box,#kosModal .box,#admModal .box{width:100vw; max-width:100vw; height:100vh; max-height:100vh; margin:0; border-radius:0; padding:12px 12px}
+    #sumModal .sumh,#skbModal .sumh,#nzModal .sumh,#kosModal .sumh,#admModal .sumh{border-radius:0}
+    #gsModalBody .gsCard .gsTbl{min-width:540px}
+  }
+
   /* ---------- парольный доступ ---------- */
   #app{visibility:hidden}
   body.authed #app{visibility:visible}
@@ -396,35 +426,35 @@
   #wxDutyModal h2{font-size:15px; margin-right:30px}
   #wxDutyModal .close{float:right; border:none; background:none; font-size:20px; cursor:pointer; color:var(--mut)}
   #sumModal,#skbModal,#nzModal,#kosModal{display:none; position:fixed; top:0;right:0;bottom:0;left:0; z-index:1140; background:rgba(10,20,30,.62); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px)}
-  #sumModal .box,#skbModal .box,#nzModal ,#kosModal .box{background:var(--panel); width:1020px; max-width:96vw; max-height:92vh; margin:3vh auto; border-radius:14px; overflow:hidden; box-shadow:0 18px 60px rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.28); display:flex; flex-direction:column; animation:sumIn .18s ease-out}
+  #sumModal .box,#skbModal .box,#nzModal .box,#kosModal .box{background:var(--panel); width:1020px; max-width:96vw; max-height:92vh; margin:3vh auto; border-radius:14px; overflow:hidden; box-shadow:0 18px 60px rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.28); display:flex; flex-direction:column; animation:sumIn .18s ease-out}
   @keyframes sumIn{from{transform:translateY(14px) scale(.985); opacity:0} to{transform:none; opacity:1}}
-  #sumModal .sumh,#skbModal .sumh,#nzModal ,#kosModal .sumh{background:linear-gradient(120deg,#0b151d 0%,#16324a 70%,#1f4a66 100%); color:#fff; padding:14px 20px 12px; position:relative; flex:none}
+  #sumModal .sumh,#skbModal .sumh,#nzModal .sumh,#kosModal .sumh{background:linear-gradient(120deg,#0b151d 0%,#16324a 70%,#1f4a66 100%); color:#fff; padding:14px 20px 12px; position:relative; flex:none}
   #skbModal .sumh{background:linear-gradient(120deg,#101a13 0%,#1d4230 70%,#2a5a41 100%)}
   #nzModal .sumh{background:linear-gradient(120deg,#17110a 0%,#3a2c14 70%,#524120 100%)}
   #kosModal .sumh{background:linear-gradient(120deg,#101a1e 0%,#23424c 70%,#2f5a66 100%)}
-  #sumModal .sumh h2,#skbModal .sumh h2,#nzModal ,#kosModal .sumh h2{font-size:16.5px; margin:0 44px 3px 0}
-  #sumModal .sumh .sub,#skbModal .sumh .sub,#nzModal ,#kosModal .sumh .sub{font-size:11.8px; color:#b8c8d6; line-height:1.45}
+  #sumModal .sumh h2,#skbModal .sumh h2,#nzModal .sumh h2,#kosModal .sumh h2{font-size:16.5px; margin:0 44px 3px 0}
+  #sumModal .sumh .sub,#skbModal .sumh .sub,#nzModal .sumh .sub,#kosModal .sumh .sub{font-size:11.8px; color:#b8c8d6; line-height:1.45}
   #nzModal .sumh .sub{color:#d8cfb9}
-  #sumModal .close,#skbModal .close,#nzModal ,#kosModal .close{position:absolute; top:12px; right:14px; width:30px; height:30px; border-radius:50%; border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.08); color:#fff; font-size:14px; cursor:pointer; line-height:1}
-  #sumModal .close:hover,#skbModal .close:hover,#nzModal ,#kosModal .close:hover{background:rgba(255,255,255,.22)}
-  #sumModal .sumb,#skbModal .sumb,#nzModal ,#kosModal .sumb{overflow-y:auto; padding:14px 22px 20px}
-  #sumModal .rayon,#skbModal .rayon,#nzModal ,#kosModal .rayon{font-size:12.5px; color:var(--mut); margin-bottom:10px}
-  #sumModal .resbox,#skbModal .resbox,#nzModal ,#kosModal .resbox{border:1px solid var(--line); border-radius:10px; overflow:hidden; box-shadow:0 2px 10px rgba(20,30,40,.07); margin-bottom:8px}
-  #sumModal .resbox-h,#skbModal .resbox-h,#nzModal ,#kosModal .resbox-h{display:flex; justify-content:space-between; align-items:center; background:#dcd5c4; padding:7px 12px; font-size:12px; font-weight:600}
-  #sumModal .resbox-h .cnt,#skbModal .resbox-h .cnt,#nzModal ,#kosModal .resbox-h .cnt{font-weight:400; color:var(--mut); font-size:11.5px}
-  #sumModal .reslist,#skbModal .reslist,#nzModal ,#kosModal .reslist{max-height:340px; overflow-y:auto}
-  #sumModal table.res,#skbModal table.res,#nzModal ,#kosModal table.res{width:100%; border-collapse:collapse; font-size:12.3px}
-  #sumModal table.res thead th,#skbModal table.res thead th,#nzModal ,#kosModal table.res thead th{position:sticky; top:0; background:#efe9db; padding:6px 10px; text-align:left; font-size:11px; color:var(--mut); text-transform:uppercase; letter-spacing:.4px; border-bottom:1px solid #d2cab8; z-index:1}
-  #sumModal table.res td,#skbModal table.res td,#nzModal ,#kosModal table.res td{padding:5px 10px; border-bottom:1px solid #e8e2d2; vertical-align:middle}
-  #sumModal table.res tbody tr:nth-child(even),#skbModal table.res tbody tr:nth-child(even),#nzModal ,#kosModal table.res tbody tr:nth-child(even){background:#faf7ee}
-  #sumModal table.res tbody tr:hover,#skbModal table.res tbody tr:hover,#nzModal ,#kosModal table.res tbody tr:hover{background:#f1ecdd}
-  #sumModal .rpill,#skbModal .rpill,#nzModal ,#kosModal .rpill{display:inline-block; min-width:64px; text-align:center; padding:2px 8px; border-radius:20px; font-size:11.5px; font-weight:600}
-  #sumModal .rpill.r-g,#skbModal .rpill.r-g,#nzModal ,#kosModal .rpill.r-g{background:#d8ecd9; color:#2e7d32}
-  #sumModal .rpill.r-y,#skbModal .rpill.r-y,#nzModal ,#kosModal .rpill.r-y{background:#f7e9a0; color:#6b5300}
-  #sumModal .rpill.r-o,#skbModal .rpill.r-o,#nzModal ,#kosModal .rpill.r-o{background:#fbe8c8; color:#b05e00}
-  #sumModal .rpill.r-r,#skbModal .rpill.r-r,#nzModal ,#kosModal .rpill.r-r{background:#f7dcd7; color:#c8372d}
-  #sumModal .rpill.r-x,#skbModal .rpill.r-x,#nzModal ,#kosModal .rpill.r-x{background:#5a0d0d; color:#fff}
-  #sumModal .rpill.r-n,#skbModal .rpill.r-n,#nzModal ,#kosModal .rpill.r-n{background:#ece7da; color:var(--mut); font-weight:400}
+  #sumModal .close,#skbModal .close,#nzModal .close,#kosModal .close{position:absolute; top:12px; right:14px; width:30px; height:30px; border-radius:50%; border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.08); color:#fff; font-size:14px; cursor:pointer; line-height:1}
+  #sumModal .close:hover,#skbModal .close:hover,#nzModal .close:hover,#kosModal .close:hover{background:rgba(255,255,255,.22)}
+  #sumModal .sumb,#skbModal .sumb,#nzModal .sumb,#kosModal .sumb{overflow-y:auto; padding:14px 22px 20px}
+  #sumModal .rayon,#skbModal .rayon,#nzModal .rayon,#kosModal .rayon{font-size:12.5px; color:var(--mut); margin-bottom:10px}
+  #sumModal .resbox,#skbModal .resbox,#nzModal .resbox,#kosModal .resbox{border:1px solid var(--line); border-radius:10px; overflow:hidden; box-shadow:0 2px 10px rgba(20,30,40,.07); margin-bottom:8px}
+  #sumModal .resbox-h,#skbModal .resbox-h,#nzModal .resbox-h,#kosModal .resbox-h{display:flex; justify-content:space-between; align-items:center; background:#dcd5c4; padding:7px 12px; font-size:12px; font-weight:600}
+  #sumModal .resbox-h .cnt,#skbModal .resbox-h .cnt,#nzModal .resbox-h .cnt,#kosModal .resbox-h .cnt{font-weight:400; color:var(--mut); font-size:11.5px}
+  #sumModal .reslist,#skbModal .reslist,#nzModal .reslist,#kosModal .reslist{max-height:340px; overflow-y:auto}
+  #sumModal table.res,#skbModal table.res,#nzModal table.res,#kosModal table.res{width:100%; border-collapse:collapse; font-size:12.3px}
+  #sumModal table.res thead th,#skbModal table.res thead th,#nzModal table.res thead th,#kosModal table.res thead th{position:sticky; top:0; background:#efe9db; padding:6px 10px; text-align:left; font-size:11px; color:var(--mut); text-transform:uppercase; letter-spacing:.4px; border-bottom:1px solid #d2cab8; z-index:1}
+  #sumModal table.res td,#skbModal table.res td,#nzModal table.res td,#kosModal table.res td{padding:5px 10px; border-bottom:1px solid #e8e2d2; vertical-align:middle}
+  #sumModal table.res tbody tr:nth-child(even),#skbModal table.res tbody tr:nth-child(even),#nzModal table.res tbody tr:nth-child(even),#kosModal table.res tbody tr:nth-child(even){background:#faf7ee}
+  #sumModal table.res tbody tr:hover,#skbModal table.res tbody tr:hover,#nzModal table.res tbody tr:hover,#kosModal table.res tbody tr:hover{background:#f1ecdd}
+  #sumModal .rpill,#skbModal .rpill,#nzModal .rpill,#kosModal .rpill{display:inline-block; min-width:64px; text-align:center; padding:2px 8px; border-radius:20px; font-size:11.5px; font-weight:600}
+  #sumModal .rpill.r-g,#skbModal .rpill.r-g,#nzModal .rpill.r-g,#kosModal .rpill.r-g{background:#d8ecd9; color:#2e7d32}
+  #sumModal .rpill.r-y,#skbModal .rpill.r-y,#nzModal .rpill.r-y,#kosModal .rpill.r-y{background:#f7e9a0; color:#6b5300}
+  #sumModal .rpill.r-o,#skbModal .rpill.r-o,#nzModal .rpill.r-o,#kosModal .rpill.r-o{background:#fbe8c8; color:#b05e00}
+  #sumModal .rpill.r-r,#skbModal .rpill.r-r,#nzModal .rpill.r-r,#kosModal .rpill.r-r{background:#f7dcd7; color:#c8372d}
+  #sumModal .rpill.r-x,#skbModal .rpill.r-x,#nzModal .rpill.r-x,#kosModal .rpill.r-x{background:#5a0d0d; color:#fff}
+  #sumModal .rpill.r-n,#skbModal .rpill.r-n,#nzModal .rpill.r-n,#kosModal .rpill.r-n{background:#ece7da; color:var(--mut); font-weight:400}
   /* --- надстройка «Надзор» (C3): вкладки, значки индикаторов, карточки предписаний --- */
   #nzModal .nztabs{display:flex; gap:6px; margin:2px 0 12px; flex-wrap:wrap}
   #nzModal .nztabs button{border:1px solid var(--line); background:#efe9db; border-radius:8px; padding:7px 14px; font-size:12.5px; cursor:pointer; font-family:inherit}
@@ -539,11 +569,12 @@
     <button id="nzBtn" title="Надстройка «Надзор» — рабочее место службы строительного надзора и жилищного контроля: индикаторы риска по ч. 13 ст. 20 ЖК РФ, журнал предписаний с контролем исполнения, лицензионный свод по УК (ПП № 1090)" style="background:none; border:1px solid #5a4a2c; color:#e8d9b0; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:13px">🏛 Надзор</button>
     <button id="admBtn" title="Надстройка «Администрация» — рабочие места подразделений города: МКУ «УЖКХ» (сезонная готовность жилфонда к ОЗП, приоритизация ремонтов, контроль УК) и УГХ (снежный фактор, ливневый контур, дежурный метеоконтроль)" style="background:none; border:1px solid #2c4a5a; color:#b9d9e8; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:13px">🏙 Администрация</button>
     <button id="meteoBtn" title="Метеоданные г. Норильска: история с 1950 г., автопополнение из открытых метеоархивов, аномалии, тренды, прогноз, параметры для теплотехнических расчётов (СП 25.13330.2020, прил. Г)" style="background:none; border:1px solid #3a4c5c; color:#cdd8e2; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:13px">🌦 Метеоданные</button>
-    <a href="presentacia_gis_geotermika_norilsk.pdf" download="ГИС-база геотермического мониторинга зданий. Норильск — презентация.pdf" title="Скачать презентацию проекта (PDF)" style="background:none; border:1px solid #3a4c5c; color:#cdd8e2; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:13px; text-decoration:none">📑 Презентация (PDF)</a>
+    <a href="presentacia_gis_geotermika_norilsk.pdf" id="presLink" download="ГИС-база геотермического мониторинга зданий. Норильск — презентация.pdf" title="Скачать презентацию проекта (PDF)" style="background:none; border:1px solid #3a4c5c; color:#cdd8e2; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:13px; text-decoration:none">📑 Презентация (PDF)</a>
     <button id="repBtn" title="Формирование сводного отчёта" style="background:none; border:1px solid #3a4c5c; color:#cdd8e2; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:13px">📄 Отчёт</button>
     <button id="uploadBtn" title="Загрузка данных по шаблону">⬆ Загрузка данных</button>
     <button id="gear" title="Пороги статусов">⚙ Пороги</button>
     <button id="logoutBtn" title="Выйти / сменить пользователя">⎋ Выход</button>
+    <button id="hBurger" title="Меню разделов и действий (открывается также системной кнопкой «Назад»)">☰</button>
   </header>
   <div id="warnStrip" class="ok" title="Дежурный метеоконтроль: критичные погодные явления для городской среды (МКД и объекты соцкультбыта) по районам, прогноз 10 суток, сверка каждый час. Клик — окно дежурного метеоконтроля: статус дежурства, предупреждения, рекомендуемые меры и нормативные основания."><span>…сверка прогноза метеоданных</span></div>
   <div id="side">
@@ -614,6 +645,14 @@
   <button class="save" id="sSave">Применить</button>
   <div class="note">Пороги — рабочие превентивные значения макета; при наличии проектной (расчётной) температуры основания здания введите её в карточке объекта.</div>
 </div>
+
+<div id="hMenuBd"></div>
+<nav id="hMenu" aria-label="Меню разделов">
+  <div id="hMenuH"><span>☰ Меню</span><button id="hMenuClose" title="Закрыть (Esc)">✕</button></div>
+  <div id="hMenuStats"></div>
+  <div id="hMenuBody"></div>
+</nav>
+<button id="backChip" title="Вернуться к окну, из которого открыта карточка объекта">← Назад к окну</button>
 
 <div id="tgModal">
   <div class="box">
@@ -10290,10 +10329,125 @@ document.getElementById('admClose').onclick=admClose;
 document.getElementById('admModal').addEventListener('click',e=>{ if(e.target.id==='admModal') admClose(); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.getElementById('admModal').style.display==='block') admClose(); });
 
+/* ================== NAV. Единый оконный менеджер и навигация ==================
+   1) Esc и клик по тёмному фону закрывают ЛЮБОЕ верхнее окно (раньше — не везде);
+   2) системная кнопка «Назад» (Android/браузер) закрывает окно вместо ухода со страницы —
+      на каждое открытие делается history.pushState, на popstate окно закрывается;
+   3) backChip — возврат из карточки объекта в окно, из которого она открыта;
+   4) бургер-меню на ≤ 900px: кнопки шапки переносятся в выдвижную панель. */
+const NG_WINDOWS=['uplModal','repModal','regModal','tgModal','meteoModal','legalModal','gsModal','wxDutyModal','sumModal','skbModal','nzModal','kosModal','admModal'];
+const NG_WIN_OPEN={sumModal:()=>renderMkdSummary(), skbModal:()=>renderSkbSummary(), kosModal:()=>renderKosSummary(),
+  nzModal:()=>nzOpen(), admModal:()=>admOpen(), gsModal:()=>gsOpen(), meteoModal:()=>meteoOpen(),
+  wxDutyModal:()=>wxDutyOpen(), regModal:()=>openRegistry()};
+function winEl(id){ return document.getElementById(id); }
+function winVisible(m){ return !!m && getComputedStyle(m).display!=='none'; }
+function winTop(){ let best=null, bz=-1;
+  NG_WINDOWS.forEach(id=>{ const m=winEl(id); if(winVisible(m)){ const z=parseInt(getComputedStyle(m).zIndex)||0; if(z>=bz){ bz=z; best=m; } } });
+  return best; }
+let navGuard=false, winLastClosed=null; // {id, t}
+const winObs=(typeof MutationObserver!=='undefined')?new MutationObserver(list=>{
+  if(navGuard) return;
+  for(const mu of list){
+    const m=mu.target, id=m.id;
+    if(winVisible(m)){
+      let st=null; try{ st=history.state; }catch(e){}
+      if(!st||st.ngkWin!==id){ navGuard=true; try{ history.pushState({ngkWin:id},document.title); }catch(e){} navGuard=false; }
+    } else {
+      winLastClosed={id, t:Date.now()};
+      let st=null; try{ st=history.state; }catch(e){}
+      if(st&&st.ngkWin===id){ navGuard=true; try{ history.back(); }catch(e){} navGuard=false; }
+    }
+  }
+}):null;
+if(winObs) NG_WINDOWS.forEach(id=>{ const m=winEl(id); if(m) winObs.observe(m,{attributes:true,attributeFilter:['style']}); });
+window.addEventListener('popstate',()=>{
+  if(navGuard) return;
+  if(hMenuIsOpen()){ hMenuClose_(); return; }
+  const top=winTop();
+  if(top){ navGuard=true; top.style.display='none'; navGuard=false; }
+});
+// Esc — верхнее окно; клик по фону — закрыть (делегирование, дополняет штатные обработчики)
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape') return;
+  if(hMenuIsOpen()){ hMenuClose_(); return; }
+  const top=winTop(); if(top){ top.style.display='none'; }
+});
+document.addEventListener('click',e=>{
+  if(e.target&&NG_WINDOWS.includes(e.target.id)) e.target.style.display='none';
+});
+// единый title для всех крестиков
+document.querySelectorAll('.close').forEach(b=>{ if(!b.title) b.title='Закрыть (Esc)'; });
+// --- backChip: возврат из карточки объекта в исходное окно ---
+const backChip=document.getElementById('backChip');
+let backChipWin=null, backChipTimer=null;
+function backChipShow(id){
+  backChipWin=id;
+  const names={sumModal:'Свод МКД', skbModal:'Свод СКБ', kosModal:'Свод КОС', nzModal:'Надзор', admModal:'Администрация', regModal:'Реестр', gsModal:'Центр управления ГТМ', meteoModal:'Метеоданные', wxDutyModal:'Метеодежурство'};
+  backChip.textContent='← '+(names[id]||'Назад к окну');
+  backChip.style.display='block';
+  clearTimeout(backChipTimer); backChipTimer=setTimeout(()=>{ backChip.style.display='none'; },12000);
+}
+backChip.onclick=()=>{
+  backChip.style.display='none';
+  const fn=backChipWin&&NG_WIN_OPEN[backChipWin];
+  if(fn){ try{ fn(); }catch(e){} }
+};
+function selectPatched(i,fromList){ // обёртка: запоминаем окно-источник, на смартфоне подводим карточку
+  const preModal=winTop(); // если переход из модалки — штатные обработчики закроют её ниже; если из карты/списка — null
+  selectOrig(i,fromList);
+  const src=preModal?preModal.id:(winLastClosed&&(Date.now()-winLastClosed.t<2500)?winLastClosed.id:null);
+  if(src&&NG_WIN_OPEN[src]) backChipShow(src);
+  if(window.matchMedia&&window.matchMedia('(max-width:900px)').matches){
+    setTimeout(()=>{ const d=document.getElementById('detail'); if(d) d.scrollIntoView({behavior:'smooth',block:'start'}); },60);
+  }
+}
+const selectOrig=select;
+select=selectPatched;
+// --- бургер-меню: перенос действий шапки в выдвижную панель на ≤ 900px ---
+const HACT_IDS=['regBtn','nzBtn','admBtn','meteoBtn','presLink','repBtn','uploadBtn','gear','logoutBtn'];
+const hMenu=document.getElementById('hMenu'), hMenuBd=document.getElementById('hMenuBd'),
+      hMenuBody=document.getElementById('hMenuBody'), hMenuStats=document.getElementById('hMenuStats');
+let hMenuMoved=null; // [{el,parent,next}]
+function hMenuIsOpen(){ return hMenu.style.display==='flex'; }
+function hMenuOpen_(){
+  hMenu.style.display='flex'; hMenuBd.style.display='block';
+  let st=null; try{ st=history.state; }catch(e){}
+  if(!st||st.ngkWin!=='hMenu'){ navGuard=true; try{ history.pushState({ngkWin:'hMenu'},document.title); }catch(e){} navGuard=false; }
+}
+function hMenuClose_(){
+  hMenu.style.display='none'; hMenuBd.style.display='none';
+  let st=null; try{ st=history.state; }catch(e){}
+  if(st&&st.ngkWin==='hMenu'){ navGuard=true; try{ history.back(); }catch(e){} navGuard=false; }
+}
+document.getElementById('hBurger').onclick=()=>hMenuIsOpen()?hMenuClose_():hMenuOpen_();
+document.getElementById('hMenuClose').onclick=hMenuClose_;
+hMenuBd.onclick=hMenuClose_;
+// клик по любому действию в меню — закрыть меню
+hMenuBody.addEventListener('click',e=>{ if(e.target.closest('button,a')) hMenuClose_(); });
+function hMenuAdapt(){
+  const mob=window.matchMedia&&window.matchMedia('(max-width:900px)').matches;
+  const hdr=document.querySelector('header');
+  if(mob&&!hMenuMoved){
+    hMenuMoved=[];
+    const stats=document.getElementById('hstats');
+    if(stats){ hMenuMoved.push({el:stats, parent:stats.parentElement, next:stats.nextSibling}); hMenuStats.appendChild(stats); stats.style.display='flex'; stats.style.marginLeft='0'; }
+    HACT_IDS.forEach(id=>{ const el=document.getElementById(id); if(!el) return;
+      if(getComputedStyle(el).display==='none'&&el.id==='uploadBtn'){ /* скрыт ролью — всё равно переносим, видимость унаследуется */ }
+      hMenuMoved.push({el, parent:el.parentElement, next:el.nextSibling}); hMenuBody.appendChild(el); el.style.display=''; });
+    hMenuMoved.push({el:document.getElementById('hBurger')}); // маркер
+  } else if(!mob&&hMenuMoved){
+    hMenuMoved.forEach(r=>{ if(r.next&&r.next.parentElement===r.parent) r.parent.insertBefore(r.el,r.next); else if(r.parent) r.parent.appendChild(r.el); if(r.el.id) r.el.style.display=''; });
+    hMenuMoved=null;
+  }
+}
+hMenuAdapt();
+if(window.matchMedia&&window.matchMedia('(max-width:900px)').addEventListener) window.matchMedia('(max-width:900px)').addEventListener('change',hMenuAdapt);
+window.addEventListener('resize',()=>{ /* подстраховка для старых WebKit без change на matchMedia */ hMenuAdapt(); });
+
 };
 const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"xu9/bPpZS6OPiahO"};
 const BUILD="75b63867";
-const BUILD_DATE="16.09.2026 22:54";
+const BUILD_DATE="17.09.2026 00:25";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
