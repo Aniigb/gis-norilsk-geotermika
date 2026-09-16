@@ -598,7 +598,7 @@
       <div class="ukblk-h" id="ukBlkH"><span id="ukBlkT">🏢 Управляющие компании</span><span class="n" id="ukBlkN"></span></div>
       <div class="ukblk-b" id="ukBlkB"></div>
     </div>
-    <input id="search" placeholder="Поиск по адресу: улица и № дома…">
+    <input id="search" placeholder="Поиск: адрес, объект, УК, район…">
     <div id="list"></div>
     <div id="gsBox">
       <div id="gsHead">◉ ЦЕНТР УПРАВЛЕНИЯ ГТМ<small>контур раннего предупреждения и развития геотехнического мониторинга зданий · каждый раздел открывается отдельным окном</small></div>
@@ -2107,34 +2107,61 @@ const ukSel=document.getElementById('ukFilter');
   document.getElementById('kpYr').onchange=e=>{ window.kpOn=e.target.checked; drawMarkers(); };
 }
 function passF(o){ const inBr=UK_SCOPE?(o.br||'mkd')==='mkd':branchOf(o)===curBranch;
-  return inBr&&scopePass(o)&&(curD==='Все'||o.d===curD)&&(curUK==='Все'||effectiveUK(o)===curUK)&&(!curQ||matchQ(o.a,curQ))&&covPass(o); }
-/* --- умный поиск по адресу: запрос «улица номер» («Ленинский 1») разбивается на токены;
-   каждый токен ищется в адресе; числовой токен сверяется с номером дома точно
-   («1» → «д. 1» и «д. 1А», но не «д. 10»); типы улиц (ул./пр-т/…) игнорируются; ё=е --- */
-const Q_STREET_TYPES=new Set(['ул','улица','прт','пркт','проспект','пр','пл','площадь','наб','набережная','прд','проезд','пер','переулок','ш','шоссе','бр','бульвар','мкр','микрорайон','д','дом']);
-function matchQ(a,q){
-  const norm=s=>String(s).toLowerCase().replace(/ё/g,'е');
-  const aa=norm(a);
+  return inBr&&scopePass(o)&&(curD==='Все'||o.d===curD)&&(curUK==='Все'||effectiveUK(o)===curUK)&&(!curQ||matchObj(o,curQ))&&covPass(o); }
+/* --- поиск про-уровня: запрос разбивается на токены; каждый токен ищется по ВСЕМ полям
+   объекта (адрес, название учреждения/сооружения, УК, район, подразделение);
+   числовой токен сверяется с номером дома точно («1» → «д. 1» и «д. 1А», но не «д. 10»);
+   типы улиц игнорируются; ё=е; синонимы учреждений (школа↔СОШ, детсад↔ДОУ, КОС↔очистные) --- */
+const Q_STREET_TYPES=new Set(['ул','улица','прт','пркт','проспект','пр','пл','площадь','наб','набережная','прд','проезд','пер','переулок','ш','шоссе','бр','бульвар','мкр','микрорайон','д','дом','№','им','имени']);
+const Q_SYN={'школа':['школ','сош','сш'],'сош':['сош','сш','школ'],'сш':['сш','сош','школ'],'гимназия':['гимназ'],'лицей':['лице'],
+  'детсад':['детсад','детский сад','доу','мбдоу','мадоу'],'садик':['детский сад','доу','мбдоу'],'доу':['доу','детский сад','детсад'],
+  'больница':['больниц','мбуз','гбуз','поликлиник'],'поликлиника':['поликлиник','больниц','мбуз'],
+  'кос':['кос','очистн'],'очистные':['очистн','кос'],'канализация':['канализац','кос','очистн'],
+  'жкс':['жкс'],'город':['город'],'муп':['муп'],'мку':['мку'],'мбоу':['мбоу','сш','сош','школ'],'маоу':['маоу','сш','сош','школ']};
+function qNorm(s){ return String(s).toLowerCase().replace(/ё/g,'е'); }
+function qTokens(q){ return qNorm(q).split(/[\s,]+/).filter(Boolean).filter(t=>!Q_STREET_TYPES.has(t.replace(/[.\s]/g,''))); }
+function qTokHit(t, hay, houseNum){ // один токен против сводного поискового текста + строгий матч номера дома
+  const tn=t.replace(/[-.\s]/g,'');
+  if(!tn) return true;
+  if(!/^\d/.test(tn)){
+    const alts=[tn].concat(Q_SYN[t]||Q_SYN[tn]||[]);
+    return alts.some(a=>hay.includes(a));
+  }
+  // числовой токен: сначала точная сверка с номером дома…
+  if(houseNum){
+    if(houseNum===tn) return true;
+    if(houseNum.startsWith(tn)&&!/\d/.test(houseNum[tn.length]||'')) return true; // «1»→«1а», но не «10»
+    if(tn.startsWith(houseNum)&&!/\d/.test(tn[houseNum.length]||'')) return true; // «18а»→дом «18»
+  }
+  // …иначе — как часть названия улицы/объекта, но только с границами числа («50 лет Октября», «школа № 1»)
+  const re=new RegExp('(^|[^0-9])'+tn.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'([^0-9]|$)','i');
+  return re.test(hay);
+}
+function matchQ(a,q){ // адресный матч (совместимость): токены против строки адреса + номер дома
   const hm=String(a).match(/,\s*д\.\s*([^\s,]+)/i);
-  const houseNum=(hm?norm(hm[1]):'').replace(/[-.\s]/g,'');        // «18-а»→«18а»
-  const toks=norm(q).split(/[\s,]+/).filter(Boolean)
-    .filter(t=>!Q_STREET_TYPES.has(t.replace(/[.\s]/g,'')));
-  return toks.every(t=>{
-    const tn=t.replace(/[-.\s]/g,'');
-    if(!tn) return true;
-    if(/^\d/.test(tn)){
-      // числовой токен: сначала точная сверка с номером дома…
-      if(houseNum){
-        if(houseNum===tn) return true;
-        if(houseNum.startsWith(tn)&&!/\d/.test(houseNum[tn.length]||'')) return true; // «1»→«1а», но не «10»
-        if(tn.startsWith(houseNum)&&!/\d/.test(tn[houseNum.length]||'')) return true; // «18а»→дом «18»
-      }
-      // …иначе — как часть названия улицы, но только с границами числа («50 лет Октября», не «10» внутри «1»)
-      const re=new RegExp('(^|[^0-9])'+tn.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'([^0-9]|$)','i');
-      return re.test(aa);
-    }
-    return aa.includes(t);
-  });
+  const houseNum=(hm?qNorm(hm[1]):'').replace(/[-.\s]/g,'');        // «18-а»→«18а»
+  return qTokens(q).every(t=>qTokHit(t,qNorm(a),houseNum));
+}
+function searchStr(o){ // сводный поисковый текст объекта (кэшируется на объекте)
+  if(o._sq) return o._sq;
+  const parts=[o.a, o.ao||'', (o.pf2&&o.pf2.project)||'', o.d||'', o.podr||''];
+  try{ parts.push(effectiveUK(o)); }catch(e){}
+  if(o.br==='skb'){ try{ parts.push(skbObjName(o)); }catch(e){} try{ parts.push(skbCat(o)); }catch(e){} }
+  if(o.br==='kos'){ try{ parts.push(kosObjName(o)); }catch(e){} try{ parts.push(kosCat(o)); }catch(e){} }
+  return o._sq=qNorm(parts.join(' '));
+}
+function matchObj(o,q){
+  const toks=qTokens(q); if(!toks.length) return true;
+  const hm=String(o.a).match(/,\s*д\.\s*([^\s,]+)/i);
+  const houseNum=(hm?qNorm(hm[1]):'').replace(/[-.\s]/g,'');
+  return toks.every(t=>qTokHit(t,searchStr(o),houseNum));
+}
+function matchStub(s,q){
+  const toks=qTokens(q); if(!toks.length) return true;
+  if(!s._sq) s._sq=qNorm([s.a, s.ao||'', s.d||'', stubUK(s)].join(' '));
+  const hm=String(s.a).match(/,\s*д\.\s*([^\s,]+)/i);
+  const houseNum=(hm?qNorm(hm[1]):'').replace(/[-.\s]/g,'');
+  return toks.every(t=>qTokHit(t,s._sq,houseNum));
 }
 /* --- переключатель веток: МКД / объекты соцкультбыта Администрации / сооружения МУП «КОС» --- */
 function branchOf(o){ return o.br||'mkd'; }
@@ -2576,11 +2603,11 @@ function streetOf(o){ let s=o.a;
   const fix={'бхмельницкого':'богданахмельницкого','мкравца':'михаилакравца','лауретов':'лауреатов','комсомольсая':'комсомольская','московскаяд':'московская'};
   return fix[s]||s; }
 function stubUK(s){ return ukCanon(s.uk||'Не определена'); }
-function stubPass(s){ return !covFilter&&curBranch==='mkd'&&(curD==='Все'||s.d===curD)&&(curUK==='Все'||stubUK(s)===curUK)&&(!UK_SCOPE||stubUK(s)===UK_SCOPE)&&(!curQ||matchQ(s.a,curQ)); }
+function stubPass(s){ return !covFilter&&curBranch==='mkd'&&(curD==='Все'||s.d===curD)&&(curUK==='Все'||stubUK(s)===curUK)&&(!UK_SCOPE||stubUK(s)===UK_SCOPE)&&(!curQ||matchStub(s,curQ)); }
 function renderListTail(list){ // хвост renderList: пустое состояние поиска + фильтр карты
   if(curQ&&!list.children.length){
     const d=document.createElement('div'); d.className='nores';
-    d.innerHTML='По запросу «'+esc(curQ)+'» ничего не найдено.<br>Попробуйте: улицу с номером дома («Ленинский 1»), только улицу или только номер дома.';
+    d.innerHTML='По запросу «'+esc(curQ)+'» ничего не найдено.<br>Поиск работает по адресу («Ленинский 1»), названию объекта («школа 1», «детсад»), УК («ЖКС»), району («Талнах») и подразделению.';
     list.appendChild(d);
   }
   applyFilter();
@@ -10455,7 +10482,7 @@ window.addEventListener('resize',()=>{ /* подстраховка для ста
 };
 const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"xu9/bPpZS6OPiahO"};
 const BUILD="75b63867";
-const BUILD_DATE="17.09.2026 00:45";
+const BUILD_DATE="17.09.2026 01:00";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
