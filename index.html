@@ -9,10 +9,59 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
 <link rel="shortcut icon" href="favicon.ico">
 <link rel="apple-touch-icon" href="favicon-180.png">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
+<script>
+/* Кроссбраузерный сторож загрузки (ES5, без зависимостей): проверка возможностей браузера,
+   диагностика сбоев модулей, понятное сообщение вместо «мёртвой» страницы */
+(function(){
+  var errs=[];
+  window.addEventListener('error',function(e){
+    try{ if(errs.length<8) errs.push((e.message||'ошибка скрипта')+(e.filename?(' · '+String(e.filename).split('/').pop()):'')); }catch(_){}
+  },true);
+  function es2020ok(){ try{ (0,eval)('(function(){var o={};return o?.a??1})()'); return true; }catch(_){ return false; } }
+  function storageOk(st){ try{ st.setItem('__ngk_t','1'); st.removeItem('__ngk_t'); return true; }catch(_){ return false; } }
+  window.__ngkProbe=function(){
+    var miss=[];
+    if(typeof Promise==='undefined') miss.push('Promise');
+    if(typeof fetch==='undefined') miss.push('fetch');
+    if(typeof TextEncoder==='undefined') miss.push('TextEncoder');
+    if(typeof Map==='undefined'||typeof Set==='undefined') miss.push('Map/Set');
+    if(!es2020ok()) miss.push('синтаксис ES2020 (браузер старше 2020 г.)');
+    var enc=!!document.querySelector('script[src*="db_p1"]');
+    if(enc&&!(window.crypto&&crypto.subtle)) miss.push('WebCrypto (crypto.subtle) — нужен защищённый контекст (HTTPS)');
+    if(enc&&typeof DecompressionStream==='undefined'&&!(window.pako&&pako.ungzip)) miss.push('распаковка gzip (DecompressionStream/pako)');
+    if(!storageOk(window.sessionStorage||{})) miss.push('sessionStorage — отключите приватный режим/блокировку cookies');
+    if(!storageOk(window.localStorage||{})) miss.push('localStorage — отключите блокировку cookies');
+    return miss;
+  };
+  window.__ngkBootWatch=function(){
+    if(document.getElementById('ngkBootWarn')) return;
+    var miss=window.__ngkProbe();
+    if(miss.length||!window.__NGK_BOOTED){
+      var d=document.createElement('div');
+      d.id='ngkBootWarn';
+      d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:3000;background:#5a0d0d;color:#fff;padding:10px 18px;font:13px/1.5 "Segoe UI",Arial,sans-serif;box-shadow:0 4px 18px rgba(0,0,0,.4)';
+      var h='<b>Страница загружена не полностью.</b> ';
+      if(miss.length) h+='Браузер не поддерживает необходимые функции: <b>'+miss.join('; ')+'</b>. Установите актуальные Chrome, Firefox, Edge, Яндекс.Браузер или Safari (версии 2021 года и новее). ';
+      else h+='Сбой загрузки модулей'+(errs.length?(' ('+errs.slice(0,3).join(' · ')+')'):'')+'. Проверьте подключение к сети и обновите страницу: Ctrl+F5 (Windows) или Cmd+Shift+R (Mac). ';
+      h+='<button onclick="location.reload()" style="margin-left:10px;border:1px solid #fff;background:none;color:#fff;border-radius:5px;padding:2px 12px;cursor:pointer;font-size:12px">Обновить</button>';
+      h+='<button onclick="this.parentNode.style.display=\'none\'" style="margin-left:6px;border:1px solid rgba(255,255,255,.5);background:none;color:#eee;border-radius:5px;padding:2px 10px;cursor:pointer;font-size:12px">Скрыть</button>';
+      d.innerHTML=h;
+      document.body.appendChild(d);
+    }
+  };
+  function arm(){
+    if(window.__ngkProbe().length){ window.__ngkBootWatch(); return; } // жёсткая несовместимость — сразу
+    setTimeout(window.__ngkBootWatch, 20000); // иначе — сторож отложенной загрузки
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',arm);
+  else arm();
+})();
+</script>
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="vendor/xlsx.full.min.js"></script>
+<script src="vendor/docx.umd.js"></script>
+<script src="vendor/pako_inflate.min.js"></script>
 <style>
   :root{
     --bg:#0b151d; --panel:#e7e2d4; --ink:#1d2733; --mut:#5b6572;
@@ -176,7 +225,7 @@
   /* ---------- загрузка данных ---------- */
   #uploadBtn{background:#2e7d32; border:1px solid #2e7d32; color:#fff; border-radius:6px; padding:4px 12px; cursor:pointer; font-size:13px}
   #uploadBtn:hover{background:#256a29}
-  #uplModal{display:none; position:fixed; inset:0; z-index:1000; background:rgba(15,28,38,.55)}
+  #uplModal{display:none; position:fixed; top:0;right:0;bottom:0;left:0; z-index:1000; background:rgba(15,28,38,.55)}
   #uplModal .box{background:var(--panel); width:720px; max-width:94vw; max-height:88vh; overflow-y:auto; margin:5vh auto; border-radius:10px; padding:22px 26px; box-shadow:0 10px 40px rgba(0,0,0,.35)}
   #uplModal h2{font-size:16px; margin-bottom:4px}
   #uplModal .close{float:right; border:none; background:none; font-size:20px; cursor:pointer; color:var(--mut)}
@@ -187,7 +236,7 @@
   #uplModal .acts button.ghost, #uplModal .acts a.ghost{background:#f2eee4; color:var(--c-centr)}
   #uplLog{font-size:12px; max-height:180px; overflow-y:auto; background:#f2eee4; border:1px solid var(--line); border-radius:6px; padding:8px 10px; margin-top:8px; display:none; white-space:pre-wrap}
   /* ---------- сводный отчёт ---------- */
-  #repModal{display:none; position:fixed; inset:0; z-index:1000; background:rgba(15,28,38,.55)}
+  #repModal{display:none; position:fixed; top:0;right:0;bottom:0;left:0; z-index:1000; background:rgba(15,28,38,.55)}
   #repModal .box{background:var(--panel); width:900px; max-width:95vw; max-height:90vh; margin:4vh auto; border-radius:10px; padding:20px 26px; box-shadow:0 10px 40px rgba(0,0,0,.35); display:flex; flex-direction:column}
   #repModal .close{float:right; border:none; background:none; font-size:20px; cursor:pointer; color:var(--mut)}
   #repModal label.task{display:block; font-size:12.8px; padding:3px 0; cursor:pointer}
@@ -199,7 +248,7 @@
   #repOut .cat{font-weight:700}
   @media print{ body.printing #app, body.printing #loginModal{display:none} body.printing #repModal{display:block; position:static; background:none} body.printing #repModal .box{box-shadow:none; max-height:none; margin:0; width:auto} body.printing #repModal .noprint{display:none} body.printing #repOut{display:block; border:none; overflow:visible} }
   /* ---------- сводный реестр ---------- */
-  #regModal{display:none; position:fixed; inset:0; z-index:1000; background:rgba(15,28,38,.55)}
+  #regModal{display:none; position:fixed; top:0;right:0;bottom:0;left:0; z-index:1000; background:rgba(15,28,38,.55)}
   #regModal .box{background:var(--panel); width:1100px; max-width:96vw; max-height:90vh; margin:4vh auto; border-radius:10px; padding:20px 24px; box-shadow:0 10px 40px rgba(0,0,0,.35); display:flex; flex-direction:column}
   #regModal h2{font-size:16px}
   #regModal .close{float:right; border:none; background:none; font-size:20px; cursor:pointer; color:var(--mut)}
@@ -246,7 +295,7 @@
   #app{visibility:hidden}
   body.authed #app{visibility:visible}
   body.authed #loginModal{display:none !important}
-  #loginModal{position:fixed; inset:0; z-index:2000; background:var(--bg); display:flex; align-items:center; justify-content:center}
+  #loginModal{position:fixed; top:0;right:0;bottom:0;left:0; z-index:2000; background:var(--bg); display:flex; align-items:center; justify-content:center}
   #loginModal .lbox{background:var(--panel); border-radius:10px; padding:30px 34px; width:370px; max-width:92vw; box-shadow:0 10px 40px rgba(0,0,0,.4)}
   #loginModal h2{font-size:15.5px; margin-bottom:2px}
   #loginModal .sub2{font-size:12px; color:var(--mut); margin-bottom:16px}
@@ -278,11 +327,11 @@
   /* ---------- телефонограммы (скрытый раздел) ---------- */
   .tglock{border:none; background:none; cursor:pointer; font-size:12px; color:var(--mut); padding:1px 4px}
   .tglock:hover{color:var(--ink)}
-  #tgModal{display:none; position:fixed; inset:0; z-index:1100; background:rgba(15,28,38,.6)}
+  #tgModal{display:none; position:fixed; top:0;right:0;bottom:0;left:0; z-index:1100; background:rgba(15,28,38,.6)}
   #tgModal .box{background:var(--panel); width:860px; max-width:95vw; max-height:92vh; margin:3vh auto; border-radius:10px; padding:20px 24px; box-shadow:0 10px 40px rgba(0,0,0,.4); overflow-y:auto}
-  #meteoModal{display:none; position:fixed; inset:0; z-index:1150; background:rgba(15,28,38,.6)}
+  #meteoModal{display:none; position:fixed; top:0;right:0;bottom:0;left:0; z-index:1150; background:rgba(15,28,38,.6)}
   #meteoModal .box{background:var(--panel); width:1020px; max-width:96vw; max-height:94vh; margin:2.5vh auto; border-radius:10px; padding:18px 24px; box-shadow:0 10px 40px rgba(0,0,0,.4); overflow-y:auto}
-  #legalModal{display:none; position:fixed; inset:0; z-index:1300; background:rgba(15,28,38,.6)}
+  #legalModal{display:none; position:fixed; top:0;right:0;bottom:0;left:0; z-index:1300; background:rgba(15,28,38,.6)}
   #legalModal .box{background:#d9d1bd; width:760px; max-width:94vw; max-height:88vh; overflow-y:auto; margin:5vh auto; border-radius:10px; padding:22px 28px; box-shadow:0 10px 40px rgba(0,0,0,.4); font-size:13px; line-height:1.55}
   #legalModal .close{float:right; border:none; background:none; font-size:20px; cursor:pointer; color:var(--mut)}
   #legalModal h2{font-size:16px; margin:0 0 8px}
@@ -312,7 +361,7 @@
   .gsBar i{display:block; height:100%; background:#5b4a7a}
   .gsPill{display:inline-block; padding:1px 8px; border-radius:9px; font-size:10.5px; font-weight:700; color:#fff}
   .gsSt{padding:2px 6px; border:1px solid var(--line); border-radius:4px; font-size:11.5px; background:#f2eee4; font-family:inherit}
-  #gsModal{display:none; position:fixed; inset:0; z-index:1250; background:rgba(11,21,29,.62)}
+  #gsModal{display:none; position:fixed; top:0;right:0;bottom:0;left:0; z-index:1250; background:rgba(11,21,29,.62)}
   #gsModal .box{background:var(--panel); width:1080px; max-width:96vw; max-height:92vh; margin:3vh auto; border-radius:10px; padding:18px 22px; box-shadow:0 10px 40px rgba(0,0,0,.42); display:flex; flex-direction:column; border-top:4px solid #5b4a7a; position:relative}
   #gsModal .close{position:absolute; top:12px; right:14px; border:none; background:none; font-size:22px; cursor:pointer; color:var(--mut); line-height:1}
   #gsModal .close:hover{color:var(--crit)}
@@ -341,11 +390,11 @@
   .warn-card .wg b{color:#4a4234}
   .warn-none{border:1px solid #8fb489; background:#dde8d6; border-radius:8px; padding:7px 12px; font-size:12.5px; margin-bottom:8px}
   .warn-meta{font-size:11px; color:var(--mut); margin-bottom:6px}
-  #wxDutyModal{display:none; position:fixed; inset:0; z-index:1120; background:rgba(15,28,38,.6)}
+  #wxDutyModal{display:none; position:fixed; top:0;right:0;bottom:0;left:0; z-index:1120; background:rgba(15,28,38,.6)}
   #wxDutyModal .box{background:var(--panel); width:980px; max-width:96vw; max-height:92vh; margin:3vh auto; border-radius:10px; padding:18px 22px; box-shadow:0 10px 40px rgba(0,0,0,.4); display:flex; flex-direction:column}
   #wxDutyModal h2{font-size:15px; margin-right:30px}
   #wxDutyModal .close{float:right; border:none; background:none; font-size:20px; cursor:pointer; color:var(--mut)}
-  #sumModal,#skbModal,#nzModal,#kosModal{display:none; position:fixed; inset:0; z-index:1140; background:rgba(10,20,30,.62); backdrop-filter:blur(3px)}
+  #sumModal,#skbModal,#nzModal,#kosModal{display:none; position:fixed; top:0;right:0;bottom:0;left:0; z-index:1140; background:rgba(10,20,30,.62); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px)}
   #sumModal .box,#skbModal .box,#nzModal ,#kosModal .box{background:var(--panel); width:1020px; max-width:96vw; max-height:92vh; margin:3vh auto; border-radius:14px; overflow:hidden; box-shadow:0 18px 60px rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.28); display:flex; flex-direction:column; animation:sumIn .18s ease-out}
   @keyframes sumIn{from{transform:translateY(14px) scale(.985); opacity:0} to{transform:none; opacity:1}}
   #sumModal .sumh,#skbModal .sumh,#nzModal ,#kosModal .sumh{background:linear-gradient(120deg,#0b151d 0%,#16324a 70%,#1f4a66 100%); color:#fff; padding:14px 20px 12px; position:relative; flex:none}
@@ -389,7 +438,7 @@
   #nzModal .nzbtn.ghost{background:#f2eee4; color:var(--c-centr)}
   #nzModal .nzbtn.del{background:none; border-color:#c8372d; color:#c8372d}
   /* --- надстройка «Администрация»: рабочие места МКУ «УЖКХ» и УГХ --- */
-  #admModal{display:none; position:fixed; inset:0; z-index:1140; background:rgba(10,20,30,.62); backdrop-filter:blur(3px)}
+  #admModal{display:none; position:fixed; top:0;right:0;bottom:0;left:0; z-index:1140; background:rgba(10,20,30,.62); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px)}
   #admModal .box{background:var(--panel); width:1080px; max-width:96vw; max-height:92vh; margin:3vh auto; border-radius:14px; overflow:hidden; box-shadow:0 18px 60px rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.28); display:flex; flex-direction:column; animation:sumIn .18s ease-out}
   #admModal .sumh{background:linear-gradient(120deg,#0a141c 0%,#14314a 65%,#1d5670 100%); color:#fff; padding:14px 20px 12px; position:relative; flex:none}
   #admModal .sumh h2{font-size:16.5px; margin:0 44px 3px 0}
@@ -802,6 +851,7 @@
   </form>
 </div>
 <script>window.__initApp=function(){
+window.__NGK_BOOTED=1; // маркер для кроссбраузерного сторожа: основной скрипт распарсился и запущен
 const DCOL = {"Центральный":"#2f6fb2","Талнах":"#c05a2e","Кайеркан":"#3d8a5a"};
 const SCOL = {"НОРМА":"#2e7d32","ВНИМАНИЕ":"#c9a800","РИСК":"#e08a00","КРИТИЧНО":"#c8372d","АВАРИЯ":"#5a0d0d"};
 const DB = window.DB;
@@ -1607,7 +1657,7 @@ function hydroStep(){
 function hydroEnsureCanvas(){
   if(hydroCv) return;
   hydroCv=document.createElement('canvas');
-  hydroCv.style.cssText='position:absolute; inset:0; z-index:600; pointer-events:none';
+  hydroCv.style.cssText='position:absolute; top:0;right:0;bottom:0;left:0; z-index:600; pointer-events:none';
   document.getElementById('map').appendChild(hydroCv);
   const rs=()=>{ const r=map.getContainer().getBoundingClientRect(); hydroCv.width=r.width; hydroCv.height=r.height; };
   rs(); map.on('resize movezoom', rs);
@@ -1712,7 +1762,7 @@ function thermPoints(dep){
 function thermEnsure(){
   if(thermCv) return;
   thermCv=document.createElement('canvas');
-  thermCv.style.cssText='position:absolute; inset:0; z-index:590; pointer-events:none';
+  thermCv.style.cssText='position:absolute; top:0;right:0;bottom:0;left:0; z-index:590; pointer-events:none';
   document.getElementById('map').appendChild(thermCv);
   // переключатель глубин
   thermCtl=document.createElement('div');
@@ -10206,7 +10256,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.getElemen
 };
 const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"xu9/bPpZS6OPiahO"};
 const BUILD="75b63867";
-const BUILD_DATE="16.09.2026 14:45";
+const BUILD_DATE="16.09.2026 18:41";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
@@ -10218,13 +10268,21 @@ async function _unwrap(pw,saltB,ivB,wrapB){
     return new Uint8Array(await crypto.subtle.decrypt({name:"AES-GCM",iv:_b64(ivB)},wk,_b64(wrapB)));
   }catch(e){ return null; }
 }
+async function _gunzip(u8){
+  if(typeof DecompressionStream!=="undefined"){
+    return new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+  }
+  if(window.pako&&pako.ungzip){ return pako.ungzip(u8,{to:"string"}); } // фолбэк для Safari < 16.4 / Firefox < 113
+  throw new Error("браузер без DecompressionStream и pako");
+}
 async function _decrypt(rawK){
   const K=await crypto.subtle.importKey("raw",rawK,"AES-GCM",false,["decrypt"]);
   const ct=_b64(window.__DBP.join("").replace(/\s/g,""));
   const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:_b64(ENC.ivD)},K,ct);
-  return new Response(new Blob([plain]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+  return await _gunzip(new Uint8Array(plain));
 }
 (async()=>{
+  window.__NGK_BOOTED=window.__NGK_BOOTED||"login"; // сторож загрузки: бут-блок отработал, ожидается вход
   const lm=document.getElementById("loginModal");
   const errEl=document.getElementById("loginErr");
   if(window.__DBV!==BUILD){ // смешение версий кэша: одна принудительная перезагрузка, затем понятное сообщение
