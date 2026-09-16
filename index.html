@@ -89,6 +89,7 @@
   .chip .n{color:var(--mut); margin-left:4px}
   .chip.on .n{color:#b9c6d2}
   #search{margin:4px 12px 10px; padding:7px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; width:calc(100% - 24px)}
+  #list .nores{margin:8px 12px; padding:12px; color:var(--mut); font-size:12.5px; line-height:1.5; border:1px dashed var(--line); border-radius:6px; background:#faf7ef}
   #list{overflow-y:auto; flex:1; border-top:1px solid var(--line)}
   .item{padding:8px 14px; border-bottom:1px solid #d2cab8; cursor:pointer; display:flex; justify-content:space-between; gap:8px; align-items:baseline}
   .item:hover{background:#dcd5c4}
@@ -562,7 +563,7 @@
       <div class="ukblk-h" id="ukBlkH"><span id="ukBlkT">🏢 Управляющие компании</span><span class="n" id="ukBlkN"></span></div>
       <div class="ukblk-b" id="ukBlkB"></div>
     </div>
-    <input id="search" placeholder="Поиск по адресу…">
+    <input id="search" placeholder="Поиск по адресу: улица и № дома…">
     <div id="list"></div>
     <div id="gsBox">
       <div id="gsHead">◉ ЦЕНТР УПРАВЛЕНИЯ ГТМ<small>контур раннего предупреждения и развития геотехнического мониторинга зданий · каждый раздел открывается отдельным окном</small></div>
@@ -2063,7 +2064,35 @@ const ukSel=document.getElementById('ukFilter');
   document.getElementById('kpYr').onchange=e=>{ window.kpOn=e.target.checked; drawMarkers(); };
 }
 function passF(o){ const inBr=UK_SCOPE?(o.br||'mkd')==='mkd':branchOf(o)===curBranch;
-  return inBr&&scopePass(o)&&(curD==='Все'||o.d===curD)&&(curUK==='Все'||effectiveUK(o)===curUK)&&(!curQ||o.a.toLowerCase().includes(curQ))&&covPass(o); }
+  return inBr&&scopePass(o)&&(curD==='Все'||o.d===curD)&&(curUK==='Все'||effectiveUK(o)===curUK)&&(!curQ||matchQ(o.a,curQ))&&covPass(o); }
+/* --- умный поиск по адресу: запрос «улица номер» («Ленинский 1») разбивается на токены;
+   каждый токен ищется в адресе; числовой токен сверяется с номером дома точно
+   («1» → «д. 1» и «д. 1А», но не «д. 10»); типы улиц (ул./пр-т/…) игнорируются; ё=е --- */
+const Q_STREET_TYPES=new Set(['ул','улица','прт','пркт','проспект','пр','пл','площадь','наб','набережная','прд','проезд','пер','переулок','ш','шоссе','бр','бульвар','мкр','микрорайон','д','дом']);
+function matchQ(a,q){
+  const norm=s=>String(s).toLowerCase().replace(/ё/g,'е');
+  const aa=norm(a);
+  const hm=String(a).match(/,\s*д\.\s*([^\s,]+)/i);
+  const houseNum=(hm?norm(hm[1]):'').replace(/[-.\s]/g,'');        // «18-а»→«18а»
+  const toks=norm(q).split(/[\s,]+/).filter(Boolean)
+    .filter(t=>!Q_STREET_TYPES.has(t.replace(/[.\s]/g,'')));
+  return toks.every(t=>{
+    const tn=t.replace(/[-.\s]/g,'');
+    if(!tn) return true;
+    if(/^\d/.test(tn)){
+      // числовой токен: сначала точная сверка с номером дома…
+      if(houseNum){
+        if(houseNum===tn) return true;
+        if(houseNum.startsWith(tn)&&!/\d/.test(houseNum[tn.length]||'')) return true; // «1»→«1а», но не «10»
+        if(tn.startsWith(houseNum)&&!/\d/.test(tn[houseNum.length]||'')) return true; // «18а»→дом «18»
+      }
+      // …иначе — как часть названия улицы, но только с границами числа («50 лет Октября», не «10» внутри «1»)
+      const re=new RegExp('(^|[^0-9])'+tn.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'([^0-9]|$)','i');
+      return re.test(aa);
+    }
+    return aa.includes(t);
+  });
+}
 /* --- переключатель веток: МКД / объекты соцкультбыта Администрации / сооружения МУП «КОС» --- */
 function branchOf(o){ return o.br||'mkd'; }
 function podrList(){ const s=new Set(); DB.objects.forEach(o=>{ if(o.br==='skb') s.add(o.podr||'Администрация г. Норильска'); }); return [...s].sort(); }
@@ -2504,7 +2533,15 @@ function streetOf(o){ let s=o.a;
   const fix={'бхмельницкого':'богданахмельницкого','мкравца':'михаилакравца','лауретов':'лауреатов','комсомольсая':'комсомольская','московскаяд':'московская'};
   return fix[s]||s; }
 function stubUK(s){ return ukCanon(s.uk||'Не определена'); }
-function stubPass(s){ return !covFilter&&curBranch==='mkd'&&(curD==='Все'||s.d===curD)&&(curUK==='Все'||stubUK(s)===curUK)&&(!UK_SCOPE||stubUK(s)===UK_SCOPE)&&(!curQ||s.a.toLowerCase().includes(curQ)); }
+function stubPass(s){ return !covFilter&&curBranch==='mkd'&&(curD==='Все'||s.d===curD)&&(curUK==='Все'||stubUK(s)===curUK)&&(!UK_SCOPE||stubUK(s)===UK_SCOPE)&&(!curQ||matchQ(s.a,curQ)); }
+function renderListTail(list){ // хвост renderList: пустое состояние поиска + фильтр карты
+  if(curQ&&!list.children.length){
+    const d=document.createElement('div'); d.className='nores';
+    d.innerHTML='По запросу «'+esc(curQ)+'» ничего не найдено.<br>Попробуйте: улицу с номером дома («Ленинский 1»), только улицу или только номер дома.';
+    list.appendChild(d);
+  }
+  applyFilter();
+}
 function renderList(){
   const list=document.getElementById('list'); list.innerHTML='';
   if(!curQ){ applyFilter(); return; } // общий список — в дереве блока УК/подразделений (улица → дом); плоская выдача — только для поиска
@@ -2523,7 +2560,7 @@ function renderList(){
       }
       list.appendChild(objItem(o,i));
     });
-    applyFilter(); return;
+    renderListTail(list); return;
   }
   // --- аккордеон по улицам: карточки мониторинга + полный реестр домов города ---
   const groups=new Map();
@@ -2544,7 +2581,7 @@ function renderList(){
     items.forEach(x=>{ bd.appendChild(x.t==='o'?objItem(x.o,x.i):stubItem(x.s,x.si)); });
     acc.appendChild(h); acc.appendChild(bd); list.appendChild(acc);
   });
-  applyFilter();
+  renderListTail(list);
 }
 function objItem(o,i){
   const st=statusOf(o);
@@ -10256,7 +10293,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.getElemen
 };
 const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"xu9/bPpZS6OPiahO"};
 const BUILD="75b63867";
-const BUILD_DATE="16.09.2026 20:41";
+const BUILD_DATE="16.09.2026 22:54";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
