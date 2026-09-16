@@ -388,6 +388,45 @@
   #nzModal .nzbtn{border:1px solid var(--c-centr); background:var(--c-centr); color:#fff; border-radius:6px; padding:5px 12px; font-size:12px; cursor:pointer; font-family:inherit}
   #nzModal .nzbtn.ghost{background:#f2eee4; color:var(--c-centr)}
   #nzModal .nzbtn.del{background:none; border-color:#c8372d; color:#c8372d}
+  /* --- надстройка «Администрация»: рабочие места МКУ «УЖКХ» и УГХ --- */
+  #admModal{display:none; position:fixed; inset:0; z-index:1140; background:rgba(10,20,30,.62); backdrop-filter:blur(3px)}
+  #admModal .box{background:var(--panel); width:1080px; max-width:96vw; max-height:92vh; margin:3vh auto; border-radius:14px; overflow:hidden; box-shadow:0 18px 60px rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.28); display:flex; flex-direction:column; animation:sumIn .18s ease-out}
+  #admModal .sumh{background:linear-gradient(120deg,#0a141c 0%,#14314a 65%,#1d5670 100%); color:#fff; padding:14px 20px 12px; position:relative; flex:none}
+  #admModal .sumh h2{font-size:16.5px; margin:0 44px 3px 0}
+  #admModal .sumh .sub{font-size:11.8px; color:#b9d2de; line-height:1.45}
+  #admModal .close{position:absolute; top:12px; right:14px; width:30px; height:30px; border-radius:50%; border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.08); color:#fff; font-size:14px; cursor:pointer; line-height:1}
+  #admModal .close:hover{background:rgba(255,255,255,.22)}
+  #admModal .sumb{overflow-y:auto; padding:14px 22px 20px}
+  #admModal .admtabs{display:flex; gap:6px; margin:2px 0 8px; flex-wrap:wrap}
+  #admModal .admtabs>button{border:1px solid var(--line); background:#eef2f5; border-radius:8px; padding:8px 16px; font-size:13px; cursor:pointer; font-family:inherit; font-weight:600}
+  #admModal .admtabs>button.on{background:#1d5670; color:#fff; border-color:#1d5670}
+  #admModal .admsub{display:flex; gap:6px; margin:0 0 12px; flex-wrap:wrap}
+  #admModal .admsub>button{border:1px solid var(--line); background:#f6f3ea; border-radius:16px; padding:4px 13px; font-size:12px; cursor:pointer; font-family:inherit}
+  #admModal .admsub>button.on{background:#2f6fb2; color:#fff; border-color:#2f6fb2}
+  #admModal .rayon{font-size:12.5px; color:var(--mut); margin-bottom:10px}
+  #admModal .resbox{border:1px solid var(--line); border-radius:10px; overflow:hidden; box-shadow:0 2px 10px rgba(20,30,40,.07); margin-bottom:8px}
+  #admModal .resbox-h{display:flex; justify-content:space-between; align-items:center; background:#dde4ea; padding:7px 12px; font-size:12px; font-weight:600}
+  #admModal .resbox-h .cnt{font-weight:400; color:var(--mut); font-size:11.5px}
+  #admModal .reslist{max-height:380px; overflow-y:auto}
+  #admModal table.res{width:100%; border-collapse:collapse; font-size:12.3px}
+  #admModal table.res thead th{position:sticky; top:0; background:#eef2f5; padding:6px 10px; text-align:left; font-size:11px; color:var(--mut); text-transform:uppercase; letter-spacing:.4px; border-bottom:1px solid #ccd6de; z-index:1}
+  #admModal table.res td{padding:5px 10px; border-bottom:1px solid #e3e9ee; vertical-align:middle}
+  #admModal table.res tbody tr:nth-child(even){background:#f6f9fb}
+  #admModal table.res tbody tr:hover{background:#ecf3f8}
+  #admModal .rpill{display:inline-block; min-width:64px; text-align:center; padding:2px 8px; border-radius:20px; font-size:11.5px; font-weight:600}
+  #admModal .rpill.r-g{background:#d8ecd9; color:#2e7d32}
+  #admModal .rpill.r-y{background:#f7e9a0; color:#6b5300}
+  #admModal .rpill.r-o{background:#fbe8c8; color:#b05e00}
+  #admModal .rpill.r-r{background:#f7dcd7; color:#c8372d}
+  #admModal .rpill.r-x{background:#5a0d0d; color:#fff}
+  #admModal .rpill.r-n{background:#ece7da; color:var(--mut); font-weight:400}
+  #admModal .admbtn{border:1px solid #1d5670; background:#1d5670; color:#fff; border-radius:6px; padding:5px 12px; font-size:12px; cursor:pointer; font-family:inherit}
+  #admModal .admbtn.ghost{background:#eef2f5; color:#1d5670}
+  #admModal .admcard{border:1px solid var(--line); border-radius:10px; padding:9px 12px; margin-bottom:8px; background:#f7fafc; font-size:12.3px}
+  #admModal .kpi{display:flex; gap:10px; flex-wrap:wrap; margin:8px 0}
+  #admModal .kpi .k{flex:1; min-width:140px; border:1px solid var(--line); border-radius:8px; padding:7px 10px; background:#eef2f5; text-align:center}
+  #admModal .kpi .k b{display:block; font-size:17px; margin-top:2px}
+  #admModal .kpi .k span{font-size:11px; color:var(--mut)}
   .wxd-duty{border:1px solid var(--line); border-radius:8px; background:#f2eee4; padding:10px 14px; margin-bottom:10px; font-size:12.5px; line-height:1.55}
   .wxd-regBtn{border:1px solid var(--c-centr); background:var(--c-centr); color:#fff; border-radius:6px; padding:6px 14px; font-size:12.5px; cursor:pointer; margin-top:4px}
   .mt-kpi{display:flex; gap:10px; flex-wrap:wrap; margin:8px 0}
@@ -448,6 +487,7 @@
     <span id="roleBadge" style="font-size:11px; color:#9fb0bf; border:1px solid #3a4c5c; border-radius:10px; padding:2px 10px"></span>
     <button id="regBtn" title="Сводный реестр объектов РИСК/КРИТИЧНО" style="background:none; border:1px solid #3a4c5c; color:#cdd8e2; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:13px">▤ Реестр</button>
     <button id="nzBtn" title="Надстройка «Надзор» — рабочее место службы строительного надзора и жилищного контроля: индикаторы риска по ч. 13 ст. 20 ЖК РФ, журнал предписаний с контролем исполнения, лицензионный свод по УК (ПП № 1090)" style="background:none; border:1px solid #5a4a2c; color:#e8d9b0; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:13px">🏛 Надзор</button>
+    <button id="admBtn" title="Надстройка «Администрация» — рабочие места подразделений города: МКУ «УЖКХ» (сезонная готовность жилфонда к ОЗП, приоритизация ремонтов, контроль УК) и УГХ (снежный фактор, ливневый контур, дежурный метеоконтроль)" style="background:none; border:1px solid #2c4a5a; color:#b9d9e8; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:13px">🏙 Администрация</button>
     <button id="meteoBtn" title="Метеоданные г. Норильска: история с 1950 г., автопополнение из открытых метеоархивов, аномалии, тренды, прогноз, параметры для теплотехнических расчётов (СП 25.13330.2020, прил. Г)" style="background:none; border:1px solid #3a4c5c; color:#cdd8e2; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:13px">🌦 Метеоданные</button>
     <a href="presentacia_gis_geotermika_norilsk.pdf" download="ГИС-база геотермического мониторинга зданий. Норильск — презентация.pdf" title="Скачать презентацию проекта (PDF)" style="background:none; border:1px solid #3a4c5c; color:#cdd8e2; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:13px; text-decoration:none">📑 Презентация (PDF)</a>
     <button id="repBtn" title="Формирование сводного отчёта" style="background:none; border:1px solid #3a4c5c; color:#cdd8e2; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:13px">📄 Отчёт</button>
@@ -622,6 +662,17 @@
       <div class="sub">Рабочее место инспектора: индикаторы риска по ч. 13 ст. 20 ЖК РФ · журнал предписаний с контролем исполнения · лицензионный свод по управляющим компаниям (ПП РФ № 1090) · сведения носят информационно-аналитический характер</div>
     </div>
     <div class="sumb" id="nzWrap"></div>
+  </div>
+</div>
+
+<div id="admModal">
+  <div class="box">
+    <div class="sumh">
+      <button class="close" id="admClose" title="Закрыть (Esc)">✕</button>
+      <h2>🏙 Администрация <span class="badge b-card" style="vertical-align:2px">надстройка · Администрация г. Норильска</span></h2>
+      <div class="sub">Рабочие места подразделений: <b>МКУ «УЖКХ»</b> — контроль жилищного фонда: сезонная готовность к ОЗП, приоритизация ремонтов, панель контроля УК · <b>УГХ</b> — городское хозяйство: снежный фактор и маршруты расчистки, ливневый контур и талые воды, операционная сводка дежурного метеоконтроля · сведения информационно-аналитические</div>
+    </div>
+    <div class="sumb" id="admWrap"></div>
   </div>
 </div>
 
@@ -9792,15 +9843,370 @@ async function nzDossier(o){ // формирование docx одним фай�
   a2.click();
   setTimeout(()=>URL.revokeObjectURL(a2.href),5000);
 }
+/* ================== C5 · надстройка «АДМИНИСТРАЦИЯ»: рабочие места МКУ «УЖКХ» и УГХ ==================
+   Реализация разд. 4.1–4.2 дорожной карты надстроек (Аналитика/Дорожная_карта_надстроек_надзор_УЖКХ_УГХ.docx).
+   МКУ «УЖКХ» (жилищный фонд): авто-чек-лист сезонной готовности к ОЗП по каждому МКД (Правила № 170, п. 3.6),
+   приоритизация текущих ремонтов по статусу ГТМ и остаточному ресурсу, панель контроля УК.
+   УГХ (городское хозяйство): снежный фактор и маршруты расчистки (Правила № 170, п. 3.6.21–3.6.24; Правила
+   благоустройства г. Норильска), ливневый контур и талые воды (СП 25.13330.2020; пилот ЦМР р-на Оганер),
+   операционная сводка дежурного метеоконтроля. Модуль информационно-аналитический: расчёты макета —
+   превентивные ориентиры из данных мониторинга, а не акты осмотров и не решения подразделений. */
+let ADM_TAB='uzkh';
+const ADM_SUB={u:'sez', g:'snow'};
+const ADM_F={d:'', uk:'', v:''}; // фильтры чек-листа готовности: район, УК, вердикт
+const ADM_BMAP={НОРМА:'ok',ВНИМАНИЕ:'attn',РИСК:'risk',КРИТИЧНО:'crit',АВАРИЯ:'avar'};
+const ADM_UKH={
+  name:'МКУ «Управление жилищно-коммунального хозяйства» (МКУ «УЖКХ»)',
+  head:'директор — Гарбарук Сергей Сергеевич',
+  addr:'663300, г. Норильск, пр-т Ленинский, д. 1, 4 этаж',
+  tel:'(3919) 43-70-40', fax:'(3919) 43-70-41', mail:'uzkh@norilsk-city.ru',
+  fn:'контроль содержания жилищного фонда и деятельности управляющих компаний; организация подготовки фонда к отопительному периоду (сезонные осмотры, паспорта готовности); координация текущих ремонтов; взаимодействие с МКУ «УКРиС» и ресурсоснабжающими организациями'};
+const ADM_UGH={
+  name:'Управление городского хозяйства Администрации г. Норильска (УГХ)',
+  head:'начальник — Булатов Александр Олегович',
+  addr:'663300, г. Норильск, пр-т Ленинский, д. 1, 2 этаж',
+  tel:'(3919) 43-70-50', fax:'(3919) 43-70-51', mail:'ugh@norilsk-city.ru',
+  fn:'благоустройство и санитарное содержание территорий; зимнее содержание дорог и тротуаров (уборка снега, противогололёдные мероприятия, площадки накопления снега); ливневая канализация и водоотведение; подготовка городского хозяйства к ОЗП; реестр ТКО; наружное освещение'};
+const ADM_OGANER={lat0:69.3513, lat1:69.3664, lon0:88.3494, lon1:88.4229}; // bbox ЦМР зон затопления р-на Оганер (flood_oganer.json)
+function admOganer(o){ return o.lat&&o.lon&&o.lat>=ADM_OGANER.lat0&&o.lat<=ADM_OGANER.lat1&&o.lon>=ADM_OGANER.lon0&&o.lon<=ADM_OGANER.lon1; }
+function admMkd(){ return DB.objects.filter(o=>branchOf(o)==='mkd'&&scopePass(o)); }
+function admRiskSt(st){ return st==='РИСК'||st==='КРИТИЧНО'||st==='АВАРИЯ'; }
+function admCsv(name, rows){ const q=v=>'"'+String(v===null||v===undefined?'':v).replace(/"/g,'""')+'"'; gsDownload(name, rows.map(r=>r.map(q).join(';')).join('\r\n'), 'text/csv;charset=utf-8'); }
+function admStBadge(st){ return st?'<span class="badge b-'+ADM_BMAP[st]+'">'+st+'</span>':'<span class="rpill r-n">нет данных</span>'; }
+
+/* ---------- МКУ «УЖКХ» · 1. сезонная готовность к ОЗП (авто-чек-лист по каждому МКД) ---------- */
+function admSezObj(o, ctx){
+  const reasons=[];
+  const st=statusOf(o);
+  const gm=geodMetrics(o);
+  let ventS='—';
+  try{ const vc=ventCheck(o); ventS=(vc&&vc.st&&vc.st.s)||'—'; }catch(e){}
+  let lastMeas=null;
+  if(o.prof) Object.values(o.prof).forEach(w=>(w.s||[]).forEach(r=>{ const d=r[0]; if(!lastMeas||d>lastMeas) lastMeas=d; }));
+  let verdict='ГОТОВ';
+  if(st==='АВАРИЯ'||st==='КРИТИЧНО'){ verdict='ТРЕБУЕТ ОСМОТРА'; reasons.push('статус ГТМ «'+st+'» — обязательный осмотр основания до включения в паспорт готовности'); }
+  else if(st==='РИСК'){ verdict='ТРЕБУЕТ ОСМОТРА'; reasons.push('статус ГТМ «РИСК» — осмотр основания, подполья и цокольного ограждения'); }
+  if(gm&&(gm.maxSpeed>=TH.geodRiskSpeed||gm.maxOsad>=TH.geodCritTotal)){ verdict='ТРЕБУЕТ ОСМОТРА'; reasons.push('деформации ≥ контрольных значений КВ-2/КВ-3 (ГОСТ 24846-2019): '+gm.maxSpeed.toFixed(1)+' мм/год'); }
+  if(!st){ if(verdict==='ГОТОВ') verdict='С ЗАМЕЧАНИЯМИ'; reasons.push('режимные наблюдения не ведутся — нет скважин/замеров (СП 25.13330.2020, разд. 13)'); }
+  else if(!lastMeas||lastMeas<ctx.cut){ if(verdict==='ГОТОВ') verdict='С ЗАМЕЧАНИЯМИ'; reasons.push('замеров температуры нет более 12 мес. — периодичность по СП 497.1325800.2020'); }
+  if(ventS==='НЕДОСТАТОЧНО'||ventS==='ТРЕБУЕТСЯ ДООСНАСТКА'){ if(verdict==='ГОТОВ') verdict='С ЗАМЕЧАНИЯМИ'; reasons.push('вентиляция подполья: '+ventS.toLowerCase()+' (Правила № 170, п. 3.6)'); }
+  return {o, st, gm, ventS, lastMeas, verdict, reasons};
+}
+function admSezData(){
+  const ctx={cut:gsDayAdd(nzToday(),-365)};
+  const rows=admMkd().map(o=>admSezObj(o,ctx));
+  const rk={'ТРЕБУЕТ ОСМОТРА':0,'С ЗАМЕЧАНИЯМИ':1,'ГОТОВ':2};
+  rows.sort((a,b)=>rk[a.verdict]-rk[b.verdict]||a.o.a.localeCompare(b.o.a,'ru'));
+  const tot={n:rows.length, ok:0, rem:0, insp:0};
+  const byUk={};
+  rows.forEach(r=>{ if(r.verdict==='ГОТОВ')tot.ok++; else if(r.verdict==='С ЗАМЕЧАНИЯМИ')tot.rem++; else tot.insp++;
+    const u=effectiveUK(r.o); const x=byUk[u]||(byUk[u]={uk:u,n:0,ok:0,rem:0,insp:0}); x.n++;
+    if(r.verdict==='ГОТОВ')x.ok++; else if(r.verdict==='С ЗАМЕЧАНИЯМИ')x.rem++; else x.insp++; });
+  return {rows, tot, byUk:Object.values(byUk).sort((a,b)=>b.insp-a.insp||b.rem-a.rem||a.uk.localeCompare(b.uk,'ru'))};
+}
+/* ---------- МКУ «УЖКХ» · 2. приоритизация текущих ремонтов (скоринг) ---------- */
+function admRemScore(o, ctx){
+  const st=statusOf(o);
+  const wSt={АВАРИЯ:100,КРИТИЧНО:80,РИСК:60,ВНИМАНИЕ:30,НОРМА:10};
+  let score=st?(wSt[st]!==undefined?wSt[st]:10):20;
+  const parts=[st?('статус «'+st+'» +'+wSt[st]):'нет данных ГТМ +20'];
+  const res=pmResource(o);
+  if(res&&res.years!==null&&res.years!==undefined){ let b=0;
+    if(res.years<=0) b=30; else if(res.years<5) b=25; else if(res.years<10) b=15; else if(res.years<20) b=5;
+    if(b){ score+=b; parts.push('остаточный ресурс '+res.years+' лет +'+b); } }
+  const gm=geodMetrics(o);
+  if(gm){
+    if(gm.maxSpeed>=TH.geodCritSpeed||gm.maxOsad>=TH.geodCritTotal){ score+=25; parts.push('деформации ≥ КВ-3 +25'); }
+    else if(gm.maxSpeed>=TH.geodRiskSpeed){ score+=15; parts.push('деформации ≥ КВ-2 +15'); }
+  }
+  const rec=ctx.log[o.a];
+  if(rec&&rec.hist){
+    const sRk={'—':-1,НОРМА:0,ВНИМАНИЕ:1,РИСК:2,КРИТИЧНО:3,АВАРИЯ:4};
+    const hit=rec.hist.some(h=>h[0]>=ctx.cut&&admRiskSt(h[2])&&h[1]!=='—'&&(sRk[h[2]]===undefined?0:sRk[h[2]])>(sRk[h[1]]===undefined?-1:sRk[h[1]]));
+    if(hit){ score+=10; parts.push('переход в РИСК+ за 12 мес. +10'); }
+  }
+  const pr=ctx.presc[o.a]||0;
+  if(pr>=2){ score+=10; parts.push('предписания: '+pr+' за 12 мес. +10'); }
+  return {o, st, res, gm, pr, score, parts};
+}
+function admRemData(){
+  const ctx={cut:gsDayAdd(nzToday(),-365), log:statLogGet(), presc:{}};
+  try{ ctx.presc=nzPrescObjCount(); }catch(e){}
+  const rows=admMkd().map(o=>admRemScore(o,ctx)).filter(r=>r.score>=30);
+  rows.sort((a,b)=>b.score-a.score||a.o.a.localeCompare(b.o.a,'ru'));
+  return rows;
+}
+/* ---------- МКУ «УЖКХ» · 3. панель контроля УК ---------- */
+function admUkData(){
+  const roll=nzUkRollup();
+  const sez=admSezData();
+  const sz={}; sez.byUk.forEach(x=>{ sz[x.uk]=x; });
+  roll.forEach(r=>{ const x=sz[r.uk]||{ok:0,rem:0,insp:0};
+    r.sezOk=x.ok; r.sezRem=x.rem; r.sezInsp=x.insp;
+    r.reco=r.share>=20?'запросить у УК план мероприятий по снижению доли домов РИСК+ (замеры, обследования по ГОСТ 31937-2024, работы «0» цикла)'
+      :(r.sezInsp>0?'контроль осмотров домов «требует осмотра» до подписания паспортов готовности к ОЗП'
+      :'штатный контроль содержания'); });
+  return {roll, sezTot:sez.tot};
+}
+/* ---------- УГХ · 1. снежный фактор и приоритетные маршруты расчистки ---------- */
+function admSnowData(){
+  const sc=(typeof snowCheck==='function')?snowCheck():null;
+  const byD={};
+  DB.objects.forEach(o=>{
+    if(!scopePass(o)) return;
+    const st=statusOf(o); if(!admRiskSt(st)) return;
+    const d=o.d||'—'; const r=byD[d]||(byD[d]={d, n:0, objs:[]});
+    r.n++; r.objs.push({o, st});
+  });
+  const ds=Object.values(byD).sort((a,b)=>b.n-a.n||a.d.localeCompare(b.d,'ru'));
+  const w={АВАРИЯ:0,КРИТИЧНО:1,РИСК:2};
+  ds.forEach(r=>r.objs.sort((a,b)=>w[a.st]-w[b.st]||a.o.a.localeCompare(b.o.a,'ru')));
+  let warns=[];
+  try{ const d=wdCache(); if(d) warns=warnListSafe(d).filter(x=>x.haz==='snow'||x.haz==='bliz'||x.haz==='icicle'); }catch(e){}
+  return {sc, ds, n:ds.reduce((s,r)=>s+r.n,0), warns};
+}
+/* ---------- УГХ · 2. ливневый контур и талые воды ---------- */
+function admRainData(){
+  const snow=admSnowData();
+  const og=DB.objects.filter(o=>admOganer(o)&&scopePass(o));
+  const ogRisk=og.filter(o=>admRiskSt(statusOf(o)))
+    .sort((a,b)=>a.a.localeCompare(b.a,'ru'));
+  let warns=[];
+  try{ const d=wdCache(); if(d) warns=warnListSafe(d).filter(x=>x.haz==='rain'||x.haz==='thaw'); }catch(e){}
+  return {ds:snow.ds, ogN:og.length, ogRisk, warns};
+}
+/* ---------- УГХ · 3. операционная сводка дежурного метеоконтроля ---------- */
+function admDutyData(){
+  let d=null, warns=[];
+  try{ d=wdCache(); if(d) warns=warnListSafe(d); }catch(e){}
+  return {d, warns};
+}
+
+/* ---------- рендер: МКУ «УЖКХ» ---------- */
+function admTabSez(){
+  const D=admSezData(), t=D.tot;
+  const ds=[...new Set(D.rows.map(r=>r.o.d||'—'))].sort((a,b)=>a.localeCompare(b,'ru'));
+  const uks=[...new Set(D.rows.map(r=>effectiveUK(r.o)))].sort((a,b)=>a.localeCompare(b,'ru'));
+  let h='<div class="rayon">Автоматический чек-лист готовности жилфонда к отопительному периоду: статус ГТМ, деформации, свежесть замеров, вентиляция подполья — по каждому МКД · домам «ТРЕБУЕТ ОСМОТРА» осмотр обязателен до подписания паспорта готовности · сформировано '+new Date().toLocaleString('ru-RU')+'</div>';
+  h+='<div class="kpi">'
+    +'<div class="k"><span>МКД в чек-листе</span><b>'+t.n+'</b></div>'
+    +'<div class="k"><span>готов</span><b style="color:#2e7d32">'+t.ok+'</b></div>'
+    +'<div class="k"><span>с замечаниями</span><b style="color:#b05e00">'+t.rem+'</b></div>'
+    +'<div class="k"><span>требует осмотра</span><b style="color:#c8372d">'+t.insp+'</b></div>'
+    +'</div>';
+  h+='<div style="display:flex; gap:8px; flex-wrap:wrap; margin:4px 0 10px; align-items:center">'
+    +'<label style="font-size:12px">Район <select id="admFD"><option value="">все</option>'+ds.map(d=>'<option'+(ADM_F.d===d?' selected':'')+'>'+esc(d)+'</option>').join('')+'</select></label>'
+    +'<label style="font-size:12px">УК <select id="admFU"><option value="">все</option>'+uks.map(u=>'<option'+(ADM_F.uk===u?' selected':'')+'>'+esc(u)+'</option>').join('')+'</select></label>'
+    +'<label style="font-size:12px">Вердикт <select id="admFV"><option value="">все</option>'+['ТРЕБУЕТ ОСМОТРА','С ЗАМЕЧАНИЯМИ','ГОТОВ'].map(v=>'<option'+(ADM_F.v===v?' selected':'')+'>'+v+'</option>').join('')+'</select></label>'
+    +'<span style="flex:1"></span><button class="admbtn ghost" id="admSezCsv">⬇ Выгрузить чек-лист (CSV)</button></div>';
+  const flt=D.rows.filter(r=>(!ADM_F.d||(r.o.d||'—')===ADM_F.d)&&(!ADM_F.uk||effectiveUK(r.o)===ADM_F.uk)&&(!ADM_F.v||r.verdict===ADM_F.v));
+  const vPill=v=>v==='ТРЕБУЕТ ОСМОТРА'?'<span class="rpill r-r">ТРЕБУЕТ ОСМОТРА</span>':(v==='С ЗАМЕЧАНИЯМИ'?'<span class="rpill r-o">С ЗАМЕЧАНИЯМИ</span>':'<span class="rpill r-g">ГОТОВ</span>');
+  h+='<div class="resbox"><div class="resbox-h"><span>❄ Чек-лист сезонной готовности МКД</span><span class="cnt">'+flt.length+' из '+t.n+' · сортировка: осмотр → замечания → готов</span></div>'
+    +'<div class="reslist"><table class="res"><thead><tr><th>Адрес</th><th style="width:88px">Район</th><th style="width:150px">УК</th><th style="width:100px">Статус ГТМ</th><th style="width:82px">Замер</th><th style="width:70px" title="макс. скорость осадки последнего цикла, мм/год">Осадка</th><th style="width:104px">Вентиляция</th><th style="width:128px">Вердикт</th><th>Основания</th></tr></thead><tbody>'
+    +flt.map(r=>'<tr><td><a href="#" data-admobj="'+esc(r.o.a)+'">'+esc(r.o.a)+'</a></td>'
+      +'<td><b style="color:'+(DCOL[r.o.d]||'#666')+'">'+esc(r.o.d||'—')+'</b></td>'
+      +'<td style="font-size:11.5px">'+esc(effectiveUK(r.o))+'</td>'
+      +'<td>'+admStBadge(r.st)+'</td>'
+      +'<td style="font-size:11.5px">'+(r.lastMeas?esc(r.lastMeas.split('-').reverse().join('.')):'—')+'</td>'
+      +'<td>'+(r.gm?('<b'+(r.gm.maxSpeed>=TH.geodRiskSpeed?' style="color:#c8372d"':'')+'>'+r.gm.maxSpeed.toFixed(1)+'</b>'):'—')+'</td>'
+      +'<td style="font-size:11.5px">'+(r.ventS==='НОРМА'?'<span style="color:#2e7d32">НОРМА</span>':esc(r.ventS))+'</td>'
+      +'<td>'+vPill(r.verdict)+'</td>'
+      +'<td style="font-size:11.3px; color:var(--mut)">'+(r.reasons.length?esc(r.reasons.join('; ')):'—')+'</td></tr>').join('')
+    +'</tbody></table></div></div>';
+  h+='<div class="resbox"><div class="resbox-h"><span>🏢 Готовность по управляющим компаниям</span><span class="cnt">'+D.byUk.length+' УК · сортировка по числу «требует осмотра»</span></div>'
+    +'<div class="reslist" style="max-height:220px"><table class="res"><thead><tr><th>УК</th><th style="width:70px">Домов</th><th style="width:70px">Готов</th><th style="width:100px">С замечаниями</th><th style="width:120px">Требует осмотра</th><th style="width:110px">Доля проблемных</th></tr></thead><tbody>'
+    +D.byUk.map(x=>{ const pr=x.n?Math.round(100*(x.rem+x.insp)/x.n):0;
+      return '<tr><td style="font-size:11.8px"><b>'+esc(x.uk)+'</b></td><td>'+x.n+'</td><td>'+x.ok+'</td><td>'+(x.rem||'—')+'</td>'
+      +'<td>'+(x.insp?('<b style="color:#c8372d">'+x.insp+'</b>'):'—')+'</td>'
+      +'<td>'+(pr>=30?'<span class="rpill r-r">'+pr+' %</span>':(pr>=15?'<span class="rpill r-o">'+pr+' %</span>':(pr>0?'<span class="rpill r-y">'+pr+' %</span>':'<span class="rpill r-g">0 %</span>')))+'</td></tr>'; }).join('')
+    +'</tbody></table></div></div>';
+  h+='<div class="note">Вердикты вычисляются из данных мониторинга: статус ГТМ (пороги — «⚙ Пороги»), деформации по маркам (КВ-2/КВ-3, ГОСТ 24846-2019), давность температурных замеров (СП 497.1325800.2020), расчёт вентиляции подполья (Правила № 170, п. 3.6; площадь продухов ≥ 1/400 площади подполья). Чек-лист не заменяет акт сезонного осмотра: он задаёт перечень домов, где осмотр обязателен в первую очередь, и фиксирует замечания к паспорту готовности. Контекст по фонду на 2023–2024 гг.: 853 жилых здания в городе, 16 — с замечаниями к паспортам готовности (по публикациям Администрации).</div>';
+  return h;
+}
+function admTabRem(){
+  const rows=admRemData();
+  const n80=rows.filter(r=>r.score>=80).length, n60=rows.filter(r=>r.score>=60&&r.score<80).length;
+  let h='<div class="rayon">Приоритетный рейтинг текущих ремонтов: очерёдность по состоянию основания вместо очерёдности по дате заявки · скоринг = статус ГТМ + остаточный ресурс (модель «климат → грунт») + деформации (КВ) + динамика статусов и предписания за 12 мес. · сформировано '+new Date().toLocaleString('ru-RU')+'</div>';
+  h+='<div class="kpi">'
+    +'<div class="k"><span>объектов в рейтинге (скор ≥ 30)</span><b>'+rows.length+'</b></div>'
+    +'<div class="k"><span>первоочередные (скор ≥ 80)</span><b style="color:#c8372d">'+n80+'</b></div>'
+    +'<div class="k"><span>высокий приоритет (60–79)</span><b style="color:#b05e00">'+n60+'</b></div>'
+    +'<div class="k"><span>охват фонда</span><b>'+admMkd().length+' МКД</b></div>'
+    +'</div>';
+  h+='<div style="display:flex; gap:8px; margin:2px 0 8px; align-items:center"><span class="note">клик по адресу открывает карточку объекта · полный рейтинг — в выгрузке</span><span style="flex:1"></span><button class="admbtn ghost" id="admRemCsv">⬇ Выгрузить рейтинг (CSV)</button></div>';
+  const show=rows.slice(0,60);
+  h+='<div class="resbox"><div class="resbox-h"><span>🔧 Рейтинг приоритетов текущих ремонтов</span><span class="cnt">показано '+show.length+' из '+rows.length+' · сортировка по скору</span></div>'
+    +'<div class="reslist"><table class="res"><thead><tr><th style="width:36px">№</th><th>Адрес</th><th style="width:88px">Район</th><th style="width:100px">Статус</th><th style="width:76px" title="остаточный ресурс основания, лет (модель «климат → грунт»)">Ресурс</th><th style="width:70px" title="макс. скорость осадки, мм/год">Осадка</th><th style="width:60px" title="предписания за 12 мес.">Предп.</th><th style="width:64px">Скор</th><th>Факторы</th></tr></thead><tbody>'
+    +show.map((r,i)=>'<tr><td>'+(i+1)+'</td><td><a href="#" data-admobj="'+esc(r.o.a)+'">'+esc(r.o.a)+'</a></td>'
+      +'<td><b style="color:'+(DCOL[r.o.d]||'#666')+'">'+esc(r.o.d||'—')+'</b></td>'
+      +'<td>'+admStBadge(r.st)+'</td>'
+      +'<td>'+(r.res&&r.res.years!==null&&r.res.years!==undefined?('<b'+(r.res.years<5?' style="color:#c8372d"':'')+'>'+r.res.years+'</b>'):'—')+'</td>'
+      +'<td>'+(r.gm?r.gm.maxSpeed.toFixed(1):'—')+'</td>'
+      +'<td>'+(r.pr||'—')+'</td>'
+      +'<td>'+(r.score>=80?'<span class="rpill r-r">'+r.score+'</span>':(r.score>=60?'<span class="rpill r-o">'+r.score+'</span>':'<span class="rpill r-y">'+r.score+'</span>'))+'</td>'
+      +'<td style="font-size:11.3px; color:var(--mut)">'+esc(r.parts.join('; '))+'</td></tr>').join('')
+    +'</tbody></table></div></div>';
+  h+='<div class="note">Методика скоринга (прозрачная, воспроизводимая): статус ГТМ — АВАРИЯ 100 / КРИТИЧНО 80 / РИСК 60 / ВНИМАНИЕ 30 / НОРМА 10 / нет данных 20; остаточный ресурс — ≤ 0 лет +30, &lt; 5 лет +25, &lt; 10 лет +15, &lt; 20 лет +5; деформации — ≥ КВ-3 +25, ≥ КВ-2 +15 (ГОСТ 24846-2019); переход в РИСК+ за 12 мес. +10; ≥ 2 предписаний за 12 мес. +10. Рейтинг — основание для планирования обследований (ГОСТ 31937-2024) и заявок МКУ «УКРиС», а не замена дефектных ведомостей.</div>';
+  return h;
+}
+function admTabUk(){
+  const D=admUkData(), rows=D.roll;
+  let h='<div class="rayon">Панель контроля управляющих компаний для МКУ «УЖКХ»: доля домов РИСК/КРИТИЧНО/АВАРИЯ, готовность фонда УК к ОЗП (из чек-листа), предписания и повторяемость, динамика статусов · сформировано '+new Date().toLocaleString('ru-RU')+'</div>';
+  if(!rows.length){ h+='<div class="note">Данных по УК нет.</div>'; return h; }
+  h+='<div style="display:flex; gap:8px; margin:2px 0 8px; align-items:center"><span class="note">детализация по дому — в чек-листе готовности (подвкладка выше) и в модуле «🏛 Надзор»</span><span style="flex:1"></span><button class="admbtn ghost" id="admUkCsv">⬇ Выгрузить свод (CSV)</button></div>';
+  const sharePill=s=>s>=20?'<span class="rpill r-r">'+s+' %</span>':(s>=10?'<span class="rpill r-o">'+s+' %</span>':(s>0?'<span class="rpill r-y">'+s+' %</span>':'<span class="rpill r-g">0 %</span>'));
+  h+='<div class="resbox"><div class="resbox-h"><span>🏢 Контроль УК: риски фонда и готовность к ОЗП</span><span class="cnt">'+rows.length+' УК · сортировка по доле РИСК+</span></div>'
+    +'<div class="reslist" style="max-height:400px"><table class="res"><thead><tr><th>УК</th><th style="width:56px">Домов</th><th style="width:60px" title="дома в статусах РИСК/КРИТИЧНО/АВАРИЯ">РИСК+</th><th style="width:62px">Доля</th><th style="width:82px" title="чек-лист ОЗП: готов">Готов</th><th style="width:82px" title="чек-лист ОЗП: с замечаниями">Замеч.</th><th style="width:82px" title="чек-лист ОЗП: требует осмотра">Осмотр</th><th style="width:70px" title="предписания за 12 мес.">Предп.</th><th style="width:66px" title="переходы в РИСК+ за 12 мес.">Переходы</th><th>Рекомендация МКУ «УЖКХ»</th></tr></thead><tbody>'
+    +rows.map(r=>'<tr><td style="font-size:11.8px"><b>'+esc(r.uk)+'</b></td><td>'+r.n+'</td>'
+      +'<td>'+(r.riskN?('<b style="color:'+(r.avarN?SCOL['АВАРИЯ']:(r.critN?SCOL['КРИТИЧНО']:SCOL['РИСК']))+'">'+r.riskN+'</b>'):'0')+'</td>'
+      +'<td>'+sharePill(r.share)+'</td>'
+      +'<td>'+(r.sezOk||'—')+'</td><td>'+(r.sezRem||'—')+'</td>'
+      +'<td>'+(r.sezInsp?('<b style="color:#c8372d">'+r.sezInsp+'</b>'):'—')+'</td>'
+      +'<td>'+(r.p12||'—')+(r.pOver?' <b style="color:#c8372d" title="просрочено">/ '+r.pOver+'</b>':'')+'</td>'
+      +'<td>'+(r.tr12||'—')+'</td>'
+      +'<td style="font-size:11.3px; color:var(--mut)">'+esc(r.reco)+'</td></tr>').join('')
+    +'</tbody></table></div></div>';
+  h+='<div class="note">Графы «Готов / Замеч. / Осмотр» — из авто-чек-листа сезонной готовности (подвкладка «Сезонная готовность к ОЗП»). Предписания — журнал модуля «Надзор» (ngk_presc) за скользящие 12 мес.; «/ N» — просроченные. Реформа МЖК: с 01.09.2026 муниципальный жилконтроль упразднён — панель работает по линии управления фондом и профилактики (поручения, запросы планов, контроль готовности), лицензионные решения — орган ГЖН края.</div>';
+  return h;
+}
+/* ---------- рендер: УГХ ---------- */
+function admWarnRows(warns, limit){
+  if(!warns.length) return '';
+  const w2=warns.slice(0, limit||8);
+  return '<div class="admcard" style="background:#fdf6e8; border-color:#e0c060"><b>⚠ Действующие предупреждения дежурного метеоконтроля ('+warns.length+')</b>'
+    +w2.map(x=>{ const hz=(typeof WD_HAZ!=='undefined'&&WD_HAZ[x.haz])||{ic:'⚠',nm:x.haz};
+      return '<div style="margin-top:3px; font-size:12px">'+(x.lvl==='crit'?'<span class="rpill r-r">опасно</span>':'<span class="rpill r-o">предуп.</span>')+' <b>'+hz.ic+' '+hz.nm+'</b> · '+esc(x.pt||x.d||'')+' · '+esc(String(x.date).split('-').reverse().join('.'))+' — '+esc(x.val)+'</div>'; }).join('')
+    +(warns.length>w2.length?'<div class="note" style="margin-top:4px">и ещё '+(warns.length-w2.length)+' — полный перечень в окне дежурного метеоконтроля</div>':'')+'</div>';
+}
+function admTabSnow(){
+  const D=admSnowData(), sc=D.sc;
+  let h='<div class="rayon">Снежный фактор и приоритетные маршруты расчистки: высота снежного покрова против норматива h<sub>sn</sub> (СП 20.13330.2016) · объекты РИСК+ по районам — первоочередные маршруты уборки кровель и отмостки (талые воды к основанию опаснее всего для РИСК+) · сформировано '+new Date().toLocaleString('ru-RU')+'</div>';
+  if(sc){
+    h+='<div class="kpi">'
+      +'<div class="k"><span>норматив h<sub>sn</sub> ('+esc(sc.snPeriod||'СП 20.13330.2016')+')</span><b>'+sc.snH+' см</b></div>'
+      +'<div class="k"><span>факт, зима '+esc(sc.season)+'</span><b style="color:'+(sc.exceeded?'#c8372d':'#2e7d32')+'">'+sc.v+' см</b></div>'
+      +'<div class="k"><span>превышение</span><b style="color:'+(sc.exceeded?'#c8372d':'#2e7d32')+'">'+(sc.exceeded?('+'+sc.exc+' см ('+sc.ratio+'×)'):'нет')+'</b></div>'
+      +'<div class="k"><span>объектов РИСК+ в городе</span><b>'+D.n+'</b></div>'
+      +'</div>';
+    h+='<div class="admcard" style="background:'+(sc.exceeded?'#fbf1ef':'#f1f6f1')+'"><b>Режим зимнего содержания:</b> '+(sc.exceeded
+      ?'<b style="color:#c8372d">усиленный</b> — покров выше норматива: расчистка кровель и отмосток в первую очередь у объектов РИСК+ (маршруты ниже), контроль сосулек и наледи (Правила № 170, п. 3.6.21–3.6.24), вывоз снега на площадки накопления вне зон водопритока к зданиям'
+      :'<b style="color:#2e7d32">штатный</b> — покров в пределах норматива; маршруты расчистки по графику, при снегопадах — приоритет объектам РИСК+')+'</div>';
+  }else{
+    h+='<div class="admcard">Данные о снежном покрове недоступны (метеоряд не загружен) — показан статусный перечень объектов РИСК+ для плановых маршрутов.</div>';
+  }
+  h+=admWarnRows(D.warns, 6);
+  h+='<div style="display:flex; gap:8px; margin:2px 0 8px; align-items:center"><span class="note">клик по адресу открывает карточку объекта</span><span style="flex:1"></span><button class="admbtn ghost" id="admSnowCsv">⬇ Маршрутная ведомость (CSV)</button></div>';
+  h+='<div class="resbox"><div class="resbox-h"><span>🌨 Приоритетные маршруты расчистки (объекты РИСК+ по районам)</span><span class="cnt">'+D.ds.length+' района · внутри района: АВАРИЯ → КРИТИЧНО → РИСК</span></div>'
+    +'<div class="reslist"><table class="res"><thead><tr><th style="width:110px">Район</th><th style="width:90px">Объектов РИСК+</th><th>Первоочередные адреса (маршрут)</th></tr></thead><tbody>'
+    +D.ds.map(r=>'<tr><td><b style="color:'+(DCOL[r.d]||'#666')+'">'+esc(r.d)+'</b></td><td><b>'+r.n+'</b></td>'
+      +'<td style="font-size:11.8px">'+r.objs.slice(0,10).map(x=>'<a href="#" data-admobj="'+esc(x.o.a)+'" title="'+x.st+(x.o.br==='skb'?' · СКБ':(x.o.br==='kos'?' · КОС':''))+'">'+esc(x.o.a)+'</a>').join(', ')+(r.objs.length>10?' <span class="note">и ещё '+(r.objs.length-10)+' — в CSV</span>':'')+'</td></tr>').join('')
+    +'</tbody></table></div></div>';
+  h+='<div class="note">Обоснование приоритета: снег у цоколя и на отмостке — теплоизолятор, снижающий промерзание основания, а при оттепели — источник притока талых вод к фундаментам (СП 25.13330.2020); снег на кровле — нагрузка (СП 20.13330.2016) и источник сосулек. Сроки и способы уборки — по Правилам благоустройства г. Норильска и ГОСТ Р 50597-2017; кровли МКД — зона ответственности УК (Правила № 170, п. 3.6.21–3.6.24), территории — УГХ и подрядные организации.</div>';
+  return h;
+}
+function admTabRain(){
+  const D=admRainData();
+  let h='<div class="rayon">Ливневый контур и талые воды: объекты РИСК+ по районам (приток воды к основанию опаснее всего) · пилот ЦМР р-на Оганер — зоны возможного затопления по цифровой модели рельефа · связь с дождевыми/оттепельными предупреждениями дежурного метеоконтроля · сформировано '+new Date().toLocaleString('ru-RU')+'</div>';
+  h+=admWarnRows(D.warns, 6);
+  h+='<div class="resbox"><div class="resbox-h"><span>🗺 Пилот ЦМР: зоны затопления р-на Оганер</span><span class="cnt">объектов в контуре ЦМР: '+D.ogN+' · из них РИСК+: '+D.ogRisk.length+'</span></div>'
+    +'<div style="padding:8px 12px; font-size:12.3px">По цифровой модели рельефа (ЦМР 5 см) для р-на Оганер рассчитаны зоны статического наполнения понижений при жидких осадках (классы глубин: 0,05–0,15 / 0,15–0,30 / 0,30–0,50 / &gt; 0,50 м; существующие водоёмы исключены). Слой доступен на карте. '
+    +(D.ogRisk.length?('<b>Объекты РИСК+ в контуре:</b> '+D.ogRisk.map(o=>'<a href="#" data-admobj="'+esc(o.a)+'">'+esc(o.a)+'</a>').join(', ')):'Объектов РИСК+ в контуре ЦМР нет.')
+    +'<div style="margin-top:6px"><button class="admbtn" id="admFlood">🗺 Открыть слой затопления на карте</button></div></div></div>';
+  h+='<div class="resbox"><div class="resbox-h"><span>🌧 Объекты РИСК+ по районам — проверка водоотведения при ливнях и оттепелях</span><span class="cnt">'+D.ds.length+' района</span></div>'
+    +'<div class="reslist"><table class="res"><thead><tr><th style="width:110px">Район</th><th style="width:90px">Объектов РИСК+</th><th>Адреса (приоритет проверки ливнёвки и отмосток)</th></tr></thead><tbody>'
+    +D.ds.map(r=>'<tr><td><b style="color:'+(DCOL[r.d]||'#666')+'">'+esc(r.d)+'</b></td><td><b>'+r.n+'</b></td>'
+      +'<td style="font-size:11.8px">'+r.objs.slice(0,10).map(x=>'<a href="#" data-admobj="'+esc(x.o.a)+'" title="'+x.st+'">'+esc(x.o.a)+'</a>').join(', ')+(r.objs.length>10?' <span class="note">и ещё '+(r.objs.length-10)+'</span>':'')+'</td></tr>').join('')
+    +'</tbody></table></div></div>';
+  h+='<div class="note">Основание: СП 25.13330.2020 — отведение поверхностных вод от зданий на ММГ обязательно (приток талых/ливневых вод к основанию ускоряет деградацию мёрзлых грунтов); СП 32.13330.2018 — ливневая канализация. Рекомендуемые меры УГХ: ревизия ливневых решёток и лотков в контурах РИСК+ перед паводковым периодом, восстановление отмосток, планирование трасс водоотведения с учётом пилотных зон затопления (после масштабирования ЦМР на весь город).</div>';
+  return h;
+}
+function admTabDuty(){
+  const D=admDutyData();
+  let h='<div class="rayon">Операционная сводка дежурного метеоконтроля — ежечасная сверка прогноза критичных явлений для городской среды (10 суток, три района) · полный контур — в окне дежурного метеоконтроля</div>';
+  if(!D.d){
+    h+='<div class="admcard" style="border-color:#c8372d; background:#fbf1ef"><b>⚠ Нет связи с метеоисточником.</b> Прогноз не загружен и закэшированных данных нет; сверка повторяется автоматически каждый час.</div>';
+  }else{
+    const upd=new Date(D.d.ts).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    const crit=D.warns.filter(w=>w.lvl==='crit').length;
+    h+='<div class="kpi">'
+      +'<div class="k"><span>статус дежурства</span><b style="color:#2e7d32">активно</b></div>'
+      +'<div class="k"><span>последняя сверка</span><b style="font-size:13px">'+upd+'</b></div>'
+      +'<div class="k"><span>предупреждений (10 сут)</span><b>'+D.warns.length+'</b></div>'
+      +'<div class="k"><span>из них «опасно»</span><b style="color:'+(crit?'#c8372d':'#2e7d32')+'">'+crit+'</b></div>'
+      +'</div>';
+    h+=admWarnRows(D.warns, 12);
+    if(!D.warns.length) h+='<div class="admcard" style="background:#f1f6f1">Критичных явлений на 10 суток вперёд не прогнозируется — штатный режим дежурства.</div>';
+  }
+  h+='<div style="margin-top:8px; display:flex; gap:8px; align-items:center"><button class="admbtn" id="admWx">🛰 Открыть окно дежурного метеоконтроля</button><span class="note">там же: вероятностные процессы, авто-предписания дежурным службам с перечнем адресов, журнал регистрации</span></div>';
+  h+='<div class="note" style="margin-top:8px">Дежурный метеоконтроль — операционный центр УГХ по метеорискам: ливни, снегопады, метели, штормовой ветер, гололёд, сосульки, оттепели. Пороги — критерии опасных явлений Росгидромета; связь предупреждений с геотермикой объектов выполняется автоматически (Tрасч, снегозапас в паспортах ГТМ).</div>';
+  return h;
+}
+/* ---------- рендер и события ---------- */
+function admRender(){
+  const w=document.getElementById('admWrap');
+  const tabs=[['uzkh','🏘 МКУ «УЖКХ» · жилищный фонд'],['ugh','🌆 УГХ · городское хозяйство']];
+  let h='<div class="admtabs">'+tabs.map(t=>'<button data-admtab="'+t[0]+'" class="'+(ADM_TAB===t[0]?'on':'')+'">'+t[1]+'</button>').join('')+'</div>';
+  const info=ADM_TAB==='uzkh'?ADM_UKH:ADM_UGH;
+  h+='<div class="admcard" style="background:#eef2f5"><b>'+esc(info.name)+'</b> · '+esc(info.head)+'<br><span class="note">'+esc(info.addr)+' · тел. '+esc(info.tel)+' · факс '+esc(info.fax)+' · '+esc(info.mail)+'</span><br><span class="note"><b>Функции в границах проекта:</b> '+esc(info.fn)+'</span></div>';
+  if(ADM_TAB==='uzkh'){
+    h+='<div class="admsub">'+[['sez','❄ Сезонная готовность к ОЗП'],['rem','🔧 Приоритизация ремонтов'],['uk','🏢 Панель контроля УК']].map(t=>'<button data-admsub="'+t[0]+'" class="'+(ADM_SUB.u===t[0]?'on':'')+'">'+t[1]+'</button>').join('')+'</div>';
+    h+='<div class="normref">Нормативная рамка: ЖК РФ ст. 161, ч. 13 ст. 20; Правила № 170 (п. 3.6 — сезонные осмотры); ГОСТ 31937-2024; ГОСТ 24846-2019; СП 25.13330.2020; СП 497.1325800.2020; ПП РФ № 491. Модуль информационно-аналитический: вердикты — превентивные ориентиры из данных мониторинга, а не акты осмотров.</div>';
+    if(ADM_SUB.u==='sez') h+=admTabSez(); else if(ADM_SUB.u==='rem') h+=admTabRem(); else h+=admTabUk();
+  }else{
+    h+='<div class="admsub">'+[['snow','🌨 Снежный фактор'],['rain','🌧 Ливневый контур'],['duty','🛰 Дежурный метеоконтроль']].map(t=>'<button data-admsub="'+t[0]+'" class="'+(ADM_SUB.g===t[0]?'on':'')+'">'+t[1]+'</button>').join('')+'</div>';
+    h+='<div class="normref">Нормативная рамка: Правила № 170 (п. 3.6.21–3.6.24); Правила благоустройства г. Норильска; ГОСТ Р 50597-2017; СП 20.13330.2016 (снеговые нагрузки); СП 25.13330.2020 (водоотведение от оснований на ММГ); СП 32.13330.2018 (ливневая канализация). Рекомендации модуля — основание для планирования маршрутов и проверок, а не предписания.</div>';
+    if(ADM_SUB.g==='snow') h+=admTabSnow(); else if(ADM_SUB.g==='rain') h+=admTabRain(); else h+=admTabDuty();
+  }
+  w.innerHTML=h;
+  w.querySelectorAll('[data-admtab]').forEach(b=>b.onclick=()=>{ ADM_TAB=b.dataset.admtab; admRender(); });
+  w.querySelectorAll('[data-admsub]').forEach(b=>b.onclick=()=>{ ADM_SUB[ADM_TAB==='uzkh'?'u':'g']=b.dataset.admsub; admRender(); });
+  w.querySelectorAll('a[data-admobj]').forEach(a=>a.onclick=e=>{ e.preventDefault(); const i=DB.objects.findIndex(o=>o.a===a.dataset.admobj); admClose(); if(i>=0) select(i,true); });
+  const fd=document.getElementById('admFD'); if(fd) fd.onchange=()=>{ ADM_F.d=fd.value; admRender(); };
+  const fu=document.getElementById('admFU'); if(fu) fu.onchange=()=>{ ADM_F.uk=fu.value; admRender(); };
+  const fv=document.getElementById('admFV'); if(fv) fv.onchange=()=>{ ADM_F.v=fv.value; admRender(); };
+  const sezCsv=document.getElementById('admSezCsv'); if(sezCsv) sezCsv.onclick=()=>{
+    const D=admSezData();
+    const rows=[['Адрес','Район','УК','Статус ГТМ','Последний замер','Осадка, мм/год','Вентиляция подполья','Вердикт','Основания']];
+    D.rows.forEach(r=>rows.push([r.o.a, r.o.d, effectiveUK(r.o), r.st||'нет данных', r.lastMeas||'—', r.gm?r.gm.maxSpeed.toFixed(1):'—', r.ventS, r.verdict, r.reasons.join('; ')]));
+    admCsv('чек-лист_готовности_ОЗП_'+nzToday()+'.csv', rows);
+  };
+  const remCsv=document.getElementById('admRemCsv'); if(remCsv) remCsv.onclick=()=>{
+    const rows=[['№','Адрес','Район','УК','Статус ГТМ','Ресурс, лет','Осадка, мм/год','Предписания 12 мес','Скор','Факторы']];
+    admRemData().forEach((r,i)=>rows.push([i+1, r.o.a, r.o.d, effectiveUK(r.o), r.st||'нет данных', (r.res&&r.res.years!==null&&r.res.years!==undefined)?r.res.years:'—', r.gm?r.gm.maxSpeed.toFixed(1):'—', r.pr||0, r.score, r.parts.join('; ')]));
+    admCsv('рейтинг_ремонтов_'+nzToday()+'.csv', rows);
+  };
+  const ukCsv=document.getElementById('admUkCsv'); if(ukCsv) ukCsv.onclick=()=>{
+    const rows=[['УК','Домов','РИСК+','Доля, %','Готов (ОЗП)','С замечаниями','Требует осмотра','Предписания 12 мес','Просрочено','Переходы 12 мес','Рекомендация']];
+    admUkData().roll.forEach(r=>rows.push([r.uk, r.n, r.riskN, r.share, r.sezOk, r.sezRem, r.sezInsp, r.p12, r.pOver, r.tr12, r.reco]));
+    admCsv('панель_контроля_УК_'+nzToday()+'.csv', rows);
+  };
+  const snowCsv=document.getElementById('admSnowCsv'); if(snowCsv) snowCsv.onclick=()=>{
+    const D=admSnowData();
+    const rows=[['Район','Адрес','Статус','Ветка','Приоритет маршрута']];
+    D.ds.forEach(r=>r.objs.forEach((x,i)=>rows.push([r.d, x.o.a, x.st, (x.o.br==='skb'?'СКБ':(x.o.br==='kos'?'КОС':'МКД')), i+1])));
+    admCsv('маршруты_расчистки_'+nzToday()+'.csv', rows);
+  };
+  const fl=document.getElementById('admFlood'); if(fl) fl.onclick=()=>{ admClose();
+    try{ floodToggle(true); if(typeof map!=='undefined'&&map&&map.fitBounds) map.fitBounds([[ADM_OGANER.lat0,ADM_OGANER.lon0],[ADM_OGANER.lat1,ADM_OGANER.lon1]]); }catch(e){}
+  };
+  const wx=document.getElementById('admWx'); if(wx) wx.onclick=()=>{ admClose(); try{ wxDutyOpen(); }catch(e){} };
+}
+function admOpen(){ admRender(); const m=document.getElementById('admModal'); m.style.display='block'; document.getElementById('admWrap').scrollTop=0; }
+function admClose(){ const m=document.getElementById('admModal'); if(m) m.style.display='none'; }
+
 document.getElementById('nzBtn').onclick=()=>nzOpen();
 document.getElementById('nzClose').onclick=nzClose;
 document.getElementById('nzModal').addEventListener('click',e=>{ if(e.target.id==='nzModal') nzClose(); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.getElementById('nzModal').style.display==='block') nzClose(); });
+document.getElementById('admBtn').onclick=()=>admOpen();
+document.getElementById('admClose').onclick=admClose;
+document.getElementById('admModal').addEventListener('click',e=>{ if(e.target.id==='admModal') admClose(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.getElementById('admModal').style.display==='block') admClose(); });
 
 };
 const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"xu9/bPpZS6OPiahO"};
 const BUILD="75b63867";
-const BUILD_DATE="16.09.2026 12:57";
+const BUILD_DATE="16.09.2026 14:45";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
