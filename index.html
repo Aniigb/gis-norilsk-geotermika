@@ -345,35 +345,36 @@
   #wxDutyModal .box{background:var(--panel); width:980px; max-width:96vw; max-height:92vh; margin:3vh auto; border-radius:10px; padding:18px 22px; box-shadow:0 10px 40px rgba(0,0,0,.4); display:flex; flex-direction:column}
   #wxDutyModal h2{font-size:15px; margin-right:30px}
   #wxDutyModal .close{float:right; border:none; background:none; font-size:20px; cursor:pointer; color:var(--mut)}
-  #sumModal,#skbModal,#nzModal{display:none; position:fixed; inset:0; z-index:1140; background:rgba(10,20,30,.62); backdrop-filter:blur(3px)}
-  #sumModal .box,#skbModal .box,#nzModal .box{background:var(--panel); width:1020px; max-width:96vw; max-height:92vh; margin:3vh auto; border-radius:14px; overflow:hidden; box-shadow:0 18px 60px rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.28); display:flex; flex-direction:column; animation:sumIn .18s ease-out}
+  #sumModal,#skbModal,#nzModal,#kosModal{display:none; position:fixed; inset:0; z-index:1140; background:rgba(10,20,30,.62); backdrop-filter:blur(3px)}
+  #sumModal .box,#skbModal .box,#nzModal ,#kosModal .box{background:var(--panel); width:1020px; max-width:96vw; max-height:92vh; margin:3vh auto; border-radius:14px; overflow:hidden; box-shadow:0 18px 60px rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.28); display:flex; flex-direction:column; animation:sumIn .18s ease-out}
   @keyframes sumIn{from{transform:translateY(14px) scale(.985); opacity:0} to{transform:none; opacity:1}}
-  #sumModal .sumh,#skbModal .sumh,#nzModal .sumh{background:linear-gradient(120deg,#0b151d 0%,#16324a 70%,#1f4a66 100%); color:#fff; padding:14px 20px 12px; position:relative; flex:none}
+  #sumModal .sumh,#skbModal .sumh,#nzModal ,#kosModal .sumh{background:linear-gradient(120deg,#0b151d 0%,#16324a 70%,#1f4a66 100%); color:#fff; padding:14px 20px 12px; position:relative; flex:none}
   #skbModal .sumh{background:linear-gradient(120deg,#101a13 0%,#1d4230 70%,#2a5a41 100%)}
   #nzModal .sumh{background:linear-gradient(120deg,#17110a 0%,#3a2c14 70%,#524120 100%)}
-  #sumModal .sumh h2,#skbModal .sumh h2,#nzModal .sumh h2{font-size:16.5px; margin:0 44px 3px 0}
-  #sumModal .sumh .sub,#skbModal .sumh .sub,#nzModal .sumh .sub{font-size:11.8px; color:#b8c8d6; line-height:1.45}
+  #kosModal .sumh{background:linear-gradient(120deg,#101a1e 0%,#23424c 70%,#2f5a66 100%)}
+  #sumModal .sumh h2,#skbModal .sumh h2,#nzModal ,#kosModal .sumh h2{font-size:16.5px; margin:0 44px 3px 0}
+  #sumModal .sumh .sub,#skbModal .sumh .sub,#nzModal ,#kosModal .sumh .sub{font-size:11.8px; color:#b8c8d6; line-height:1.45}
   #nzModal .sumh .sub{color:#d8cfb9}
-  #sumModal .close,#skbModal .close,#nzModal .close{position:absolute; top:12px; right:14px; width:30px; height:30px; border-radius:50%; border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.08); color:#fff; font-size:14px; cursor:pointer; line-height:1}
-  #sumModal .close:hover,#skbModal .close:hover,#nzModal .close:hover{background:rgba(255,255,255,.22)}
-  #sumModal .sumb,#skbModal .sumb,#nzModal .sumb{overflow-y:auto; padding:14px 22px 20px}
-  #sumModal .rayon,#skbModal .rayon,#nzModal .rayon{font-size:12.5px; color:var(--mut); margin-bottom:10px}
-  #sumModal .resbox,#skbModal .resbox,#nzModal .resbox{border:1px solid var(--line); border-radius:10px; overflow:hidden; box-shadow:0 2px 10px rgba(20,30,40,.07); margin-bottom:8px}
-  #sumModal .resbox-h,#skbModal .resbox-h,#nzModal .resbox-h{display:flex; justify-content:space-between; align-items:center; background:#dcd5c4; padding:7px 12px; font-size:12px; font-weight:600}
-  #sumModal .resbox-h .cnt,#skbModal .resbox-h .cnt,#nzModal .resbox-h .cnt{font-weight:400; color:var(--mut); font-size:11.5px}
-  #sumModal .reslist,#skbModal .reslist,#nzModal .reslist{max-height:340px; overflow-y:auto}
-  #sumModal table.res,#skbModal table.res,#nzModal table.res{width:100%; border-collapse:collapse; font-size:12.3px}
-  #sumModal table.res thead th,#skbModal table.res thead th,#nzModal table.res thead th{position:sticky; top:0; background:#efe9db; padding:6px 10px; text-align:left; font-size:11px; color:var(--mut); text-transform:uppercase; letter-spacing:.4px; border-bottom:1px solid #d2cab8; z-index:1}
-  #sumModal table.res td,#skbModal table.res td,#nzModal table.res td{padding:5px 10px; border-bottom:1px solid #e8e2d2; vertical-align:middle}
-  #sumModal table.res tbody tr:nth-child(even),#skbModal table.res tbody tr:nth-child(even),#nzModal table.res tbody tr:nth-child(even){background:#faf7ee}
-  #sumModal table.res tbody tr:hover,#skbModal table.res tbody tr:hover,#nzModal table.res tbody tr:hover{background:#f1ecdd}
-  #sumModal .rpill,#skbModal .rpill,#nzModal .rpill{display:inline-block; min-width:64px; text-align:center; padding:2px 8px; border-radius:20px; font-size:11.5px; font-weight:600}
-  #sumModal .rpill.r-g,#skbModal .rpill.r-g,#nzModal .rpill.r-g{background:#d8ecd9; color:#2e7d32}
-  #sumModal .rpill.r-y,#skbModal .rpill.r-y,#nzModal .rpill.r-y{background:#f7e9a0; color:#6b5300}
-  #sumModal .rpill.r-o,#skbModal .rpill.r-o,#nzModal .rpill.r-o{background:#fbe8c8; color:#b05e00}
-  #sumModal .rpill.r-r,#skbModal .rpill.r-r,#nzModal .rpill.r-r{background:#f7dcd7; color:#c8372d}
-  #sumModal .rpill.r-x,#skbModal .rpill.r-x,#nzModal .rpill.r-x{background:#5a0d0d; color:#fff}
-  #sumModal .rpill.r-n,#skbModal .rpill.r-n,#nzModal .rpill.r-n{background:#ece7da; color:var(--mut); font-weight:400}
+  #sumModal .close,#skbModal .close,#nzModal ,#kosModal .close{position:absolute; top:12px; right:14px; width:30px; height:30px; border-radius:50%; border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.08); color:#fff; font-size:14px; cursor:pointer; line-height:1}
+  #sumModal .close:hover,#skbModal .close:hover,#nzModal ,#kosModal .close:hover{background:rgba(255,255,255,.22)}
+  #sumModal .sumb,#skbModal .sumb,#nzModal ,#kosModal .sumb{overflow-y:auto; padding:14px 22px 20px}
+  #sumModal .rayon,#skbModal .rayon,#nzModal ,#kosModal .rayon{font-size:12.5px; color:var(--mut); margin-bottom:10px}
+  #sumModal .resbox,#skbModal .resbox,#nzModal ,#kosModal .resbox{border:1px solid var(--line); border-radius:10px; overflow:hidden; box-shadow:0 2px 10px rgba(20,30,40,.07); margin-bottom:8px}
+  #sumModal .resbox-h,#skbModal .resbox-h,#nzModal ,#kosModal .resbox-h{display:flex; justify-content:space-between; align-items:center; background:#dcd5c4; padding:7px 12px; font-size:12px; font-weight:600}
+  #sumModal .resbox-h .cnt,#skbModal .resbox-h .cnt,#nzModal ,#kosModal .resbox-h .cnt{font-weight:400; color:var(--mut); font-size:11.5px}
+  #sumModal .reslist,#skbModal .reslist,#nzModal ,#kosModal .reslist{max-height:340px; overflow-y:auto}
+  #sumModal table.res,#skbModal table.res,#nzModal ,#kosModal table.res{width:100%; border-collapse:collapse; font-size:12.3px}
+  #sumModal table.res thead th,#skbModal table.res thead th,#nzModal ,#kosModal table.res thead th{position:sticky; top:0; background:#efe9db; padding:6px 10px; text-align:left; font-size:11px; color:var(--mut); text-transform:uppercase; letter-spacing:.4px; border-bottom:1px solid #d2cab8; z-index:1}
+  #sumModal table.res td,#skbModal table.res td,#nzModal ,#kosModal table.res td{padding:5px 10px; border-bottom:1px solid #e8e2d2; vertical-align:middle}
+  #sumModal table.res tbody tr:nth-child(even),#skbModal table.res tbody tr:nth-child(even),#nzModal ,#kosModal table.res tbody tr:nth-child(even){background:#faf7ee}
+  #sumModal table.res tbody tr:hover,#skbModal table.res tbody tr:hover,#nzModal ,#kosModal table.res tbody tr:hover{background:#f1ecdd}
+  #sumModal .rpill,#skbModal .rpill,#nzModal ,#kosModal .rpill{display:inline-block; min-width:64px; text-align:center; padding:2px 8px; border-radius:20px; font-size:11.5px; font-weight:600}
+  #sumModal .rpill.r-g,#skbModal .rpill.r-g,#nzModal ,#kosModal .rpill.r-g{background:#d8ecd9; color:#2e7d32}
+  #sumModal .rpill.r-y,#skbModal .rpill.r-y,#nzModal ,#kosModal .rpill.r-y{background:#f7e9a0; color:#6b5300}
+  #sumModal .rpill.r-o,#skbModal .rpill.r-o,#nzModal ,#kosModal .rpill.r-o{background:#fbe8c8; color:#b05e00}
+  #sumModal .rpill.r-r,#skbModal .rpill.r-r,#nzModal ,#kosModal .rpill.r-r{background:#f7dcd7; color:#c8372d}
+  #sumModal .rpill.r-x,#skbModal .rpill.r-x,#nzModal ,#kosModal .rpill.r-x{background:#5a0d0d; color:#fff}
+  #sumModal .rpill.r-n,#skbModal .rpill.r-n,#nzModal ,#kosModal .rpill.r-n{background:#ece7da; color:var(--mut); font-weight:400}
   /* --- надстройка «Надзор» (C3): вкладки, значки индикаторов, карточки предписаний --- */
   #nzModal .nztabs{display:flex; gap:6px; margin:2px 0 12px; flex-wrap:wrap}
   #nzModal .nztabs button{border:1px solid var(--line); background:#efe9db; border-radius:8px; padding:7px 14px; font-size:12.5px; cursor:pointer; font-family:inherit}
@@ -461,6 +462,8 @@
       <button class="brbtn" id="brSkb" title="Объекты соцкультбыта Администрации г. Норильска">🏛 Соцкультбыт Адм.</button>
       <button class="brbtn" id="brSum" title="Сводная аналитическая карточка по всему жилому фонду: шкала состояний, контрольные значения, журнал переходов, модель «климат → грунт», прогноз ресурса">📊 Свод МКД</button>
       <button class="brbtn" id="brSumSkb" title="Сводная аналитическая карточка по фонду объектов соцкультбыта Администрации: состав фонда, шкала состояний, паспорта и геопривязка, план ремонтно-восстановительных работ, климатические индексы, прогноз ресурса">📊 Свод СКБ</button>
+      <button class="brbtn" id="brKos" title="Сооружения МУП «Коммунальные объединённые системы»: очистные сооружения (КОС), административно-производственный корпус — геотехнический мониторинг инженерной инфраструктуры">🏭 МУП «КОС»</button>
+      <button class="brbtn" id="brSumKos" title="Сводная аналитическая карточка по сооружениям МУП «КОС»: состав и производительность очистных сооружений, шкала состояний, паспорта и геопривязка, климатические индексы, прогноз ресурса основания">📊 Свод КОС</button>
     </div>
     <div class="chips" id="chips"></div>
     <select id="ukFilter" style="margin:0 12px 6px; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; width:calc(100% - 24px)"></select>
@@ -600,6 +603,17 @@
   </div>
 </div>
 
+<div id="kosModal">
+  <div class="box">
+    <div class="sumh">
+      <button class="close" id="kosClose" title="Закрыть (Esc)">✕</button>
+      <h2>📊 Сводная карточка сооружений МУП «КОС» <span class="badge b-card" style="vertical-align:2px">аналитический модуль</span></h2>
+      <div class="sub">Инженерная инфраструктура МУП «Коммунальные объединённые системы» в совокупности · состав и производительность очистных сооружений, шкала состояний, полнота паспортов и геопривязка, климатические индексы, прогноз ресурса основания</div>
+    </div>
+    <div class="sumb" id="kosWrap"></div>
+  </div>
+</div>
+
 <div id="nzModal">
   <div class="box">
     <div class="sumh">
@@ -713,14 +727,14 @@
   </div>
 </div>
 
-<script src="db_p1.js?v=3e8b6bb4"></script>
-<script src="db_p2.js?v=3e8b6bb4"></script>
-<script src="db_p3.js?v=3e8b6bb4"></script>
-<script src="db_p4.js?v=3e8b6bb4"></script>
-<script src="db_p5.js?v=3e8b6bb4"></script>
-<script src="db_p6.js?v=3e8b6bb4"></script>
-<script src="db_p7.js?v=3e8b6bb4"></script>
-<script src="db_p8.js?v=3e8b6bb4"></script>
+<script src="db_p1.js?v=75b63867"></script>
+<script src="db_p2.js?v=75b63867"></script>
+<script src="db_p3.js?v=75b63867"></script>
+<script src="db_p4.js?v=75b63867"></script>
+<script src="db_p5.js?v=75b63867"></script>
+<script src="db_p6.js?v=75b63867"></script>
+<script src="db_p7.js?v=75b63867"></script>
+<script src="db_p8.js?v=75b63867"></script>
 
 <div id="loginModal">
   <form class="lbox" id="loginForm">
@@ -803,8 +817,11 @@ function ukCanon(s){ // канонизация наименований УК: л
   return M[x]||String(s);
 }
 function effectiveUK(o){ if(o.br==='skb') return o.podr||'Администрация г. Норильска';
+  if(o.br==='kos') return o.podr||'МУП «КОС»';
   const c=CARD[o.a]; return ukCanon((c&&c.uk!==undefined&&c.uk!=='')?c.uk:(o.uk||'Не определена')); }
 const UK_INFO={ // справочник из открытых источников: ЕГРЮЛ, официальные сайты УК, Администрация г. Норильска (норильск.рф)
+ 'Очистные сооружения (КОС)':{full:'МУП МО г. Норильск «Коммунальные объединённые системы» — блок очистных сооружений (КОС)',inn:'2457029066',ogrn:'1022401628920',reg:'11.03.2001',addr:'663302, Красноярский край, г. Норильск, ул. Нансена, 18-а',dir:'Борисевич Евгений Николаевич (директор)',site:'mupkosnorilsk.ru',siteUrl:'http://mupkosnorilsk.ru',phone:'+7 (3919) 22-48-42, факс 22-48-43',mail:'mail@mupkosnorilsk.ru',lic:'водоотведение и очистка сточных вод (в т.ч. обращение с осадком), холодное водоснабжение, транспортировка тепловой и электрической энергии',note:'7 комплексов очистных сооружений (Центральный, Оганер, Снежногорск, Талнах I–II, Кайеркан, НМЗ, «Валёк»); сооружения закрытого типа — весь цикл очистки под одной крышей (технология для районов Крайнего Севера)'},
+ 'Административно-производственный корпус':{full:'МУП МО г. Норильск «Коммунальные объединённые системы» — административное здание',inn:'2457029066',ogrn:'1022401628920',reg:'11.03.2001',addr:'663302, Красноярский край, г. Норильск, ул. Нансена, 18-а',dir:'Борисевич Евгений Николаевич (директор)',site:'mupkosnorilsk.ru',siteUrl:'http://mupkosnorilsk.ru',phone:'+7 (3919) 22-48-42, факс 22-48-43',mail:'mail@mupkosnorilsk.ru',lic:'водоотведение и очистка сточных вод, холодное водоснабжение, транспортировка тепловой и электрической энергии',note:'штаб предприятия; приём граждан (претензионно-исковая работа) — ул. Московская, 19, каб. 514, 516; в структуре предприятия 25 объектов канализационного хозяйства: 17 КНС, 2 ЛНС, 6 очистных сооружений, 2 подкачивающие станции'},
  'УК «ЖКС-Норильск»':{full:'ООО УК «ЖКС-Норильск»',inn:'2457077736',ogrn:'1142457001610',reg:'30.10.2014',addr:'663305, г. Норильск, ул. Талнахская, 5',dir:'Калинин В. А.',site:'jks24.ru',siteUrl:'https://jks24.ru',phone:'+7 (3919) 42-92-98',mail:'uk@jks24.ru',lic:'лицензия ГЖИ Красноярского края, № уточняется по реестру',note:'100 % муниципальное участие (Администрация г. Норильска)'},
  'УК «Город»':{full:'ООО УК «Город»',inn:'2457070804',ogrn:'1102457001503',reg:'21.10.2010',addr:'663302, г. Норильск, ул. Завенягина, 7а',dir:'Шевель Л. И.',site:'goroduk.ru',siteUrl:'https://goroduk.ru',phone:'+7 (3919) 46-63-65, дисп. 42-52-72',mail:'office@goroduk.ru',lic:'лицензия ГЖИ Красноярского края, № уточняется по реестру',note:'100 % муниципальное участие; по данным УК — 168 домов, 1 021 631,74 м²'},
  'ООО «Нордсервис»':{full:'ООО «Нордсервис»',inn:'2457046449',ogrn:'1022401625905',reg:'07.09.1999',addr:'г. Норильск, ул. Комсомольская, 41а',dir:'Ассанаев Ш. М.',site:'ooo-nordservis.ru',siteUrl:'https://ooo-nordservis.ru',phone:'+7 (3919) 46-56-02, дисп. 46-63-85',mail:'ooo-nordservis@mail.ru',lic:'лицензия ГЖИ Красноярского края, № уточняется по реестру'},
@@ -1848,7 +1865,7 @@ function gtmCovDraw(){
   const ctx=cv.getContext('2d'); const W=cv.width, H=cv.height;
   ctx.clearRect(0,0,W,H);
   ctx.font='bold 10.5px Segoe UI, sans-serif'; ctx.fillStyle='#33404d';
-  ctx.fillText('Охват ГТМ · '+(curBranch==='mkd'?'МКД':'Соцкультбыт')+' · объектов: '+objs.length+(covFilter?'':' · клик по строке — фильтр'), 2, 12);
+  ctx.fillText('Охват ГТМ · '+(curBranch==='mkd'?'МКД':(curBranch==='skb'?'Соцкультбыт':'МУП «КОС»'))+' · объектов: '+objs.length+(covFilter?'':' · клик по строке — фильтр'), 2, 12);
   const barX=118, barW=W-barX-44, rowH=26;
   rows.forEach(([key,label,v,color],i)=>{
     const y=20+i*rowH;
@@ -1944,26 +1961,30 @@ const ukSel=document.getElementById('ukFilter');
   window.kpOn=false;
   document.getElementById('kpYr').onchange=e=>{ window.kpOn=e.target.checked; drawMarkers(); };
 }
-function passF(o){ const inBr=UK_SCOPE?(o.br||'mkd')==='mkd':(curBranch==='mkd'?(o.br||'mkd')==='mkd':o.br==='skb');
+function passF(o){ const inBr=UK_SCOPE?(o.br||'mkd')==='mkd':branchOf(o)===curBranch;
   return inBr&&scopePass(o)&&(curD==='Все'||o.d===curD)&&(curUK==='Все'||effectiveUK(o)===curUK)&&(!curQ||o.a.toLowerCase().includes(curQ))&&covPass(o); }
-/* --- переключатель веток: МКД / объекты соцкультбыта Администрации --- */
+/* --- переключатель веток: МКД / объекты соцкультбыта Администрации / сооружения МУП «КОС» --- */
 function branchOf(o){ return o.br||'mkd'; }
 function podrList(){ const s=new Set(); DB.objects.forEach(o=>{ if(o.br==='skb') s.add(o.podr||'Администрация г. Норильска'); }); return [...s].sort(); }
+function kosPodrList(){ const s=new Set(); DB.objects.forEach(o=>{ if(o.br==='kos') s.add(o.podr||'МУП «КОС»'); }); return [...s].sort(); }
 function setBranch(b){
   curBranch=b;
   document.getElementById('brMkd').className='brbtn'+(b==='mkd'?' on':'');
   document.getElementById('brSkb').className='brbtn'+(b==='skb'?' on':'');
-  // кнопки сводов «МКД» и «СКБ» видны всегда, независимо от активной ветки
-  // фильтр УК → подразделения для ветки соцкультбыта
+  document.getElementById('brKos').className='brbtn'+(b==='kos'?' on':'');
+  // кнопки сводов «МКД», «СКБ» и «КОС» видны всегда, независимо от активной ветки
+  // фильтр УК → подразделения (СКБ) / группы сооружений (КОС)
   const ukSel=document.getElementById('ukFilter');
-  const opts=b==='mkd'?UK_LIST.concat(['Не определена']):podrList();
-  ukSel.innerHTML='<option value="Все">'+(b==='mkd'?'УК: Все':'Подразделение: Все')+' ('+DB.objects.filter(o=>branchOf(o)===b).length+')</option>'+
+  const opts=b==='mkd'?UK_LIST.concat(['Не определена']):(b==='skb'?podrList():kosPodrList());
+  const allLab=b==='mkd'?'УК: Все':(b==='skb'?'Подразделение: Все':'Группа: Все');
+  ukSel.innerHTML='<option value="Все">'+allLab+' ('+DB.objects.filter(o=>branchOf(o)===b).length+')</option>'+
     opts.map(u=>{ const n=DB.objects.filter(o=>branchOf(o)===b&&effectiveUK(o)===u).length; return `<option value="${esc(u)}">${esc(u)} (${n})</option>`; }).join('');
   curUK='Все';
   renderChips(); renderList(); gtmCovDraw();
 }
 document.getElementById('brMkd').onclick=()=>setBranch('mkd');
 document.getElementById('brSkb').onclick=()=>setBranch('skb');
+document.getElementById('brKos').onclick=()=>setBranch('kos');
 /* ---------- сводная карточка МКД: аналитический модуль по всему жилому фонду (этапы 1–2 дорожной карты) ---------- */
 function renderMkdSummary(){
   curObj=null; curUKCard=null;
@@ -2234,7 +2255,144 @@ function skbClose(){ const m=document.getElementById('skbModal'); if(m) m.style.
 document.getElementById('brSumSkb').onclick=()=>renderSkbSummary();
 document.getElementById('skbClose').onclick=skbClose;
 document.getElementById('skbModal').addEventListener('click',e=>{ if(e.target.id==='skbModal') skbClose(); });
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ sumClose(); skbClose(); } });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ sumClose(); skbClose(); kosClose(); } });
+
+/* --- Свод МУП «КОС»: аналитика по сооружениям предприятия в совокупности --- */
+function renderKosSummary(){
+  curObj=null; curUKCard=null;
+  document.querySelectorAll('.item,.ukrow').forEach(e=>e.classList.remove('sel'));
+  const BMAP={НОРМА:'ok',ВНИМАНИЕ:'attn',РИСК:'risk',КРИТИЧНО:'crit',АВАРИЯ:'avar'};
+  const ORDER=['НОРМА','ВНИМАНИЕ','РИСК','КРИТИЧНО','АВАРИЯ'];
+  const objs=DB.objects.filter(o=>branchOf(o)==='kos'&&scopePass(o));
+  /* 1. состав сооружений */
+  const types={}, byPodr={}, byD2={};
+  objs.forEach(o=>{ const t=kosCat(o); types[t]=(types[t]||0)+1;
+    const p=o.podr||'МУП «КОС»'; byPodr[p]=(byPodr[p]||0)+1;
+    const dd=o.d||'вне городской черты'; byD2[dd]=(byD2[dd]||0)+1; });
+  /* 2. шкала состояний */
+  const n={НОРМА:0,ВНИМАНИЕ:0,РИСК:0,КРИТИЧНО:0,АВАРИЯ:0}; let noData=0;
+  const stByD={};
+  objs.forEach(o=>{ const st=statusOf(o);
+    if(!st){ noData++; return; }
+    n[st]++;
+    const dd=stByD[o.d]||(stByD[o.d]={НОРМА:0,ВНИМАНИЕ:0,РИСК:0,КРИТИЧНО:0,АВАРИЯ:0});
+    dd[st]++; });
+  const mon=objs.length-noData, pct=x=>mon?Math.round(100*x/mon):0;
+  /* 3. контрольные значения деформаций */
+  let kv1=0, kv2=0, kv3=0, gmon=0;
+  objs.forEach(o=>{ const gm=geodMetrics(o); if(!gm) return; gmon++;
+    if(gm.maxSpeed>=TH.geodCritSpeed||gm.maxOsad>=TH.geodCritTotal) kv3++;
+    else if(gm.maxSpeed>=TH.geodRiskSpeed) kv2++;
+    else if(gm.maxSpeed>=(TH.geodAttnSpeed||2)) kv1++; });
+  /* 4. паспорта + геопривязка */
+  let pfFull=0, pfPart=0, pfNone=0;
+  objs.forEach(o=>{ const k=Object.keys(o.pf2||{}).filter(k2=>String((o.pf2||{})[k2]||'').trim()!=='').length;
+    if(k>=5) pfFull++; else if(k>=1) pfPart++; else pfNone++; });
+  const geoQ={}; objs.forEach(o=>{ const p=o.p||'не задана'; geoQ[p]=(geoQ[p]||0)+1; });
+  /* 5. метео */
+  let sp=null, idx=[], lastFull=null, curYear=null;
+  try{ sp=mtSP(mtData()); idx=mtYearIdx(mtData());
+    lastFull=idx.filter(x=>!x.part).slice(-1)[0]||null;
+    curYear=idx.filter(x=>x.part)[0]||null;
+  }catch(e){}
+  const tm=tmFundCal();
+  /* 6. ресурс сооружений РИСК/КРИТИЧНО/АВАРИЯ */
+  const resRows=[];
+  objs.forEach(o=>{ const st=statusOf(o);
+    if(st!=='РИСК'&&st!=='КРИТИЧНО'&&st!=='АВАРИЯ') return;
+    resRows.push({o, st, r:pmResource(o)}); });
+  resRows.sort((a,b)=>{
+    const ya=(a.r&&a.r.years!==null&&a.r.years!==undefined)?a.r.years:1e9;
+    const yb=(b.r&&b.r.years!==null&&b.r.years!==undefined)?b.r.years:1e9;
+    return ya-yb || a.o.a.localeCompare(b.o.a,'ru');
+  });
+  const rpill=r=>{
+    if(!r||r.years===null||r.years===undefined) return '<span class="rpill r-n">—</span>';
+    const y=r.years;
+    if(y<=0) return '<span class="rpill r-x">исчерпан</span>';
+    if(y<5)  return '<span class="rpill r-r">≈ '+y+' л.</span>';
+    if(y<10) return '<span class="rpill r-o">≈ '+y+' л.</span>';
+    if(y<20) return '<span class="rpill r-y">≈ '+y+' л.</span>';
+    return '<span class="rpill r-g">≈ '+y+' л.</span>';
+  };
+  const tOrder=['Очистные сооружения','Насосные станции','Административно-производственные здания'];
+  const capOf=o=>(o.pf2&&o.pf2.kos_cap)||'—';
+  const yearOf=o=>(o.pf2&&o.pf2.kos_year)||'—';
+  const d=document.getElementById('kosWrap');
+  d.innerHTML=`
+  <div class="rayon" style="margin-top:2px">Сооружения МУП МО г. Норильск «Коммунальные объединённые системы» (МУП «КОС») в совокупности: сооружений в базе <b>${objs.length}</b>, под геотехническим мониторингом <b>${mon}</b> · сформировано ${new Date().toLocaleString('ru-RU')}</div>
+  <div class="normref">Аналитическая сводка по сооружениям муниципального предприятия коммунальной инфраструктуры: состав сооружений, производственные характеристики предприятия, пятиуровневая шкала состояний (НОРМА / ВНИМАНИЕ / РИСК / КРИТИЧНО / АВАРИЯ), контрольные значения деформаций, полнота паспортов и геопривязки, климатические индексы территории, прогноз остаточного ресурса основания. Нормативная база: СП 32.13330.2018 «Канализация. Наружные сети и сооружения», СП 25.13330.2020, ГОСТ 31937-2024, ГОСТ 53778-2010, ГОСТ 24846-2019, ГОСТ 25358-2020. Источники характеристик: mupkosnorilsk.ru; Схема ВиВ МО г. Норильск до 2042 г.; Программа КР СКИ МО г. Норильск 2025–2042 гг. (пост. Адм. № 210 от 04.02.2025).</div>
+
+  <div class="sect">1. Состав сооружений в базе ГТМ</div>
+  <table class="kv">${tOrder.filter(t=>types[t]).map(t=>`<tr><td><b>${t}</b></td><td><b>${types[t]}</b> (${Math.round(100*types[t]/objs.length)} %)</td></tr>`).join('')}</table>
+  <table class="rows static"><thead><tr><th style="text-align:left">Группа сооружений</th><th style="width:110px">Объектов</th></tr></thead>
+  <tbody>${Object.entries(byPodr).sort((a,b)=>b[1]-a[1]).map(([p,c])=>`<tr><td style="text-align:left">${esc(p)}</td><td><b>${c}</b></td></tr>`).join('')}</tbody></table>
+  <table class="rows static"><thead><tr><th style="text-align:left">Район / площадка</th><th style="width:110px">Объектов</th></tr></thead>
+  <tbody>${Object.entries(byD2).sort((a,b)=>b[1]-a[1]).map(([dd,c])=>`<tr><td style="text-align:left"><b style="color:${DCOL[dd]||'#666'}">${esc(dd)}</b></td><td><b>${c}</b></td></tr>`).join('')}</tbody></table>
+
+  <div class="sect">2. Производственные характеристики предприятия</div>
+  <table class="kv">
+    <tr><td>Сфера деятельности</td><td>водоотведение и очистка сточных вод; холодное водоснабжение; транспортировка тепловой и электрической энергии</td></tr>
+    <tr><td>Канализационное хозяйство</td><td><b>25 объектов</b>: 17 КНС, 2 ЛНС, 6 очистных сооружений, 2 подкачивающие насосные станции</td></tr>
+    <tr><td>Суммарная производительность очистных сооружений</td><td><b>147 900 м³/сут</b></td></tr>
+    <tr><td>Канализационные коллекторы / трубопроводы от ОС</td><td>58 000 м / 69 644 м</td></tr>
+    <tr><td>Единиц оборудования</td><td>1 010</td></tr>
+    <tr><td>Особенность</td><td>очистные сооружения закрытого типа — весь технологический цикл размещён под одной крышей (решение для условий Крайнего Севера)</td></tr>
+  </table>
+  <table class="rows static"><thead><tr><th style="text-align:left">Сооружение</th><th style="width:170px">Производительность</th><th style="width:150px">Ввод в эксплуатацию</th><th style="width:120px">Район</th></tr></thead>
+  <tbody>${objs.slice().sort((a,b)=>kosObjName(a).localeCompare(kosObjName(b),'ru')).map(o=>`<tr><td style="text-align:left"><a href="#" data-kosaddr="${esc(o.a)}">${esc(kosObjName(o))}</a></td><td>${esc(capOf(o))}</td><td>${esc(yearOf(o))}</td><td><b style="color:${DCOL[o.d]||'#666'}">${esc(o.d||'—')}</b></td></tr>`).join('')}</tbody></table>
+  <div class="note">Перечень КНС (17 шт.) и ЛНС (2 шт.) ведётся предприятием; карточки и геопривязка насосных станций заводятся в базу по мере уточнения адресов (Программа КР СКИ 2025–2042 гг., табл. 124, 127, 130, 132). Клик по наименованию открывает карточку сооружения.</div>
+
+  <div class="sect">3. Распределение по шкале состояний (сооружения под мониторингом)</div>
+  <table class="kv">${ORDER.map(s=>`<tr><td><b style="color:${SCOL[s]}">${s}</b></td><td><b>${n[s]}</b> (${pct(n[s])} % от мониторируемых)<div style="height:7px; border-radius:3px; background:#e7e2d6; margin-top:3px"><div style="height:7px; border-radius:3px; width:${pct(n[s])}%; background:${SCOL[s]}"></div></div></td></tr>`).join('')}
+  <tr><td style="color:var(--mut)">без замеров (скважины/марки не заведены)</td><td>${noData}</td></tr></table>
+  ${Object.keys(stByD).length?`<table class="rows static"><thead><tr><th style="text-align:left">Район</th>${ORDER.map(s=>`<th>${s}</th>`).join('')}</tr></thead>
+  <tbody>${Object.entries(stByD).sort((a,b)=>a[0].localeCompare(b[0],'ru')).map(([dd,v])=>`<tr><td style="text-align:left"><b style="color:${DCOL[dd]||'#666'}">${esc(dd)}</b></td>${ORDER.map(s=>`<td>${v[s]||''}</td>`).join('')}</tr>`).join('')}</tbody></table>`:''}
+  <div class="note">Охват геотехническим мониторингом: <b>${mon}</b> из <b>${objs.length}</b> сооружений. Шкала состояний идентична принятой для городского фонда; по мере заведения термометрических скважин и геодезических марок раздел наполняется автоматически.</div>
+
+  <div class="sect">4. Контрольные значения (КВ) деформаций · ГОСТ 24846-2019</div>
+  <table class="kv">
+    <tr><td>Геодезический мониторинг (марки) ведётся</td><td><b>${gmon}</b> сооружений</td></tr>
+    <tr><td>КВ-1 (ВНИМАНИЕ): скорость осадки ≥ ${TH.geodAttnSpeed||2} мм/год</td><td><b>${kv1}</b> сооружений</td></tr>
+    <tr><td>КВ-2 (РИСК): скорость осадки ≥ ${TH.geodRiskSpeed} мм/год</td><td><b style="color:${SCOL.РИСК}">${kv2}</b> сооружений</td></tr>
+    <tr><td>КВ-3 (КРИТИЧНО): скорость ≥ ${TH.geodCritSpeed} мм/год или суммарная осадка ≥ ${TH.geodCritTotal} мм</td><td><b style="color:${SCOL.КРИТИЧНО}">${kv3}</b> сооружений</td></tr>
+  </table>
+
+  <div class="sect">5. Полнота паспортов и качество геопривязки</div>
+  <table class="kv">
+    <tr><td>Технологический паспорт заполнен (≥ 5 полей)</td><td><b>${pfFull}</b></td></tr>
+    <tr><td>Паспорт заполнен частично</td><td><b>${pfPart}</b></td></tr>
+    <tr><td>Паспорт не заполнен</td><td><b style="color:${pfNone?SCOL.РИСК:'inherit'}">${pfNone}</b></td></tr>
+  </table>
+  <table class="rows static"><thead><tr><th style="text-align:left">Источник координат</th><th style="width:110px">Объектов</th></tr></thead>
+  <tbody>${Object.entries(geoQ).sort((a,b)=>b[1]-a[1]).map(([g,c])=>`<tr><td style="text-align:left">${esc(g)}</td><td><b>${c}</b></td></tr>`).join('')}</tbody></table>
+  <div class="note">Заполнение паспортов — через карточку сооружения (вкладка «Паспорт объекта») либо шаблонную загрузку; привязка координат классов «точный» и «точный (офиц. данные)» является рабочей для картографических слоёв.</div>
+
+  <div class="sect">6. Климатические индексы территории (метеоряд${sp?', норма '+sp.period:''})</div>
+  <table class="kv">
+    <tr><td>Индекс промерзания Ω_f: норма / последний полный год</td><td>${sp?('<b>'+sp.OmF+'</b> °C·сут'):'—'}${lastFull?(' / <b>'+lastFull.F+'</b> ('+lastFull.y+')'):''}</td></tr>
+    <tr><td>Индекс оттаивания Ω_t: норма / последний полный год</td><td>${sp?('<b>'+sp.OmT+'</b> °C·сут'):'—'}${lastFull?(' / <b>'+lastFull.T+'</b> ('+lastFull.y+')'):''}</td></tr>
+    <tr><td>Текущий (неполный) год</td><td>${curYear?('Ω_f <b>'+curYear.F+'</b> · Ω_t <b>'+curYear.T+'</b> °C·сут'):'—'}</td></tr>
+    <tr><td>Теплотехническая модель t(x,t): калибровка по архиву скважин базы</td><td>${tm.n?('скважин <b>'+tm.n+'</b> · медиана СКО hindcast <b>'+(tm.rmseMed!==null&&tm.rmseMed!==undefined?tm.rmseMed.toFixed(2)+' °C':'—')+'</b> · тренд k_t <b>'+(tm.ktMed!==null&&tm.ktMed!==undefined?((tm.ktMed>0?'+':'')+tm.ktMed.toFixed(3)):'—')+' °C/год</b>'):'—'}</td></tr>
+  </table>
+  <div class="note">Индексы едины для всей территории города и используются в модели сезонного оттаивания при постановке сооружений на мониторинг.${tm.n?' Модель t(x,t): эмпирическая сезонная модель по глубинам-узлам (годовая/полугодовая гармоники + межгодовой тренд), калибровка МНК по архиву скважин; индивидуальные параметры и модельное поле — в карточке сооружения, раздел «Геотермика».':''}</div>
+
+  <div class="sect">7. Остаточный ресурс сооружений РИСК / КРИТИЧНО / АВАРИЯ</div>
+  ${resRows.length?`<div class="resbox"><div class="resbox-h"><span>🏭 Реестр по приоритету ресурса</span><span class="cnt">${resRows.length} сооружений · минимальный ресурс — сверху · клик по адресу открывает карточку</span></div><div class="reslist"><table class="res"><thead><tr><th>Адрес / площадка</th><th style="width:118px">Статус</th><th style="width:150px">T на контр. глубине, °C</th><th style="width:118px">Тренд, °C/год</th><th style="width:120px">Ресурс</th></tr></thead><tbody>${resRows.map(x=>`<tr><td><a href="#" data-kosaddr="${esc(x.o.a)}">${esc(x.o.a)}</a></td><td><span class="badge b-${BMAP[x.st]}">${x.st}</span></td><td>${x.r?x.r.tcur:'—'}</td><td>${x.r&&x.r.k!==null&&x.r.k!==undefined?((x.r.k>0?'+':'')+x.r.k.toFixed(2)):'—'}</td><td>${rpill(x.r)}</td></tr>`).join('')}</tbody></table></div></div>
+  <div class="note">Ресурс — расчётное число лет до достижения предельной температуры основания при сохранении текущего тренда потепления на глубине ${TH.trendDepth} м. Клик по адресу открывает карточку сооружения.</div>`:'<div class="note">Сооружений со статусами РИСК / КРИТИЧНО / АВАРИЯ в блоке МУП «КОС» нет. Раздел заполняется автоматически по мере постановки сооружений на геотермический мониторинг.</div>'}
+
+  <div class="sect">8. Реестр сооружений</div>
+  <div class="resbox"><div class="resbox-h"><span>🏭 Сооружения МУП «КОС» в базе ГТМ</span><span class="cnt">${objs.length} объектов · клик по адресу открывает карточку</span></div><div class="reslist"><table class="res"><thead><tr><th>Наименование сооружения</th><th style="width:210px">Адрес / площадка</th><th style="width:170px">Группа</th><th style="width:105px">Район</th><th style="width:110px">Статус</th></tr></thead><tbody>${objs.slice().sort((a,b)=>kosObjName(a).localeCompare(kosObjName(b),'ru')).map(o=>{ const st=statusOf(o); return `<tr><td>${esc(kosObjName(o))}</td><td><a href="#" data-kosaddr="${esc(o.a)}">${esc(o.a)}</a></td><td>${esc(o.podr||'—')}</td><td><b style="color:${DCOL[o.d]||'#666'}">${esc(o.d||'—')}</b></td><td>${st?`<span class="badge b-${BMAP[st]}">${st}</span>`:'<span style="color:var(--mut)">нет данных</span>'}</td></tr>`; }).join('')}</tbody></table></div></div>
+
+  <div class="note">Модуль является аналитической сводкой по сооружениям МУП «КОС» в совокупности и не заменяет карточки отдельных сооружений. Переход к карточке — кликом по адресу в разделах 2, 7 и 8 либо из списка слева.</div>`;
+  d.querySelectorAll('a[data-kosaddr]').forEach(a=>{ a.onclick=e=>{ e.preventDefault(); const i=DB.objects.findIndex(o=>o.a===a.dataset.kosaddr); kosClose(); if(i>=0) select(i,true); }; });
+  document.getElementById('kosModal').style.display='block';
+  document.getElementById('kosWrap').scrollTop=0;
+}
+function kosClose(){ const m=document.getElementById('kosModal'); if(m) m.style.display='none'; }
+document.getElementById('brSumKos').onclick=()=>renderKosSummary();
+document.getElementById('kosClose').onclick=kosClose;
+document.getElementById('kosModal').addEventListener('click',e=>{ if(e.target.id==='kosModal') kosClose(); });
 const openStreets=new Set();
 function streetOf(o){ let s=o.a;
   const mc=s.match(/^(.*?),\s*д\.\s*/);              // канонический шаблон «ул. …, д. …»
@@ -2370,6 +2528,39 @@ function skbSubTree(u){ // раскрытое подразделение: гру
   });
   return box;
 }
+/* --- классификация и дерево сооружений МУП «КОС» --- */
+function kosCat(o){
+  const nm=(o.pf2&&o.pf2.project)||'';
+  if(/административн/i.test(nm)) return 'Административно-производственные здания';
+  if(/КНС|насосн/i.test(nm)) return 'Насосные станции';
+  return 'Очистные сооружения';
+}
+function kosObjName(o){ // краткое наименование сооружения для дерева
+  return ((o.pf2&&o.pf2.project)||'').replace(/\s*—.*$/,'').trim()||o.a;
+}
+function kosSubTree(u){ // раскрытая группа: категории сооружений → объекты с интерактивными ссылками
+  const box=document.createElement('div');
+  const cats=new Map();
+  DB.objects.forEach((o,i)=>{ if(o.br==='kos'&&effectiveUK(o)===u){ const c=kosCat(o); if(!cats.has(c)) cats.set(c,[]); cats.get(c).push([o,i]); } });
+  [...cats.entries()].sort((a,b)=>b[1].length-a[1].length||a[0].localeCompare(b[0],'ru')).forEach(([c,arr])=>{
+    arr.sort((x,y)=>kosObjName(x[0]).localeCompare(kosObjName(y[0]),'ru'));
+    const key=u+'|'+c;
+    const ch=document.createElement('div');
+    ch.className='ukcat'+(ukBlkExpCat.has(key)?' open':'');
+    ch.innerHTML=`<span>${esc(c)}</span><span class="n">${arr.length}</span>`;
+    ch.onclick=()=>{ if(ukBlkExpCat.has(key)) ukBlkExpCat.delete(key); else ukBlkExpCat.add(key); renderUKBlock(); };
+    box.appendChild(ch);
+    if(ukBlkExpCat.has(key)) arr.forEach(([o,i])=>{
+      const st=statusOf(o);
+      const el=document.createElement('a');
+      el.className='ukobj';
+      el.innerHTML=`${st?`<span class="sdot" style="background:${SCOL[st]}"></span>`:''}${esc(kosObjName(o))}<span class="oa">${esc(o.a)}${o.d?' · '+esc(o.d):''}</span>`;
+      el.onclick=e=>{ e.preventDefault(); select(i,true); };
+      box.appendChild(el);
+    });
+  });
+  return box;
+}
 function mkdSubTree(u){ // раскрытая УК: улицы → дома (карточки мониторинга + полный реестр МКД)
   const box=document.createElement('div');
   const groups=new Map();
@@ -2403,12 +2594,12 @@ function ukStats(uk){
 }
 function renderUKBlock(){
   const bb=document.getElementById('ukBlkB'); if(!bb) return;
-  const skb=curBranch==='skb';
-  const tEl=document.getElementById('ukBlkT'); if(tEl) tEl.textContent=skb?'🏛 Подразделения Администрации':'🏢 Управляющие компании';
-  const set=new Set(skb?[]:UK_LIST);
-  DB.objects.forEach(o=>{ if((o.br==='skb')===skb) set.add(effectiveUK(o)); });
-  if(!skb) (DB.stubs||[]).forEach(s=>set.add(stubUK(s)));
-  const uks=[...set].filter(u=>u!=='Не определена'&&(skb||u!=='Администрация г. Норильска')&&(!UK_SCOPE||u===UK_SCOPE)&&(curUK==='Все'||u===curUK)).sort((a,b)=>a.localeCompare(b,'ru'));
+  const skb=curBranch==='skb', kos=curBranch==='kos';
+  const tEl=document.getElementById('ukBlkT'); if(tEl) tEl.textContent=skb?'🏛 Подразделения Администрации':(kos?'🏭 Сооружения МУП «КОС»':'🏢 Управляющие компании');
+  const set=new Set((skb||kos)?[]:UK_LIST);
+  DB.objects.forEach(o=>{ if(branchOf(o)===curBranch) set.add(effectiveUK(o)); });
+  if(!skb&&!kos) (DB.stubs||[]).forEach(s=>set.add(stubUK(s)));
+  const uks=[...set].filter(u=>u!=='Не определена'&&((skb||kos)||u!=='Администрация г. Норильска')&&(!UK_SCOPE||u===UK_SCOPE)&&(curUK==='Все'||u===curUK)).sort((a,b)=>a.localeCompare(b,'ru'));
   if(UK_SCOPE) ukBlkExp.add(UK_SCOPE); // для роли УК её дерево раскрыто сразу
   bb.innerHTML='';
   uks.forEach(u=>{
@@ -2416,15 +2607,15 @@ function renderUKBlock(){
     const r=document.createElement('div');
     r.className='ukrow'+(curUKCard===u?' sel':'');
     const dots=(st.nAv?`<i style="background:#5a0d0d" title="АВАРИЯ: ${st.nAv}"></i>`:'')+(st.nC?`<i style="background:#c8372d" title="КРИТИЧНО: ${st.nC}"></i>`:'')+(st.nR?`<i style="background:#e08a00" title="РИСК: ${st.nR}"></i>`:'')+(st.nA?`<i style="background:#c9a800" title="ВНИМАНИЕ: ${st.nA}"></i>`:'')+(st.nN?`<i style="background:#2e7d32" title="НОРМА: ${st.nN}"></i>`:'');
-    const caret=`<span class="car" title="${skb?'Развернуть внутренние подразделения':'Развернуть объекты: улица → дом'}">${ukBlkExp.has(u)?'▾':'▸'}</span>`;
+    const caret=`<span class="car" title="${skb?'Развернуть внутренние подразделения':(kos?'Развернуть сооружения группы':'Развернуть объекты: улица → дом')}">${ukBlkExp.has(u)?'▾':'▸'}</span>`;
     r.innerHTML=`${caret}<span class="nm">${esc(u)}<span class="dots">${dots}</span></span><span class="n">${st.n?st.n+' об.':''}${st.nStub?(st.n?'+':'')+st.nStub+' рее.':''}</span>`;
     r.onclick=()=>selectUK(u);
     bb.appendChild(r);
     const car=r.querySelector('.car');
     car.onclick=e=>{ e.stopPropagation(); if(ukBlkExp.has(u)) ukBlkExp.delete(u); else ukBlkExp.add(u); renderUKBlock(); };
-    if(ukBlkExp.has(u)) bb.appendChild(skb?skbSubTree(u):mkdSubTree(u));
+    if(ukBlkExp.has(u)) bb.appendChild(skb?skbSubTree(u):(kos?kosSubTree(u):mkdSubTree(u)));
   });
-  const nEl=document.getElementById('ukBlkN'); if(nEl) nEl.textContent=uks.length+(skb?' подразд.':' УК');
+  const nEl=document.getElementById('ukBlkN'); if(nEl) nEl.textContent=uks.length+(skb?' подразд.':(kos?' групп':' УК'));
 }
 function selectUK(uk){
   if(UK_SCOPE&&uk!==UK_SCOPE) return; // изоляция: чужая УК недоступна
@@ -2432,7 +2623,8 @@ function selectUK(uk){
   document.querySelectorAll('.item').forEach(e=>e.classList.remove('sel'));
   renderUKBlock();
   const isPodr=!UK_LIST.includes(uk)&&!(DB.stubs||[]).some(s=>stubUK(s)===uk)&&DB.objects.some(o=>o.br==='skb'&&effectiveUK(o)===uk);
-  const kind=isPodr?'подразделение Администрации г. Норильска':'управляющая компания';
+  const isKosGr=DB.objects.some(o=>o.br==='kos'&&effectiveUK(o)===uk);
+  const kind=isPodr?'подразделение Администрации г. Норильска':(isKosGr?'группа сооружений МУП «КОС»':'управляющая компания');
   const d=document.getElementById('detail');
   const st=ukStats(uk);
   d.innerHTML=`
@@ -2440,7 +2632,8 @@ function selectUK(uk){
     <div class="rayon">Объектов в базе: <b>${st.n}</b> (с мониторингом: ${st.nMon}; НОРМА&nbsp;${st.nN} · РИСК&nbsp;${st.nR} · КРИТИЧНО&nbsp;${st.nC})${st.nStub?` · реестр МКД: <b>${st.nStub}</b>`:''} · г. Норильск</div>
     <div class="tabs" id="ukTabs"></div>
     <div id="ukTabBody"></div>`;
-  const UKTABS=[['info','Основные сведения'],['current','Планы текущих ремонтов'],['capital','Планы капитальных ремонтов'],['reco','Рекомендованные моделью']];
+  const UKTABS=isKosGr?[['info','Основные сведения'],['reco','Рекомендованные моделью']]:[['info','Основные сведения'],['current','Планы текущих ремонтов'],['capital','Планы капитальных ремонтов'],['reco','Рекомендованные моделью']];
+  if(!UKTABS.some(([k])=>k===curUkTab)) curUkTab='info';
   const tb=document.getElementById('ukTabs');
   UKTABS.forEach(([k,label])=>{
     const b=document.createElement('button');
@@ -2468,10 +2661,13 @@ function ukTabInfo(uk, el){
   const g=k=>ov[k]!==undefined?ov[k]:(base[k]||'');
   const ro=!document.body.classList.contains('role-edit');
   const isPodr=!UK_LIST.includes(uk)&&!(DB.stubs||[]).some(s=>stubUK(s)===uk)&&DB.objects.some(o=>o.br==='skb'&&effectiveUK(o)===uk);
+  const isKosGr=DB.objects.some(o=>o.br==='kos'&&effectiveUK(o)===uk);
   const srcTxt=isPodr
     ?'Подразделение Администрации г. Норильска (объекты социально-культурного и бытового назначения). Сведения — с официального сайта города (норильск.рф → «Подразделения» / «Предприятия и организации») и из ЕГРЮЛ; заказчик ремонтных работ — МКУ «УКРиС» (ул. Кирова, 21; ukris@norilsk-city.ru; (3919) 43-71-70).'
+    :isKosGr
+    ?'Группа сооружений МУП МО г. Норильск «Коммунальные объединённые системы» (МУП «КОС») — муниципальное предприятие коммунальной инфраструктуры. Сведения — с официального сайта предприятия (mupkosnorilsk.ru), из ЕГРЮЛ и из Схемы водоснабжения и водоотведения МО г. Норильск до 2042 г. (норильск.рф).'
     :'Сведения из открытых источников: ЕГРЮЛ, официальные сайты УК, Администрация г. Норильска (норильск.рф). Номер лицензии сверяется с реестром лицензий ГЖИ Красноярского края.';
-  const F=[['full','Полное наименование'],['inn','ИНН'],['ogrn','ОГРН'],['reg','Дата регистрации'],['addr','Юридический адрес'],['dir','Руководитель'],['phone','Телефон'],['mail','E-mail'],['lic',isPodr?'Документ об основаниях управления':'Лицензия на управление МКД'],['note','Примечание']];
+  const F=[['full','Полное наименование'],['inn','ИНН'],['ogrn','ОГРН'],['reg','Дата регистрации'],['addr','Юридический адрес'],['dir','Руководитель'],['phone','Телефон'],['mail','E-mail'],['lic',isPodr?'Документ об основаниях управления':(isKosGr?'Виды деятельности':'Лицензия на управление МКД')],['note','Примечание']];
   const rows=F.map(([k,lab])=>`<tr><td>${lab}</td><td>${ro?esc(g(k)||'—'):`<input data-ukm="${k}" value="${esc(g(k))}" style="width:100%; padding:3px 6px; border:1px solid var(--line); border-radius:4px; font-size:12.5px">`}</td></tr>`).join('');
   const site=g('site'), siteUrl=g('siteUrl')||base.siteUrl;
   el.innerHTML=`
@@ -3215,21 +3411,23 @@ function select(i,fromList){
 
 function renderDetail(o){
   const d=document.getElementById('detail');
-  if(o.br==='skb'&&curTab==='krplan') curTab='passport'; // «План ремонтов МКД» — только для жилого фонда; у объектов соцкультбыта раздел не применяется
+  if((o.br==='skb'||o.br==='kos')&&curTab==='krplan') curTab='passport'; // «План ремонтов МКД» — только для жилого фонда
+  if(o.br==='kos'&&(curTab==='podpol'||curTab==='cokper'||curTab==='cokogr')) curTab='passport'; // у инженерных сооружений КОС разделы подполья и цоколя МКД не применяются
   const sd=statusDetail(o); const st=sd.status;
   const reasonsHtml = sd.reasons.length
     ? `<div class="reasons">${sd.reasons.map(r=>`<div class="rsn r-${r.level}">${r.level==='avar'?'🚨':(r.level==='crit'?'⛔':(r.level==='attn'?'🔶':'⚠️'))} ${esc(r.text)}</div>`).join('')}</div>${statLogHtml(o)}`
     : (st?'<div class="reasons"><div class="rsn r-ok">✔ все показатели в пределах превентивных порогов</div></div>':'');
   d.innerHTML=`
-    <h2>${esc(o.a)}<span class="badge ${st?('b-'+{НОРМА:'ok',ВНИМАНИЕ:'attn',РИСК:'risk',КРИТИЧНО:'crit',АВАРИЯ:'avar'}[st]):'b-card'}">${st||'карточка'}</span>${o.br==='skb'?'':`<button class="tglock" id="tgLock" title="Телефонограммы (доступ для УК и надзорной организации)">🔒</button>`}<button class="tglock" id="inspLock" title="Текущий осмотр — чек-лист (доступ для надзорной организации)">📋</button><button class="tglock" id="dsrBtn" title="Досье объекта для проверки — одним документом (docx): паспорт, состояние, геотермия, геодезия, статусы, предписания, фото">📄</button></h2>
-    <div class="rayon">Район: <b style="color:${DCOL[o.d]||'#666'}">${esc(o.d||'не определён')}</b> · ${o.br==='skb'?'Подразделение':'УК'}: <b>${esc(effectiveUK(o))}</b> · г. Норильск</div>
+    <h2>${esc(o.a)}<span class="badge ${st?('b-'+{НОРМА:'ok',ВНИМАНИЕ:'attn',РИСК:'risk',КРИТИЧНО:'crit',АВАРИЯ:'avar'}[st]):'b-card'}">${st||'карточка'}</span>${(o.br==='skb'||o.br==='kos')?'':`<button class="tglock" id="tgLock" title="Телефонограммы (доступ для УК и надзорной организации)">🔒</button>`}<button class="tglock" id="inspLock" title="Текущий осмотр — чек-лист (доступ для надзорной организации)">📋</button><button class="tglock" id="dsrBtn" title="Досье объекта для проверки — одним документом (docx): паспорт, состояние, геотермия, геодезия, статусы, предписания, фото">📄</button></h2>
+    <div class="rayon">Район: <b style="color:${DCOL[o.d]||'#666'}">${esc(o.d||'не определён')}</b> · ${o.br==='skb'?'Подразделение':(o.br==='kos'?'Группа сооружений':'УК')}: <b>${esc(effectiveUK(o))}</b>${o.br==='kos'?' · МУП «КОС»':''} · г. Норильск</div>
     ${osmLine(o)}
     ${reasonsHtml}
     <div class="tabs" id="cardTabs"></div>
     <div id="tabBody"></div>`;
   const tb=document.getElementById('cardTabs');
   TABS.forEach(([k,label])=>{
-    if(k==='krplan'&&o.br==='skb') return; // объект соцкультбыта — раздел «План ремонтов МКД» не выводится
+    if(k==='krplan'&&(o.br==='skb'||o.br==='kos')) return; // «План ремонтов МКД» — только жилой фонд
+    if(o.br==='kos'&&(k==='podpol'||k==='cokper'||k==='cokogr')) return; // инженерные сооружения КОС — разделы подполья и цоколя МКД не применяются
     const b=document.createElement('button');
     if(k===curTab) b.className='on';
     b.textContent=label;
@@ -3448,13 +3646,26 @@ function passportBlock(o){
   <div class="note">Источники: ${[src,srcA].filter(Boolean).join(' · ')}. Значения даны как в документах, без редактирования.</div>`;
 }
 
+/* --- технологические характеристики сооружений МУП «КОС» --- */
+const KOS_LABELS=[['project','Наименование сооружения'],['kos_cap','Производительность'],['kos_tech','Технологическая схема / состав'],['kos_zone','Зона обслуживания'],['kos_year','Ввод в эксплуатацию'],['kos_own','Собственность / балансодержатель'],['kos_note','Примечание']];
+function kosTechBlock(o){
+  const p=o.pf2; if(!p) return '';
+  const rows=KOS_LABELS.filter(([k])=>p[k]).map(([k,l])=>`<tr><td>${l}</td><td>${escT(p[k])}</td></tr>`).join('');
+  if(!rows) return '';
+  return `<div class="sect">Технологические характеристики сооружения</div>
+  <table class="kv">${rows}</table>
+  <div class="note">Источники: официальный сайт МУП «КОС» (mupkosnorilsk.ru); Схема водоснабжения и водоотведения МО г. Норильск до 2042 г.; Программа комплексного развития систем коммунальной инфраструктуры МО г. Норильск 2025–2042 гг. (пост. Адм. № 210 от 04.02.2025). Значения приведены как в источниках, без редактирования.</div>`;
+}
+
 function tabPassport(o, el){
   const wells=o.prof?Object.keys(o.prof):[];
   const ro0=!document.body.classList.contains('role-edit');
   const prec={'точный':'точный адрес (OSM)','по улице':'центроид улицы','nominatim':'Nominatim/OSM','уточнено вручную':'уточнено по спутниковому снимку','приблизительная (по улице)':'приблизительная (по улице)','точный (офиц. данные)':'точный (официальные данные)','справочник ginfo.ru':'адресный справочник ginfo.ru'}[o.p]||'—';
   el.innerHTML=`
-  <div class="normref">Состав сведений: ГОСТ 31937-2024 «Здания и сооружения. Правила обследования и мониторинга технического состояния» (паспорт объекта мониторинга); СП 25.13330.2020 (разд. 5 — принципы использования вечномерзлых грунтов); ПП РФ № 491 (п. 24–26, состав технической документации на МКД). Поля редактируются и сохраняются локально в браузере.</div>
-  ${passportBlock(o)}
+  <div class="normref">${o.br==='kos'
+    ?'Состав сведений: ГОСТ 31937-2024 «Здания и сооружения. Правила обследования и мониторинга технического состояния» (паспорт объекта мониторинга); ГОСТ 53778-2010 (постановка геотехнического мониторинга); СП 25.13330.2020 (разд. 5 — принципы использования вечномерзлых грунтов); СП 32.13330.2018 «Канализация. Наружные сети и сооружения». Технологические характеристики — из официальных источников предприятия и Схемы водоснабжения и водоотведения МО г. Норильск до 2042 г. Поля редактируются и сохраняются локально в браузере.'
+    :'Состав сведений: ГОСТ 31937-2024 «Здания и сооружения. Правила обследования и мониторинга технического состояния» (паспорт объекта мониторинга); СП 25.13330.2020 (разд. 5 — принципы использования вечномерзлых грунтов); ПП РФ № 491 (п. 24–26, состав технической документации на МКД). Поля редактируются и сохраняются локально в браузере.'}</div>
+  ${o.br==='kos'?kosTechBlock(o):passportBlock(o)}
   <table class="kv">
     <tr><td>Адрес</td><td>г. Норильск, ${esc(o.a)}</td></tr>
     ${o.ao?`<tr><td>Официальный адрес (ГИС ЖКХ / ginfo.ru)</td><td><b>${esc(o.ao)}</b></td></tr>`:''}
@@ -3462,7 +3673,8 @@ function tabPassport(o, el){
     ${o.pc?`<tr><td>Почтовый индекс</td><td>${esc(o.pc)}</td></tr>`:''}
     ${o.gkh?`<tr><td>ГИС ЖКХ</td><td>${[o.gkh.condition?('состояние: '+esc(o.gkh.condition)):'' , o.gkh.wear?('износ: '+esc(o.gkh.wear)+'%'):'', o.gkh.area?('общая площадь: '+esc(o.gkh.area)+' м²'):'', o.gkh.mgmt?('способ управления: '+esc(o.gkh.mgmt)):''].filter(Boolean).join('; ')||'—'}</td></tr>`:''}
     <tr><td>Район</td><td>${esc(o.d||'—')}</td></tr>
-    <tr><td>${o.br==='skb'?'Подразделение Администрации':'Управляющая компания'}</td><td>${o.br==='skb'?sel(o,'pf','uk', o.podr||'', podrList()):sel(o,'pf','uk', o.uk||'Не определена', UK_LIST.concat(['Не определена']))}</td></tr>
+    <tr><td>${o.br==='skb'?'Подразделение Администрации':(o.br==='kos'?'Группа сооружений':'Управляющая компания')}</td><td>${o.br==='skb'?sel(o,'pf','uk', o.podr||'', podrList()):(o.br==='kos'?sel(o,'pf','uk', o.podr||'', kosPodrList()):sel(o,'pf','uk', o.uk||'Не определена', UK_LIST.concat(['Не определена'])))}</td></tr>
+    ${o.br==='kos'?'<tr><td>Предприятие</td><td><b>МУП МО г. Норильск «Коммунальные объединённые системы»</b> (МУП «КОС») · ИНН 2457029066 · mupkosnorilsk.ru</td></tr>':''}
     <tr><td>Координаты (WGS-84)</td><td>${ro0?`${fmt(o.lat)}, ${fmt(o.lon)} <span style="color:var(--mut)">(${prec})</span>`:`
       <input id="geoLat" type="number" step="0.000001" style="width:100px" value="${o.lat??''}"> , <input id="geoLon" type="number" step="0.000001" style="width:100px" value="${o.lon??''}">
       <button class="wbtn" id="geoApply" style="padding:2px 8px">💾 Применить</button>
@@ -7297,7 +7509,7 @@ function enterApp(role){
   if(cfg.tg) sessionStorage.setItem('ngk_tg_ok','1');
   document.getElementById('loginModal').style.display='none';
   const rb=document.getElementById('roleBadge'); rb.textContent=UK_SCOPE?(cfg.name+': '+UK_SCOPE):cfg.name; rb.title=cfg.desc;
-  if(UK_SCOPE&&curBranch==='skb') setBranch('mkd');
+  if(UK_SCOPE&&curBranch!=='mkd') setBranch('mkd');
   renderList();
 }
 (function initAuth(){
@@ -7310,7 +7522,7 @@ function enterApp(role){
   function fillUkScope(){
     if(ss.options.length) return;
     const s=new Set(UK_LIST);
-    DB.objects.forEach(o=>{ if(o.br!=='skb') s.add(effectiveUK(o)); });
+    DB.objects.forEach(o=>{ if(branchOf(o)==='mkd') s.add(effectiveUK(o)); });
     (DB.stubs||[]).forEach(x=>s.add(stubUK(x)));
     s.delete('Не определена');
     ss.innerHTML='<option value="">— выберите вашу управляющую компанию —</option>'+[...s].sort((a,b)=>a.localeCompare(b,'ru')).map(u=>`<option>${esc(u)}</option>`).join('');
@@ -7904,7 +8116,7 @@ async function wdFetch(){
 }
 function wdGroupCounts(dd){
   let m=0, s=0;
-  try{ DB.objects.forEach(o=>{ if(o.d!==dd) return; if(o.br==='skb') s++; else m++; }); }catch(e){}
+  try{ DB.objects.forEach(o=>{ if(o.d!==dd) return; if(branchOf(o)==='mkd') m++; else if(o.br==='skb') s++; }); }catch(e){}
   return {m,s};
 }
 function wdAnalyze(d){
@@ -8230,7 +8442,7 @@ async function wxDutyDoc(x){
   const tbl=(head,rr)=>new Table({width:{size:100,type:WidthType.PERCENTAGE},
     rows:[new TableRow({children:head.map(h=>cell(h,true)), tableHeader:true}),
           ...rr.map(r=>new TableRow({children:r.map(x2=>cell(x2))}))]});
-  const grp=(r)=>r.o.br==='skb'?'СКБ':'МКД';
+  const grp=(r)=>r.o.br==='skb'?'СКБ':(r.o.br==='kos'?'КОС':'МКД');
   const rowLine=(r,n)=>[String(n+1), r.o.a, grp(r), effectiveUK(r.o), r.sd.status,
     r.sd.reasons.map(y=>y.text).join('; ')||'—',
     (r.o.d1||'—'), r.gm?r.gm.maxSpeed.toFixed(1):'—'];
@@ -8532,6 +8744,7 @@ function gsConsClass(o){ // тяжесть последствий C1–C5 по �
   const f=(o.pf&&o.pf.floors)||(o.pf2&&(o.pf2.arc_floors||o.pf2.floors_txt))||'';
   const m=String(f).match(/\d{1,2}/); if(m) fl=+m[0];
   if(branchOf(o)==='skb') return 4; // прочие объекты соцкультбыта — массовое посещение
+  if(branchOf(o)==='kos') return 4; // производственные сооружения коммунальной инфраструктуры — критичность для жизнеобеспечения
   if(!isNaN(fl)) return fl>=5?4:3;
   return 3; // МКД без данных об этажности
 }
@@ -9382,7 +9595,7 @@ function nzDossierData(o){ // сбор данных досье (чистая ф�
     o.cad?['Кадастровый номер', o.cad]:null,
     o.pc?['Почтовый индекс', o.pc]:null,
     ['Район', o.d||'—'],
-    [branchOf(o)==='skb'?'Подразделение Администрации':'Управляющая компания', effectiveUK(o)],
+    [branchOf(o)==='skb'?'Подразделение Администрации':(branchOf(o)==='kos'?'Группа сооружений МУП «КОС»':'Управляющая компания'), effectiveUK(o)],
     ['Год постройки', String(edVal(o,'pf','year', o.y??((p.year_in||'').match(/\d{4}/)||[])[0]??p.arc_year??'')||'—')],
     ['Серия / тип проекта', String(edVal(o,'pf','series', o.s??(p.project||p.arc_series)??'')||'—')],
     ['Этажность', String(edVal(o,'pf','floors', p.arc_floors||p.floors_txt||'')||'—')],
@@ -9585,9 +9798,9 @@ document.getElementById('nzModal').addEventListener('click',e=>{ if(e.target.id=
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.getElementById('nzModal').style.display==='block') nzClose(); });
 
 };
-const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"E5FuITDjDv9LUtjr"};
-const BUILD="3e8b6bb4";
-const BUILD_DATE="15.09.2026 14:04";
+const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"xu9/bPpZS6OPiahO"};
+const BUILD="75b63867";
+const BUILD_DATE="16.09.2026 12:57";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
