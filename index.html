@@ -303,8 +303,14 @@
   #hMenuClose:hover{background:rgba(255,255,255,.22)}
   #hMenuStats{padding:10px 16px; font-size:12px; color:var(--mut); border-bottom:1px solid var(--line); display:flex; flex-wrap:wrap; gap:8px}
   #hMenuBody{display:flex; flex-direction:column; padding:8px 10px 18px}
-  #hMenuBody>button, #hMenuBody>a{display:block; width:100%; text-align:left; margin:2px 0; padding:11px 12px; border:1px solid var(--line); border-radius:8px; background:#f7f3e8; color:#2c3947; font-size:13.5px; cursor:pointer; text-decoration:none; line-height:1.3}
-  #hMenuBody>button:hover, #hMenuBody>a:hover{background:#eee7d5; filter:none}
+  #hMenuBody>button, #hMenuBody>a, #hMenuCtl>button{display:block; width:100%; text-align:left; margin:2px 0; padding:11px 12px; border:1px solid var(--line); border-radius:8px; background:#f7f3e8; color:#2c3947; font-size:13.5px; cursor:pointer; text-decoration:none; line-height:1.3}
+  #hMenuBody>button:hover, #hMenuBody>a:hover, #hMenuCtl>button:hover{background:#eee7d5; filter:none}
+  .hmc-h{margin:14px 4px 5px; font-size:11px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:var(--mut); border-bottom:1px solid var(--line); padding-bottom:3px}
+  .hmc-line{margin:3px 4px; font-size:12.3px; color:#4a4234; line-height:1.45}
+  .hmc-mini{border:1px solid var(--line); background:#f2eee4; border-radius:6px; padding:4px 12px; font-size:15px; cursor:pointer}
+  .hmc-mini:hover{background:#e6dfd0}
+  #hMenuCtl{padding-bottom:10px}
+  #navToast{display:none; position:fixed; left:50%; transform:translateX(-50%); bottom:58px; z-index:1600; background:rgba(15,28,38,.94); color:#e8f0f6; border:1px solid #2c4a5a; border-radius:8px; padding:9px 18px; font-size:13px; box-shadow:0 8px 24px rgba(0,0,0,.4); max-width:86vw; text-align:center}
   #backChip{display:none; position:fixed; left:50%; transform:translateX(-50%); bottom:14px; z-index:1400; border:1px solid #2c4a5a; background:rgba(15,28,38,.92); color:#d8e6f0; border-radius:22px; padding:8px 18px; font-size:13px; cursor:pointer; box-shadow:0 6px 20px rgba(0,0,0,.35)}
   #backChip:hover{background:rgba(31,60,80,.95)}
   @media (max-width:900px){
@@ -654,8 +660,31 @@
 <nav id="hMenu" aria-label="Меню разделов">
   <div id="hMenuH"><span>☰ Меню</span><button id="hMenuClose" title="Закрыть (Esc)">✕</button></div>
   <div id="hMenuStats"></div>
-  <div id="hMenuBody"></div>
+  <div id="hMenuBody">
+    <div id="hMenuCtl">
+      <div class="hmc-h">Данные · копирование · скачивание</div>
+      <button id="hmcCsv" title="CSV по объектам, проходящим текущий фильтр (ветка, район, УК, поиск): адрес, район, УК, статус, замеры">⬇ Реестр объектов (CSV, текущий фильтр)</button>
+      <button id="hmcBackup" title="Резервная копия локальных данных браузера: журналы переходов, предписания, телефонограммы, замеры АМС, настройки Центра управления ГТМ">⬇ Бэкап локальных данных (JSON)</button>
+      <button id="hmcRestore" title="Восстановить локальные данные из файла бэкапа (текущие будут замещены)">⤴ Восстановить данные из файла</button>
+      <input type="file" id="hmcRestoreFile" accept=".json,application/json" style="display:none">
+      <button id="hmcCopyObj" title="Текстовая карточка выбранного объекта: адрес, район, УК, статус, наблюдения — в буфер обмена">⧉ Копировать карточку объекта</button>
+      <button id="hmcCopyStat" title="Сводка состояния фонда по пятиуровневой шкале — в буфер обмена">⧉ Копировать сводку статусов</button>
+      <div class="hmc-h">Соединение · синхронизация</div>
+      <div id="hmcNet" class="hmc-line">…</div>
+      <div id="hmcVer" class="hmc-line">…</div>
+      <button id="hmcReload" title="Принудительно перезагрузить страницу и подтянуть актуальную версию базы">🔄 Обновить данные (перезагрузить)</button>
+      <button id="hmcWipe" title="Удалить локальные данные этого браузера (журналы, предписания, замеры АМС, настройки). База на сайте не затрагивается">🧹 Сбросить локальные данные</button>
+      <div class="hmc-h">Отображение</div>
+      <div class="hmc-line hmc-keep" style="display:flex; gap:8px; align-items:center">
+        <span style="flex:1">Масштаб интерфейса</span>
+        <button id="hmcFontDec" class="hmc-mini" title="Уменьшить">A−</button>
+        <b id="hmcFontVal">100%</b>
+        <button id="hmcFontInc" class="hmc-mini" title="Увеличить">A+</button>
+      </div>
+    </div>
+  </div>
 </nav>
+<div id="navToast"></div>
 <button id="backChip" title="Вернуться к окну, из которого открыта карточка объекта">← Назад к окну</button>
 
 <div id="tgModal">
@@ -10461,8 +10490,96 @@ function hMenuClose_(){
 document.getElementById('hBurger').onclick=()=>hMenuIsOpen()?hMenuClose_():hMenuOpen_();
 document.getElementById('hMenuClose').onclick=hMenuClose_;
 hMenuBd.onclick=hMenuClose_;
-// клик по любому действию в меню — закрыть меню
-hMenuBody.addEventListener('click',e=>{ if(e.target.closest('button,a')) hMenuClose_(); });
+// клик по любому действию в меню — закрыть меню (кроме блока мгновенных настроек .hmc-keep)
+hMenuBody.addEventListener('click',e=>{ if(e.target.closest('.hmc-keep')) return; if(e.target.closest('button,a')) hMenuClose_(); });
+
+/* --- центр управления меню: данные/копирование/скачивание, соединение, отображение --- */
+const navToastEl=document.getElementById('navToast');
+let navToastTimer=null;
+function navToast(t){ if(!navToastEl) return; navToastEl.textContent=t; navToastEl.style.display='block'; clearTimeout(navToastTimer); navToastTimer=setTimeout(()=>{ navToastEl.style.display='none'; },2200); }
+function navCopy(text,okMsg){
+  const done=()=>navToast(okMsg||'Скопировано в буфер обмена');
+  const fb=()=>{ const ta=document.createElement('textarea'); ta.value=text; ta.style.cssText='position:fixed; top:0; left:0; opacity:0'; document.body.appendChild(ta); ta.focus(); ta.select(); try{ document.execCommand('copy'); done(); }catch(e){ navToast('Не удалось скопировать автоматически'); } ta.remove(); };
+  if(navigator.clipboard&&navigator.clipboard.writeText){ try{ navigator.clipboard.writeText(text).then(done,fb); }catch(e){ fb(); } } else fb();
+}
+const escCsv=s=>{ s=String(s===null||s===undefined?'':s); return /[";\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
+document.getElementById('hmcCsv').onclick=()=>{
+  const rows=[['Адрес','Район','УК/подразделение','Статус ГТМ','Замеров','Период наблюдений']];
+  DB.objects.forEach(o=>{ if(!passF(o)) return;
+    rows.push([o.a, o.d||'', effectiveUK(o), statusOf(o)||'нет данных', o.nm||0, (o.d0||'')+(o.d1?'–'+o.d1:'')]); });
+  const csv=rows.map(r=>r.map(escCsv).join(';')).join('\n');
+  gsDownload('reestr_obektov_'+new Date().toISOString().slice(0,10)+'.csv', csv, 'text/csv;charset=utf-8');
+  navToast('CSV сформирован: '+(rows.length-1)+' объектов');
+};
+document.getElementById('hmcBackup').onclick=()=>{
+  const data={};
+  for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.indexOf('ngk')===0) data[k]=localStorage.getItem(k); }
+  const pack={app:'gis-norilsk-geotermika', kind:'localBackup', date:new Date().toISOString(), keys:Object.keys(data).length, data};
+  gsDownload('bekap_lokalnyh_dannyh_'+new Date().toISOString().slice(0,10)+'.json', JSON.stringify(pack,null,1));
+  navToast('Бэкап выгружен: '+Object.keys(data).length+' ключей');
+};
+document.getElementById('hmcRestore').onclick=()=>document.getElementById('hmcRestoreFile').click();
+document.getElementById('hmcRestoreFile').addEventListener('change',e=>{
+  const f=e.target.files[0]; e.target.value='';
+  if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ try{
+    const pack=JSON.parse(rd.result);
+    if(!pack||typeof pack!=='object'||!pack.data||typeof pack.data!=='object'){ navToast('Файл не похож на бэкап базы'); return; }
+    const ks=Object.keys(pack.data);
+    if(!ks.length){ navToast('В файле нет ключей данных'); return; }
+    if(!confirm('Восстановить '+ks.length+' ключей локальных данных из файла от '+(pack.date||'—').toString().slice(0,10)+'? Текущие локальные данные (журналы, предписания, замеры АМС) будут замещены.')) return;
+    ks.forEach(k=>{ if(k.indexOf('ngk')===0) localStorage.setItem(k,String(pack.data[k])); });
+    alert('Восстановлено '+ks.length+' ключей. Страница будет перезагружена.');
+    location.reload();
+  }catch(err){ navToast('Ошибка чтения файла: '+err); } };
+  rd.readAsText(f);
+});
+document.getElementById('hmcCopyObj').onclick=()=>{
+  const o=(typeof curObj!=='undefined')?curObj:null;
+  if(!o){ navToast('Объект не выбран — откройте карточку на карте или в списке'); return; }
+  const sd=statusDetail(o);
+  const t=['ГИС-база геотехнического мониторинга зданий · г. Норильск',
+    'Адрес: '+o.a,
+    'Район: '+(o.d||'—')+' · '+(o.br==='skb'?'объект соцкультбыта':(o.br==='kos'?'МУП «КОС»':'МКД')),
+    'УК/подразделение: '+effectiveUK(o),
+    'Статус ГТМ: '+(sd.status||'нет данных')+(sd.reasons&&sd.reasons.length?(' — '+sd.reasons.join('; ')):''),
+    'Наблюдения: '+(o.nm?('замеров '+o.nm+' · период '+(o.d0||'—')+'–'+(o.d1||'—')):'нет данных'),
+    'Сайт: https://aniigb.github.io/gis-norilsk-geotermika/'].join('\n');
+  navCopy(t,'Карточка объекта скопирована');
+};
+document.getElementById('hmcCopyStat').onclick=()=>{
+  const n={НОРМА:0,ВНИМАНИЕ:0,РИСК:0,КРИТИЧНО:0,АВАРИЯ:0}; let no=0, tot=0;
+  DB.objects.forEach(o=>{ if(!scopePass(o)) return; tot++; const st=statusOf(o); if(!st) no++; else n[st]++; });
+  const t='ГИС-геотермика Норильск · сводка фонда на '+new Date().toLocaleDateString('ru')+': объектов '+tot+' — НОРМА '+n.НОРМА+' · ВНИМАНИЕ '+n.ВНИМАНИЕ+' · РИСК '+n.РИСК+' · КРИТИЧНО '+n.КРИТИЧНО+' · АВАРИЯ '+n.АВАРИЯ+' · без замеров '+no+'. https://aniigb.github.io/gis-norilsk-geotermika/';
+  navCopy(t,'Сводка статусов скопирована');
+};
+function hmcNetRender(){
+  const el=document.getElementById('hmcNet'); if(!el) return;
+  const on=navigator.onLine;
+  el.innerHTML=(on?'🟢 <b>Онлайн</b> — соединение активно':'🔴 <b>Офлайн</b> — работа на загруженной копии базы')+' · объектов загружено: <b>'+(window.DB&&DB.objects?DB.objects.length:'—')+'</b>';
+}
+window.addEventListener('online',hmcNetRender);
+window.addEventListener('offline',hmcNetRender);
+hmcNetRender();
+(function(){ const el=document.getElementById('hmcVer'); if(!el) return;
+  const b=(typeof BUILD!=='undefined')?BUILD:null, bd=(typeof BUILD_DATE!=='undefined')?BUILD_DATE:null;
+  el.innerHTML='🗄 Версия базы: <b>'+(b||'локальная копия')+'</b>'+(bd?(' · сборка '+bd):''); })();
+document.getElementById('hmcReload').onclick=()=>{ try{ sessionStorage.removeItem('ngk_rl'); }catch(e){} location.reload(); };
+document.getElementById('hmcWipe').onclick=()=>{
+  const ks=[]; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.indexOf('ngk')===0) ks.push(k); }
+  if(!ks.length){ navToast('Локальных данных нет — сбрасывать нечего'); return; }
+  if(!confirm('Удалить '+ks.length+' ключей локальных данных (журналы переходов, предписания, телефонограммы, замеры АМС, настройки)? База на сайте не затрагивается. Действие необратимо — рекомендуется сначала сделать бэкап.')) return;
+  ks.forEach(k=>localStorage.removeItem(k));
+  alert('Локальные данные удалены ('+ks.length+' ключей). Страница будет перезагружена.');
+  location.reload();
+};
+// масштаб интерфейса (zoom, сохраняется локально)
+const NGC_ZOOM_KEY='ngk_uizoom';
+function navZoomApply(v){ try{ document.body.style.zoom=v+'%'; }catch(e){} const el=document.getElementById('hmcFontVal'); if(el) el.textContent=v+'%'; try{ localStorage.setItem(NGC_ZOOM_KEY,String(v)); }catch(e){} }
+(function(){ let v=100; try{ v=parseInt(localStorage.getItem(NGC_ZOOM_KEY))||100; }catch(e){} v=Math.min(130,Math.max(85,v)); if(v!==100) navZoomApply(v); else { const el=document.getElementById('hmcFontVal'); if(el) el.textContent='100%'; } })();
+document.getElementById('hmcFontDec').onclick=()=>{ let v=parseInt((document.getElementById('hmcFontVal')||{}).textContent)||100; navZoomApply(Math.max(85,v-5)); };
+document.getElementById('hmcFontInc').onclick=()=>{ let v=parseInt((document.getElementById('hmcFontVal')||{}).textContent)||100; navZoomApply(Math.min(130,v+5)); };
 function hMenuAdapt(){
   const mob=window.matchMedia&&window.matchMedia('(max-width:900px)').matches;
   const hdr=document.querySelector('header');
@@ -10471,8 +10588,7 @@ function hMenuAdapt(){
     const stats=document.getElementById('hstats');
     if(stats){ hMenuMoved.push({el:stats, parent:stats.parentElement, next:stats.nextSibling}); hMenuStats.appendChild(stats); stats.style.display='flex'; stats.style.marginLeft='0'; }
     HACT_IDS.forEach(id=>{ const el=document.getElementById(id); if(!el) return;
-      if(getComputedStyle(el).display==='none'&&el.id==='uploadBtn'){ /* скрыт ролью — всё равно переносим, видимость унаследуется */ }
-      hMenuMoved.push({el, parent:el.parentElement, next:el.nextSibling}); hMenuBody.appendChild(el); el.style.display=''; });
+      hMenuMoved.push({el, parent:el.parentElement, next:el.nextSibling}); hMenuBody.insertBefore(el, document.getElementById('hMenuCtl')); el.style.display=''; });
     hMenuMoved.push({el:document.getElementById('hBurger')}); // маркер
   } else if(!mob&&hMenuMoved){
     hMenuMoved.forEach(r=>{ if(r.next&&r.next.parentElement===r.parent) r.parent.insertBefore(r.el,r.next); else if(r.parent) r.parent.appendChild(r.el); if(r.el.id) r.el.style.display=''; });
@@ -10486,7 +10602,7 @@ window.addEventListener('resize',()=>{ /* подстраховка для ста
 };
 const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"xu9/bPpZS6OPiahO"};
 const BUILD="75b63867";
-const BUILD_DATE="17.09.2026 01:08";
+const BUILD_DATE="17.09.2026 01:25";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
