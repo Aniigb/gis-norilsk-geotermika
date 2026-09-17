@@ -9,6 +9,13 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
 <link rel="shortcut icon" href="favicon.ico">
 <link rel="apple-touch-icon" href="favicon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#16324a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ГИС-ГТМ Норильск">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
 <script>
 /* Кроссбраузерный сторож загрузки (ES5, без зависимостей): проверка возможностей браузера,
    диагностика сбоев модулей, понятное сообщение вместо «мёртвой» страницы */
@@ -311,6 +318,12 @@
   .hmc-mini:hover{background:#e6dfd0}
   #hMenuCtl{padding-bottom:10px}
   #navToast{display:none; position:fixed; left:50%; transform:translateX(-50%); bottom:58px; z-index:1600; background:rgba(15,28,38,.94); color:#e8f0f6; border:1px solid #2c4a5a; border-radius:8px; padding:9px 18px; font-size:13px; box-shadow:0 8px 24px rgba(0,0,0,.4); max-width:86vw; text-align:center}
+  #pwaModal{display:none; position:fixed; top:0;right:0;bottom:0;left:0; z-index:1520; background:rgba(15,28,38,.6)}
+  #pwaModal .box{background:var(--panel); width:560px; max-width:94vw; max-height:88vh; overflow-y:auto; margin:5vh auto; border-radius:12px; padding:18px 22px; box-shadow:0 10px 40px rgba(0,0,0,.4)}
+  #pwaModal h2{font-size:16px; margin:0 34px 8px 0}
+  #pwaModal .close{float:right; border:1px solid var(--line); background:#f2eee4; color:#5a5346; font-size:14px; cursor:pointer; width:30px; height:30px; border-radius:50%; line-height:1}
+  #pwaModal ol{margin:6px 0 10px; padding-left:22px; font-size:13px; line-height:1.55}
+  #pwaModal .pwa-note{font-size:11.8px; color:var(--mut); margin-top:8px; line-height:1.45}
   #backChip{display:none; position:fixed; left:50%; transform:translateX(-50%); bottom:14px; z-index:1400; border:1px solid #2c4a5a; background:rgba(15,28,38,.92); color:#d8e6f0; border-radius:22px; padding:8px 18px; font-size:13px; cursor:pointer; box-shadow:0 6px 20px rgba(0,0,0,.35)}
   #backChip:hover{background:rgba(31,60,80,.95)}
   @media (max-width:900px){
@@ -654,9 +667,17 @@
   <label>КРИТИЧНО: F_d &lt; <span><input id="sBearC" type="number" step="0.01"> доли проектной</span></label>
   <button class="save" id="sSave">Применить</button>
   <div class="note">Пороги — рабочие превентивные значения макета; при наличии проектной (расчётной) температуры основания здания введите её в карточке объекта.</div>
+  <button class="save" id="pwaInstallBtn" style="margin-top:10px; background:#1f4a66" title="Установить приложение на рабочий стол: быстрый запуск, отдельное окно, офлайн-доступ к загруженной базе">📲 Установить на рабочий стол</button>
 </div>
 
 <div id="hMenuBd"></div>
+<div id="pwaModal">
+  <div class="box">
+    <button class="close" id="pwaClose" title="Закрыть (Esc)">✕</button>
+    <h2>📲 Установка приложения</h2>
+    <div id="pwaBody"></div>
+  </div>
+</div>
 <nav id="hMenu" aria-label="Меню разделов">
   <div id="hMenuH"><span>☰ Меню</span><button id="hMenuClose" title="Закрыть (Esc)">✕</button></div>
   <div id="hMenuStats"></div>
@@ -670,6 +691,7 @@
       <button id="hmcCopyObj" title="Текстовая карточка выбранного объекта: адрес, район, УК, статус, наблюдения — в буфер обмена">⧉ Копировать карточку объекта</button>
       <button id="hmcCopyStat" title="Сводка состояния фонда по пятиуровневой шкале — в буфер обмена">⧉ Копировать сводку статусов</button>
       <div class="hmc-h">Соединение · синхронизация</div>
+      <button id="hmcInstall" title="Установить приложение на рабочий стол ПК или экран «Домой» смартфона: быстрый запуск, работа в отдельном окне, офлайн-доступ к загруженной базе">📲 Установить приложение на устройство</button>
       <div id="hmcNet" class="hmc-line">…</div>
       <div id="hmcVer" class="hmc-line">…</div>
       <button id="hmcReload" title="Принудительно перезагрузить страницу и подтянуть актуальную версию базы">🔄 Обновить данные (перезагрузить)</button>
@@ -10399,7 +10421,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.getElemen
       на каждое открытие делается history.pushState, на popstate окно закрывается;
    3) backChip — возврат из карточки объекта в окно, из которого она открыта;
    4) бургер-меню на ≤ 900px: кнопки шапки переносятся в выдвижную панель. */
-const NG_WINDOWS=['uplModal','repModal','regModal','tgModal','meteoModal','legalModal','gsModal','wxDutyModal','sumModal','skbModal','nzModal','kosModal','admModal'];
+const NG_WINDOWS=['uplModal','repModal','regModal','tgModal','meteoModal','legalModal','gsModal','wxDutyModal','sumModal','skbModal','nzModal','kosModal','admModal','pwaModal'];
 const NG_WIN_OPEN={sumModal:()=>renderMkdSummary(), skbModal:()=>renderSkbSummary(), kosModal:()=>renderKosSummary(),
   nzModal:()=>nzOpen(), admModal:()=>admOpen(), gsModal:()=>gsOpen(), meteoModal:()=>meteoOpen(),
   wxDutyModal:()=>wxDutyOpen(), regModal:()=>openRegistry()};
@@ -10599,10 +10621,56 @@ hMenuAdapt();
 if(window.matchMedia&&window.matchMedia('(max-width:900px)').addEventListener) window.matchMedia('(max-width:900px)').addEventListener('change',hMenuAdapt);
 window.addEventListener('resize',()=>{ /* подстраховка для старых WebKit без change на matchMedia */ hMenuAdapt(); });
 
+/* ================== PWA: установка на рабочий стол / экран «Домой» ================== */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+}
+let pwaDeferred=null;
+window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); pwaDeferred=e; });
+window.addEventListener('appinstalled',()=>{ pwaDeferred=null; try{ navToast('Приложение установлено — ярлык на рабочем столе / экране «Домой»'); }catch(e){} });
+function pwaIsIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntellect'&&navigator.maxTouchPoints>1); }
+function pwaStandalone(){ try{ return (window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){ return false; } }
+function pwaOpenModal(html){
+  const b=document.getElementById('pwaBody'); if(b) b.innerHTML=html;
+  document.getElementById('pwaModal').style.display='block';
+}
+function pwaInstall(){
+  if(pwaStandalone()){ try{ navToast('Приложение уже установлено'); }catch(e){} return; }
+  if(pwaDeferred){ const d=pwaDeferred; pwaDeferred=null; try{ d.prompt(); }catch(e){ pwaInstructions(); } return; }
+  pwaInstructions();
+}
+function pwaInstructions(){
+  if(pwaIsIOS()){
+    pwaOpenModal('<b>iPhone / iPad (Safari):</b><ol>'
+      +'<li>Нажмите кнопку <b>«Поделиться»</b> <span style="font-size:15px">⎋</span> (квадрат со стрелкой вверх внизу или вверху экрана).</li>'
+      +'<li>Прокрутите список действий и выберите <b>«На экран „Домой“»</b>.</li>'
+      +'<li>Подтвердите <b>«Добавить»</b> — ярлык «ГИС-ГТМ Норильск» появится на экране «Домой».</li></ol>'
+      +'<div class="pwa-note">Открывается в полноэкранном режиме, работает офлайн на загруженной копии базы. Установка доступна только из Safari.</div>');
+    return;
+  }
+  const andr=/Android/i.test(navigator.userAgent);
+  pwaOpenModal(andr
+    ? ('<b>Android (Chrome / Edge / Яндекс):</b><ol>'
+      +'<li>Откройте меню браузера <b>⋮</b> (правый верхний угол).</li>'
+      +'<li>Выберите <b>«Установить приложение»</b> или <b>«Добавить на главный экран»</b>.</li>'
+      +'<li>Подтвердите установку — ярлык появится на экране «Домой» и в списке приложений.</li></ol>'
+      +'<div class="pwa-note">Если пункт «Установить приложение» доступен — появится системный диалог установки. Работает офлайн на загруженной копии базы.</div>')
+    : ('<b>Компьютер (Chrome / Edge):</b><ol>'
+      +'<li>В правой части адресной строки нажмите значок <b>«Установить»</b> (монитор со стрелкой), либо</li>'
+      +'<li>откройте меню браузера <b>⋮</b> → <b>«Установить приложение»</b> / «Сохранить и поделиться» → «Установить страницу как приложение».</li>'
+      +'<li>Подтвердите — приложение появится в меню «Пуск» / на рабочем столе и откроется в отдельном окне.</li></ol>'
+      +'<div class="pwa-note">Firefox для ПК устанавливает страницу через «Закрепить вкладку»; полноценная PWA-установка — в Chrome/Edge. Данные и вход сохраняются, работа офлайн — на загруженной копии базы.</div>'));
+}
+document.getElementById('pwaClose').onclick=()=>{ document.getElementById('pwaModal').style.display='none'; };
+const hmcI=document.getElementById('hmcInstall'); if(hmcI) hmcI.onclick=pwaInstall;
+const pwaB=document.getElementById('pwaInstallBtn'); if(pwaB) pwaB.onclick=pwaInstall;
+// если уже в standalone — скрыть кнопки установки
+if(pwaStandalone()){ [hmcI,pwaB].forEach(b=>{ if(b) b.style.display='none'; }); }
+
 };
 const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"xu9/bPpZS6OPiahO"};
 const BUILD="75b63867";
-const BUILD_DATE="17.09.2026 01:25";
+const BUILD_DATE="17.09.2026 16:39";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
