@@ -922,14 +922,14 @@
   </div>
 </div>
 
-<script src="db_p1.js?v=75b63867"></script>
-<script src="db_p2.js?v=75b63867"></script>
-<script src="db_p3.js?v=75b63867"></script>
-<script src="db_p4.js?v=75b63867"></script>
-<script src="db_p5.js?v=75b63867"></script>
-<script src="db_p6.js?v=75b63867"></script>
-<script src="db_p7.js?v=75b63867"></script>
-<script src="db_p8.js?v=75b63867"></script>
+<script src="db_p1.js?v=df53f93f"></script>
+<script src="db_p2.js?v=df53f93f"></script>
+<script src="db_p3.js?v=df53f93f"></script>
+<script src="db_p4.js?v=df53f93f"></script>
+<script src="db_p5.js?v=df53f93f"></script>
+<script src="db_p6.js?v=df53f93f"></script>
+<script src="db_p7.js?v=df53f93f"></script>
+<script src="db_p8.js?v=df53f93f"></script>
 
 <div id="loginModal">
   <form class="lbox" id="loginForm">
@@ -2793,10 +2793,13 @@ function skbSubTree(u){ // раскрытое подразделение: гру
 }
 /* --- классификация и дерево сооружений МУП «КОС» --- */
 function kosCat(o){
-  const nm=(o.pf2&&o.pf2.project)||'';
+  const nm=((o.pf2&&o.pf2.project)||'')+' '+(o.podr||'');
+  if(/ливнев/i.test(nm)) return 'Ливневая канализация';
+  if(/ТП[-\s]?\d|трансформаторн/i.test(nm)) return 'Трансформаторные подстанции';
   if(/административн/i.test(nm)) return 'Административно-производственные здания';
-  if(/КНС|насосн/i.test(nm)) return 'Насосные станции';
-  return 'Очистные сооружения';
+  if(/КНС|ЛНС|насосн/i.test(nm)) return 'Насосные станции';
+  if(/очистн|КОС/i.test(nm)) return 'Очистные сооружения';
+  return 'Прочие здания и сооружения';
 }
 function kosObjName(o){ // краткое наименование сооружения для дерева
   return ((o.pf2&&o.pf2.project)||'').replace(/\s*—.*$/,'').trim()||o.a;
@@ -10668,9 +10671,9 @@ const pwaB=document.getElementById('pwaInstallBtn'); if(pwaB) pwaB.onclick=pwaIn
 if(pwaStandalone()){ [hmcI,pwaB].forEach(b=>{ if(b) b.style.display='none'; }); }
 
 };
-const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"xu9/bPpZS6OPiahO"};
-const BUILD="75b63867";
-const BUILD_DATE="17.09.2026 16:39";
+const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"NIr1thjzAXk6BD73"};
+const BUILD="df53f93f";
+const BUILD_DATE="18.09.2026 17:33";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
