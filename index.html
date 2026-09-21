@@ -97,6 +97,18 @@
   .chip.on .n{color:#b9c6d2}
   #search{margin:4px 12px 10px; padding:7px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; width:calc(100% - 24px)}
   #list .nores{margin:8px 12px; padding:12px; color:var(--mut); font-size:12.5px; line-height:1.5; border:1px dashed var(--line); border-radius:6px; background:#faf7ef}
+  /* ---------- FUND: интерактивная схема свайного поля ---------- */
+  #fundCvBox{position:relative; margin:6px 0}
+  #fundCv{display:block; width:100%; max-height:560px; border:1px solid var(--line); border-radius:6px; background:#fff; cursor:crosshair}
+  #fundTip{display:none; position:absolute; z-index:30; background:rgba(15,28,38,.94); color:#e8f0f6; border:1px solid #2c4a5a; border-radius:6px; padding:6px 10px; font-size:11.5px; line-height:1.5; pointer-events:none; max-width:280px; box-shadow:0 4px 14px rgba(0,0,0,.35)}
+  #fundMeta{font-size:12px; color:var(--mut); margin:6px 2px; line-height:1.55}
+  table.fundreg{border-collapse:collapse; width:100%; font-size:11.5px; margin-top:6px}
+  table.fundreg th{position:sticky; top:0; background:#d6cfbd; padding:4px 6px; border-bottom:2px solid var(--line); text-align:left; z-index:1}
+  table.fundreg td{padding:3px 6px; border-bottom:1px solid #e8e2d2}
+  table.fundreg tr.hl td, table.fundreg tr:hover td{background:#eef3f8}
+  .fundreg-box{max-height:300px; overflow-y:auto; border:1px solid var(--line); border-radius:6px}
+  .chip.on{background:#1f4a66; color:#fff}
+  #fundUplBar{margin:8px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:center}
   #list{overflow-y:auto; flex:1; border-top:1px solid var(--line)}
   .item{padding:8px 14px; border-bottom:1px solid #d2cab8; cursor:pointer; display:flex; justify-content:space-between; gap:8px; align-items:baseline}
   .item:hover{background:#dcd5c4}
@@ -922,14 +934,14 @@
   </div>
 </div>
 
-<script src="db_p1.js?v=ecdcd84d"></script>
-<script src="db_p2.js?v=ecdcd84d"></script>
-<script src="db_p3.js?v=ecdcd84d"></script>
-<script src="db_p4.js?v=ecdcd84d"></script>
-<script src="db_p5.js?v=ecdcd84d"></script>
-<script src="db_p6.js?v=ecdcd84d"></script>
-<script src="db_p7.js?v=ecdcd84d"></script>
-<script src="db_p8.js?v=ecdcd84d"></script>
+<script src="db_p1.js?v=e6e17453"></script>
+<script src="db_p2.js?v=e6e17453"></script>
+<script src="db_p3.js?v=e6e17453"></script>
+<script src="db_p4.js?v=e6e17453"></script>
+<script src="db_p5.js?v=e6e17453"></script>
+<script src="db_p6.js?v=e6e17453"></script>
+<script src="db_p7.js?v=e6e17453"></script>
+<script src="db_p8.js?v=e6e17453"></script>
 
 <div id="loginModal">
   <form class="lbox" id="loginForm">
@@ -3770,6 +3782,7 @@ function fundSummary(o){
 function tabFund(o, el){
   el.innerHTML=`
   <div class="normref">СП 497.1325800.2020 «Основания и фундаменты зданий и сооружений на многолетнемерзлых грунтах. Правила эксплуатации»; СП 25.13330.2020; ГОСТ 31937-2024 (классификация повреждений).</div>
+  ${(o.fund||(typeof fundUserSheet==='function'&&fundUserSheet(o)))?'<div class="note" style="margin-bottom:8px">📐 Интерактивная схема расположения фундаментов (свайное поле, оси, реестр элементов) — во вкладке «Проектная документация».</div>':''}
   ${fundSummary(o)}
   <div class="sect">Конструкция и сведения</div>
   <table class="kv">
@@ -3995,8 +4008,10 @@ function tabProject(o, el){
   <table class="rows"><thead><tr>
     <th style="width:32%">Наименование документа</th><th style="width:14%">Шифр</th><th style="width:18%">Разработчик</th><th style="width:8%">Год</th><th style="width:8%">Стадия</th><th>Примечание</th><th></th>
   </tr></thead><tbody></tbody></table>
-  <button class="addrow">+ добавить документ</button>`;
+  <button class="addrow">+ добавить документ</button>
+  ${fundSchemeHtml(o)}`;
   renderRows(o, el, 'docs', ['name','shifr','org','year','stage','note'], {stage:['','П','Р','РД','ИД','ЭД']});
+  fundSchemeWire(o, el);
 }
 
 function tabIGI(o, el){
@@ -10670,10 +10685,243 @@ const pwaB=document.getElementById('pwaInstallBtn'); if(pwaB) pwaB.onclick=pwaIn
 // если уже в standalone — скрыть кнопки установки
 if(pwaStandalone()){ [hmcI,pwaB].forEach(b=>{ if(b) b.style.display='none'; }); }
 
+/* ================== FUND. Интерактивная схема свайного поля + загрузка/распознавание ================== */
+/* Данные: o.fund — список листов: {src, page, mpp, sect, aL[], aN[], beams[], piles[[num,row,sh,x_m,y_m,lat,lon,sn?]], geo}
+   Пользовательские листы: localStorage 'ngk_fund_'+адрес (загрузка через кнопку). */
+function fundUserSheet(o){ try{ const v=JSON.parse(localStorage.getItem('ngk_fund_'+o.a)||'null'); return v||null; }catch(e){ return null; } }
+function fundSheetsOf(o){
+  const out=[];
+  (Array.isArray(o.fund)?o.fund:(o.fund?[o.fund]:[])).forEach(s=>out.push(s));
+  const u=fundUserSheet(o); if(u) out.push(u);
+  return out;
+}
+function fundCanEdit(){ return ['edit','admin','nadzor','stroy'].includes(sessionStorage.getItem('ngk_role')||'view'); }
+function fundSchemeHtml(o){
+  const sheets=fundSheetsOf(o);
+  if(!sheets.length && !fundCanEdit()) return '';
+  let h='<div class="sect">Схема расположения фундаментов (свайное поле)</div>';
+  if(sheets.length){
+    h+='<div class="normref">Оси по шаблону чертежа ЖКС (буквенные — вертикальные, номерные — горизонтальные); сваи: □ квадратное сечение, ● круглое/оголовок; нумерация — по рядам осей; координаты — расчётные по контуру здания (OSM). Расчётный статус: подлежит поверке по исполнительной документации (СП 497.1325800.2020, разд. 9; ГОСТ 53778-2010).</div>';
+    if(sheets.length>1) h+='<div style="margin:6px 0">'+sheets.map((s,i)=>'<button class="chip fund-sheet'+(i===0?' on':'')+'" data-fsh="'+i+'">Лист '+(i+1)+'</button>').join(' ')+'</div>';
+    h+='<div id="fundCvBox"><canvas id="fundCv"></canvas><div id="fundTip"></div></div><div id="fundMeta"></div><div class="fundreg-box" id="fundReg"></div>';
+  } else {
+    h+='<div class="note">Схема свайного поля не заведена — загрузите PDF-страницу отчёта или изображение схемы для автоматического распознавания.</div>';
+  }
+  if(fundCanEdit()) h+='<div id="fundUplBar"><button class="addrow" id="fundUplBtn">⬆ Загрузить/распознать схему фундаментов</button><input type="file" id="fundUplFile" accept=".pdf,.png,.jpg,.jpeg" style="display:none"><span class="note" id="fundUplNote">форматы: PDF (вектор/скан), PNG, JPG — распознавание осей, свай □/● и ростверков с реестром</span></div>';
+  return h;
+}
+function fundSchemeWire(o, el){
+  const sheets=fundSheetsOf(o);
+  let cur=0, pinned=null;
+  const cv=el.querySelector('#fundCv');
+  function renderAll(){
+    if(!sheets.length||!cv) return;
+    fundDraw(cv, sheets[cur], o);
+    fundMeta(sheets[cur]);
+    fundRegTable(sheets[cur], pinned);
+    el.querySelectorAll('.fund-sheet').forEach(b=>b.classList.toggle('on', +b.dataset.fsh===cur));
+  }
+  el.querySelectorAll('.fund-sheet').forEach(b=>b.onclick=()=>{ cur=+b.dataset.fsh; pinned=null; renderAll(); });
+  renderAll();
+  const ub=el.querySelector('#fundUplBtn');
+  if(ub) ub.onclick=()=>el.querySelector('#fundUplFile').click();
+  const uf=el.querySelector('#fundUplFile');
+  if(uf) uf.addEventListener('change',e=>{ const f=e.target.files[0]; e.target.value=''; if(f) fundUpload(f, o, el, (ns)=>{ sheets.push(ns); cur=sheets.length-1; pinned=null;
+    const box=el.querySelector('#fundCvBox')||null;
+    // перерисовать секцию целиком (добавился первый/очередной лист)
+    const sect=el.querySelector('#fundCvBox');
+    if(!sect){ const host=el; fundRehost(o, el); } else renderAll();
+  }); });
+}
+function fundRehost(o, el){ /* перерисовать вкладку целиком (появился первый лист) */ tabProject(o, el); }
+function fundMeta(s){
+  const m=document.getElementById('fundMeta'); if(!m) return;
+  const sq=s.piles.filter(p=>p[2]===0).length, ci=s.piles.filter(p=>p[2]===1).length;
+  const bl=(s.beams||[]).filter(b=>b.dir==='продольная').length, bp=(s.beams||[]).filter(b=>b.dir==='поперечная').length;
+  m.innerHTML='Свай в реестре: <b>'+s.piles.length+'</b> (□ квадратных '+sq+' · ● круглых/оголовков '+ci+') · балки ростверка: продольных '+bl+' · поперечных '+bp
+    +(s.sect?' · сечение ростверка <b>'+esc(s.sect)+'</b>':'')
+    +(s.mpp?' · масштаб схемы ≈ '+s.mpp+' м/px':'')
+    +' · источник: '+esc(s.src||'пользовательская загрузка')+(s.page?' (стр. '+s.page+')':'')
+    +(s.user?(' · загружена пользователем '+(s.date||'')):'');
+}
+function fundRegTable(s, pinned){
+  const box=document.getElementById('fundReg'); if(!box) return;
+  let h='<table class="fundreg"><thead><tr><th>№</th><th>Ряд (ось)</th><th>Сечение</th><th>x, м</th><th>y, м</th><th>Широта</th><th>Долгота</th><th>№ по схеме</th></tr></thead><tbody>';
+  s.piles.forEach((p,i)=>{ h+='<tr data-pi="'+i+'"'+(pinned===i?' class="hl"':'')+'><td><b>'+esc(p[0])+'</b></td><td>'+esc(p[1]||'—')+'</td><td>'+(p[2]===0?'□ квадрат':'● круг/оголовок')+'</td><td>'+(p[3]??'—')+'</td><td>'+(p[4]??'—')+'</td><td>'+(p[5]??'—')+'</td><td>'+(p[6]??'—')+'</td><td>'+(p[7]||'—')+'</td></tr>'; });
+  box.innerHTML=h+'</tbody></table>';
+  box.querySelectorAll('tr[data-pi]').forEach(tr=>tr.onmouseenter=()=>{ const cv=document.getElementById('fundCv'); if(cv) fundDraw(cv, s, null, +tr.dataset.pi); });
+  box.querySelectorAll('tr[data-pi]').forEach(tr=>tr.onmouseleave=()=>{ const cv=document.getElementById('fundCv'); if(cv) fundDraw(cv, s, null, pinned); });
+}
+/* --- отрисовка схемы на canvas --- */
+function fundDraw(cv, s, o, hiIdx){
+  const dpr=2;
+  const W=cv.clientWidth||cv.parentElement.clientWidth||700;
+  const xs=s.piles.map(p=>p[3]), ys=s.piles.map(p=>p[4]);
+  const x0=Math.min(...xs), x1=Math.max(...xs), y0=Math.min(...ys), y1=Math.max(...ys);
+  const pad=46, pady=34;
+  const sc=Math.min((W-pad*2)/Math.max(x1-x0,1), 560/Math.max(y1-y0,1));
+  const H=Math.round((y1-y0)*sc+pady*2+30);
+  cv.width=W*dpr; cv.height=H*dpr; cv.style.height=H+'px';
+  const ctx=cv.getContext('2d'); ctx.scale(dpr,dpr);
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+  const X=x=>pad+(x-x0)*sc, Y=y=>pady+(y1-y)*sc+30; // y вверх
+  cv._fundMap={X,Y,sc,x0,x1,y0,y1,piles:s.piles};
+  // сетка осей: номерные — по рядам (y каждого ряда из свай), буквенные — по позициям колонок балок/свай
+  const rowsY={}; s.piles.forEach(p=>{ const k=p[1]; rowsY[k]=rowsY[k]||[]; rowsY[k].push(p[4]); });
+  ctx.strokeStyle='#8a97a3'; ctx.setLineDash([5,4]); ctx.lineWidth=1; ctx.fillStyle='#456'; ctx.font='11px Arial';
+  Object.keys(rowsY).forEach(k=>{ const yy=rowsY[k].reduce((a,b)=>a+b,0)/rowsY[k].length;
+    ctx.beginPath(); ctx.moveTo(pad-24,Y(yy)); ctx.lineTo(W-14,Y(yy)); ctx.stroke();
+    ctx.fillText(k.replace('ос. ','').replace(/ ·.*$/,''), pad-40, Y(yy)+4); });
+  // балки ростверка
+  (s.beams||[]).forEach(b=>{ ctx.strokeStyle='#b03a2e'; ctx.setLineDash([]); ctx.lineWidth=1.2;
+    if(b.dir==='продольная'&&b.x0_m!==undefined&&b.x1_m!==undefined&&rowsY['ос. '+b.axis]){
+      const yy=rowsY['ос. '+b.axis].reduce((a2,b2)=>a2+b2,0)/rowsY['ос. '+b.axis].length;
+      ctx.beginPath(); ctx.moveTo(X(b.x0_m),Y(yy)); ctx.lineTo(X(b.x1_m),Y(yy)); ctx.stroke();
+    } });
+  // сваи
+  s.piles.forEach((p,i)=>{
+    const px=X(p[3]), py=Y(p[4]);
+    if(i===hiIdx){ ctx.fillStyle='rgba(255,140,0,.25)'; ctx.beginPath(); ctx.arc(px,py,12,0,7); ctx.fill(); }
+    if(p[2]===0){ ctx.fillStyle= i===hiIdx?'#e07b00':'#1f4a66'; ctx.fillRect(px-4,py-4,8,8); }
+    else { ctx.beginPath(); ctx.arc(px,py,4.6,0,7); ctx.strokeStyle=i===hiIdx?'#e07b00':'#1f4a66'; ctx.lineWidth=1.6; ctx.stroke(); }
+    if(s.piles.length<=160||i===hiIdx){ ctx.fillStyle='#345'; ctx.font='9px Arial'; ctx.fillText(p[0],px+6,py-5); }
+  });
+  // рамка и подписи
+  ctx.setLineDash([]); ctx.strokeStyle='#345'; ctx.lineWidth=1; ctx.strokeRect(pad-26,pady+2,W-pad-10+26,H-pady-16);
+  ctx.fillStyle='#456'; ctx.font='10px Arial';
+  ctx.fillText((s.aL||[]).join(' · '), pad, 18);
+  ctx.fillText('шаг в метрах от левого края свайного поля (x) и от нижнего ряда (y); геопривязка — контур здания (OSM)', pad, H-6);
+  cv.onmousemove=e=>{
+    const r=cv.getBoundingClientRect(); const mx=e.clientX-r.left, my=e.clientY-r.top;
+    let best=null,bd=1e9;
+    s.piles.forEach((p,i)=>{ const dx=X(p[3])-mx, dy=Y(p[4])-my; const d=dx*dx+dy*dy; if(d<bd){bd=d;best=i;} });
+    const tip=document.getElementById('fundTip');
+    if(best!==null&&bd<240){ const p=s.piles[best];
+      tip.style.display='block'; tip.style.left=(mx+12)+'px'; tip.style.top=(my+12)+'px';
+      tip.innerHTML='<b>'+esc(p[0])+'</b> · '+esc(p[1]||'')+'<br>'+(p[2]===0?'□ квадратное сечение':'● круглое сечение / оголовок')+'<br>x '+p[3]+' м · y '+p[4]+' м'+(p[5]?'<br>'+p[5]+'°, '+p[6]+'°':'')+(p[7]?'<br>№ по схеме: '+esc(String(p[7])):'');
+      fundDraw(cv,s,o,best);
+      const tr=document.querySelector('#fundReg tr[data-pi="'+best+'"]');
+      if(tr){ document.querySelectorAll('#fundReg tr.hl').forEach(x=>x.classList.remove('hl')); tr.classList.add('hl'); tr.scrollIntoView({block:'nearest'}); }
+    } else if(tip){ tip.style.display='none'; fundDraw(cv,s,o,pinnedFrom()); }
+  };
+  cv.onmouseleave=()=>{ const tip=document.getElementById('fundTip'); if(tip) tip.style.display='none'; fundDraw(cv,s,o,null); };
+  function pinnedFrom(){ return null; }
+}
+/* --- загрузка и клиентское распознавание (растр) --- */
+function fundUpload(f, o, el, done){
+  const note=el.querySelector('#fundUplNote');
+  const say=t=>{ if(note) note.textContent=t; };
+  say('Читаю файл…');
+  const isPdf=/\.pdf$/i.test(f.name);
+  const renderCb=cv=>{ say('Распознаю оси и сваи…');
+    setTimeout(()=>{ try{ const rec=fundRecognize(cv,o); if(!rec||!rec.piles.length){ say('Сваи не распознаны — проверьте, что лист содержит схему свайного поля.'); return; }
+      rec.user=true; rec.date=new Date().toISOString().slice(0,10); rec.src=f.name;
+      const key='ngk_fund_'+o.a; const cur=fundUserSheet(o);
+      localStorage.setItem(key, JSON.stringify(rec));
+      say('Распознано: свай '+rec.piles.length+' · осей '+rec.aL.length+'×'+rec.aN.length+' · сохранено локально ('+f.name+')');
+      done(rec);
+    }catch(err){ say('Ошибка распознавания: '+err); } },60);
+  };
+  if(isPdf){
+    say('Загружаю движок PDF…');
+    fundPdfJs().then(()=>{
+      const fr=new FileReader();
+      fr.onload=()=>{ pdfjsLib.getDocument({data:fr.result}).promise.then(doc=>doc.getPage(1).then(page=>{
+        const vp=page.getViewport({scale:2.5});
+        const cv=document.createElement('canvas'); cv.width=vp.width; cv.height=vp.height;
+        page.render({canvasContext:cv.getContext('2d'), viewport:vp}).promise.then(()=>renderCb(cv));
+      })).catch(e=>say('PDF: '+e)); };
+      fr.readAsArrayBuffer(f);
+    }).catch(e=>say('Движок PDF недоступен ('+e+') — сохраните страницу схемы как PNG и загрузите её.'));
+  } else {
+    const fr=new FileReader();
+    fr.onload=()=>{ const im=new Image();
+      im.onload=()=>{ const cv=document.createElement('canvas'); const sc=Math.min(1,2200/im.width);
+        cv.width=Math.round(im.width*sc); cv.height=Math.round(im.height*sc);
+        cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height); renderCb(cv); };
+      im.onerror=()=>say('Не удалось прочитать изображение');
+      im.src=fr.result; };
+    fr.readAsDataURL(f);
+  }
+}
+let _pdfjsP=null;
+function fundPdfJs(){
+  if(window.pdfjsLib) return Promise.resolve();
+  if(_pdfjsP) return _pdfjsP;
+  _pdfjsP=new Promise((res,rej)=>{
+    const s=document.createElement('script'); s.src='vendor/pdfjs/pdf.min.js';
+    s.onload=()=>{ try{ window.pdfjsLib.GlobalWorkerOptions.workerSrc='vendor/pdfjs/pdf.worker.min.js'; res(); }catch(e){ rej(e); } };
+    s.onerror=()=>rej(new Error('vendor/pdfjs не найден'));
+    document.head.appendChild(s);
+  });
+  return _pdfjsP;
+}
+function fundRecognize(cv, o){
+  /* растровое распознавание: тёмные блобы → сваи (□ fill>0.72, ● fill<0.62), сетка осей — проекционные пики */
+  const ctx=cv.getContext('2d'); const W=cv.width, H=cv.height;
+  const im=ctx.getImageData(0,0,W,H); const d=im.data;
+  const dark=new Uint8Array(W*H);
+  for(let i=0;i<W*H;i++){ const r=d[i*4],g=d[i*4+1],b=d[i*4+2]; dark[i]=(r+g+b<430)?1:0; }
+  // блобы: связные компоненты
+  const seen=new Uint8Array(W*H); const blobs=[];
+  const stack=[];
+  for(let i0=0;i0<W*H;i0++){
+    if(!dark[i0]||seen[i0]) continue;
+    stack.length=0; stack.push(i0); seen[i0]=1;
+    let minx=W,maxx=0,miny=H,maxy=0,area=0;
+    while(stack.length){ const i=stack.pop(); const x=i%W, y=(i/W)|0; area++;
+      if(x<minx)minx=x; if(x>maxx)maxx=x; if(y<miny)miny=y; if(y>maxy)maxy=y;
+      if(x>0&&dark[i-1]&&!seen[i-1]){seen[i-1]=1;stack.push(i-1);}
+      if(x<W-1&&dark[i+1]&&!seen[i+1]){seen[i+1]=1;stack.push(i+1);}
+      if(y>0&&dark[i-W]&&!seen[i-W]){seen[i-W]=1;stack.push(i-W);}
+      if(y<H-1&&dark[i+W]&&!seen[i+W]){seen[i+W]=1;stack.push(i+W);}
+    }
+    const bw=maxx-minx+1, bh=maxy-miny+1;
+    if(area>=14&&area<=420&&bw>=4&&bh>=4&&bw<=60&&bh<=60&&Math.abs(bw-bh)/Math.max(bw,bh)<0.5){
+      const fill=area/(bw*bh);
+      blobs.push({x:(minx+maxx)/2, y:(miny+maxy)/2, w:bw, h:bh, fill, shape:fill>0.72?0:1});
+    }
+  }
+  if(blobs.length<8) return null;
+  // сетка осей: проекционные пики по строкам/колонкам тёмных пикселей
+  const colD=new Float32Array(W), rowD=new Float32Array(H);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(dark[y*W+x]){colD[x]++;rowD[y]++;}
+  function peaks(arr, minV, minGap){ const out=[]; for(let i=1;i<arr.length-1;i++){ if(arr[i]>=minV&&arr[i]>=arr[i-1]&&arr[i]>=arr[i+1]){ if(out.length&&i-out[out.length-1]<minGap){ if(arr[i]>arr[out[out.length-1]]) out[out.length-1]=i; } else out.push(i); } } return out; }
+  const colPeaks=peaks(colD, Math.max(...colD)*0.45, 24), rowPeaks=peaks(rowD, Math.max(...rowD)*0.45, 24);
+  // сваи — блобы внутри рамки сетки
+  const bx0=Math.min(...colPeaks), bx1=Math.max(...colPeaks), by0=Math.min(...rowPeaks), by1=Math.max(...rowPeaks);
+  const piles=blobs.filter(b=>b.x>=bx0-20&&b.x<=bx1+20&&b.y>=by0-20&&b.y<=by1+20);
+  // ряды: ближайшая горизонтальная ось
+  rowPeaks.sort((a,b)=>b-a); // №1 внизу изображения
+  const nRows=rowPeaks.length, nCols=colPeaks.length;
+  const LET='АБВГДЕЖЗИКЛМНПРСТУФХЦЧШЩЭЮЯ';
+  const pilesOut=[]; let n=0;
+  rowPeaks.forEach((ry,ri)=>{
+    const rowGap=nRows>1?Math.abs(rowPeaks[Math.min(ri+1,nRows-1)]-ry)*0.55:40;
+    const row=piles.filter(b=>Math.abs(b.y-ry)<=rowGap).sort((a,b)=>a.x-b.x);
+    row.forEach((b,j)=>{ n++; pilesOut.push(['С-'+n, 'ос. '+(nRows-ri)+' · №'+(j+1), b.shape,
+      0, 0, null, null]); });
+  });
+  // метры: шаг колонок vs типовой шаг 3,0 м — оценка масштаба по сетке
+  let mpp=null;
+  if(nCols>1){ const gaps=[]; const cs=[...colPeaks].sort((a,b)=>a-b);
+    for(let i=1;i<cs.length;i++) gaps.push(cs[i]-cs[i-1]);
+    gaps.sort((a,b)=>a-b); const med=gaps[gaps.length>>1];
+    if(med>0) mpp=+(3.0/med).toFixed(5); }
+  pilesOut.forEach(p=>{ const b=piles[pilesOut.indexOf(p)]; });
+  // x_m/y_m — от левого нижнего угла сетки
+  if(mpp){ let i2=0; rowPeaks.forEach((ry,ri)=>{ const rowGap=nRows>1?Math.abs(rowPeaks[Math.min(ri+1,nRows-1)]-ry)*0.55:40;
+    const row=piles.filter(b=>Math.abs(b.y-ry)<=rowGap).sort((a,b)=>a.x-b.x);
+    row.forEach((b,j)=>{ const p=pilesOut[i2++]; p[3]=+((b.x-bx0)*mpp).toFixed(2); p[4]=+((by1-b.y)*mpp).toFixed(2); }); }); }
+  return {src:'(загрузка пользователя)', page:1, mpp, sect:null,
+    aL:[...Array(nCols)].map((_,i)=>LET[i]||('X'+i)), aN:[...Array(nRows)].map((_,i)=>String(i+1)),
+    beams:[], piles:pilesOut, geo:null};
+}
+
 };
-const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"pcGR9wsY6Ye4GymA"};
-const BUILD="ecdcd84d";
-const BUILD_DATE="18.09.2026 18:13";
+const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"wN1WcTb0xIJMIpsh"};
+const BUILD="e6e17453";
+const BUILD_DATE="21.09.2026 10:46";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
