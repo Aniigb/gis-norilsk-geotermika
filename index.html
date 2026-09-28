@@ -144,6 +144,12 @@
   #map .legend, #floodLegend, #wxTicker, #mapTicker, #gtmCov{transition:opacity .35s ease}
   #map.moving .legend, #map.moving #floodLegend, #map.moving #wxTicker, #map.moving #mapTicker, #map.moving #gtmCov{opacity:0; pointer-events:none}
   .legend div{margin:2px 0}
+  /* сворачиваемые инфопанели карты: виден только заголовок, тело — по наведению/нажатию */
+  #mapLegend .lg-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0; font-size:10.5px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:#33404d; cursor:pointer; user-select:none}
+  #mapLegend .lg-chev{font-size:9px; color:#8494a3; transition:transform .3s}
+  #mapLegend .lg-body{max-height:0; opacity:0; overflow:hidden; transition:max-height .35s ease, opacity .35s ease}
+  #mapLegend:hover .lg-body, #mapLegend.open .lg-body{max-height:240px; opacity:1}
+  #mapLegend:hover .lg-chev, #mapLegend.open .lg-chev{transform:rotate(180deg)}
   /* ---------- бегущая строка статусов под картой ---------- */
   #mapTicker{position:absolute; left:0; right:0; bottom:0; z-index:650; height:26px; overflow:hidden; display:flex; align-items:center; background:rgba(15,28,38,.92); color:#d8e0e7; border-top:1px solid #3a4c5c}
   #mapTicker .tk{display:flex; white-space:nowrap; animation:tkScroll 40s linear infinite; will-change:transform}
@@ -151,6 +157,11 @@
   #mapTicker:hover .tk{animation-play-state:paused}
   #gtmCov{position:absolute; left:8px; bottom:34px; z-index:640; background:rgba(255,255,255,.93); border:1px solid var(--line); border-radius:8px; padding:6px 8px 4px; box-shadow:0 2px 10px rgba(20,30,40,.18)}
   @media (max-width:900px){ #gtmCov{transform:scale(.82); transform-origin:bottom left} }
+  /* «Охват ГТМ» свёрнут до строки заголовка; тело — по наведению/нажатию */
+  #gtmCov .cov-view{display:block; height:17px; overflow:hidden; transition:height .35s ease}
+  #gtmCov:hover .cov-view, #gtmCov.open .cov-view{height:126px}
+  #gtmCov .cov-chev{position:absolute; top:4px; right:7px; font-size:9px; color:#8494a3; pointer-events:none; transition:transform .3s}
+  #gtmCov:hover .cov-chev, #gtmCov.open .cov-chev{transform:rotate(180deg)}
   #wxTicker{position:absolute; left:0; right:64px; top:0; z-index:650; height:24px; overflow:hidden; display:flex; align-items:center; background:rgba(15,28,38,.88); color:#cfdbe4; border-bottom:1px solid #3a4c5c}
   #wxTicker .tk{display:flex; white-space:nowrap; animation:tkScroll 46s linear infinite; will-change:transform}
   #wxTicker .tk span{padding-right:110px; font-size:12px; letter-spacing:.02em}
@@ -645,19 +656,22 @@
     </div>
   </div>
   <div id="map">
-    <div class="legend">
-      <div><span class="sw" style="background:#2e7d32"></span>НОРМА</div>
-      <div><span class="sw" style="background:#c9a800"></span>ВНИМАНИЕ</div>
-      <div><span class="sw" style="background:#e08a00"></span>РИСК</div>
-      <div><span class="sw" style="background:#c8372d"></span>КРИТИЧНО</div>
-      <div><span class="sw" style="background:#5a0d0d"></span>АВАРИЯ</div>
-      <div><span class="sw" style="background:#8a97a3"></span>без замеров</div>
-      <div><span class="sw" style="background:transparent; border:2px solid #2f6fb2; border-radius:2px"></span>границы районов</div>
+    <div class="legend" id="mapLegend" title="Индикаторы состояния объектов на карте: наведите курсор или нажмите, чтобы развернуть">
+      <div class="lg-head">Индикаторы<span class="lg-chev">▾</span></div>
+      <div class="lg-body">
+        <div><span class="sw" style="background:#2e7d32"></span>НОРМА</div>
+        <div><span class="sw" style="background:#c9a800"></span>ВНИМАНИЕ</div>
+        <div><span class="sw" style="background:#e08a00"></span>РИСК</div>
+        <div><span class="sw" style="background:#c8372d"></span>КРИТИЧНО</div>
+        <div><span class="sw" style="background:#5a0d0d"></span>АВАРИЯ</div>
+        <div><span class="sw" style="background:#8a97a3"></span>без замеров</div>
+        <div><span class="sw" style="background:transparent; border:2px solid #2f6fb2; border-radius:2px"></span>границы районов</div>
+      </div>
     </div>
     <div class="legend" id="floodLegend" style="display:none; bottom:222px"></div>
     <div id="wxTicker" title="Текущая погода в Норильске (Open-Meteo, обновление каждые 30 мин; пауза — навести курсор)"><div class="tk"><span id="wxA">загрузка погоды…</span><span id="wxB" aria-hidden="true"></span></div></div>
     <div id="mapTicker" title="Бегущая строка: количество объектов по категориям состояния (пауза — навести курсор)"><div class="tk"><span id="tkA"></span><span id="tkB" aria-hidden="true"></span></div></div>
-    <div id="gtmCov" title="Охват объектов геотехническим мониторингом: термометрические скважины, геодезические марки, осмотры за 12 мес. Обновляется при изменении данных."><canvas id="gtmCovC" width="248" height="126"></canvas></div>
+    <div id="gtmCov" title="Охват объектов геотехническим мониторингом: термометрические скважины, геодезические марки, осмотры за 12 мес. Наведите курсор или нажмите, чтобы развернуть; клик по строке — фильтр."><span class="cov-chev">▾</span><div class="cov-view"><canvas id="gtmCovC" width="248" height="126"></canvas></div></div>
   </div>
   <div id="detail"><div class="empty">Выберите объект на карте или в списке слева</div></div>
   <footer id="pageFoot" class="footline">© 2013–2026 АНО «АНИИГБ» им. М.В. Кима · Все права защищены<br>ИНН 2457195433 · ОГРН 1132468035072<br><a href="#" id="legalOpen1">Правовая информация и охрана базы данных</a></footer>
@@ -2090,8 +2104,11 @@ function gtmCovDraw(){
     cv.dataset.wired='1';
     cv.style.cursor='pointer';
     cv.addEventListener('click', ev=>{
+      const box=document.getElementById('gtmCov');
       const r=cv.getBoundingClientRect();
       const my=(ev.clientY-r.top)*(cv.height/r.height);
+      const expanded=box&&(box.classList.contains('open')||box.matches(':hover'));
+      if(!expanded||my<17){ if(box){ box.classList.toggle('open'); } return; } // свёрнут или клик по заголовку — переключаем раскрытие
       const rowH=26*(cv.height/cv.clientHeight), top=20*(cv.height/cv.clientHeight);
       const idx=Math.floor((my-top)/rowH);
       const keys=['tw','gd','os','full'];
@@ -2099,6 +2116,14 @@ function gtmCovDraw(){
       else covFilter=null;
       renderList(); drawMarkers(); gtmCovDraw();
     });
+    const cov=document.getElementById('gtmCov');
+    if(cov) ['pointerdown','mousedown','touchstart'].forEach(t=>cov.addEventListener(t, e=>e.stopPropagation(), {passive:true}));
+    const lg=document.getElementById('mapLegend');
+    if(lg&&!lg.dataset.wired){
+      lg.dataset.wired='1';
+      lg.querySelector('.lg-head').addEventListener('click', ev=>{ ev.stopPropagation(); lg.classList.toggle('open'); });
+      ['pointerdown','mousedown','touchstart'].forEach(t=>lg.addEventListener(t, e=>e.stopPropagation(), {passive:true}));
+    }
   }
 }
 /* --- бегущая строка погоды Норильска (Open-Meteo, обновление каждые 30 мин) --- */
@@ -11074,7 +11099,7 @@ function fundRecognize(cv, o){
 };
 const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"wN1WcTb0xIJMIpsh"};
 const BUILD="e6e17453";
-const BUILD_DATE="28.09.2026 21:53";
+const BUILD_DATE="29.09.2026 00:41";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
