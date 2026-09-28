@@ -611,7 +611,7 @@
     <button id="logoutBtn" title="Выйти / сменить пользователя">⎋ Выход</button>
     <button id="hBurger" title="Меню разделов и действий (открывается также системной кнопкой «Назад»)">☰</button>
   </header>
-  <div id="warnStrip" class="ok" title="Дежурный метеоконтроль: критичные погодные явления для городской среды (МКД и объекты соцкультбыта) по районам, прогноз 10 суток, сверка каждый час. Клик — окно дежурного метеоконтроля: статус дежурства, предупреждения, рекомендуемые меры и нормативные основания."><span>…сверка прогноза метеоданных</span></div>
+  <div id="warnStrip" class="ok" title="Дежурный метеоконтроль: критичные погодные явления для городской среды (МКД и объекты соцкультбыта) по районам, прогноз 10 суток. Автообновление каждый час + ручное обновление; прошедшие события автоматически переносятся в журнал. Клик — окно дежурного метеоконтроля: статус дежурства, предупреждения, рекомендуемые меры, журнал событий и нормативные основания."><span>…сверка прогноза метеоданных</span></div>
   <div id="side">
     <div style="display:flex; gap:6px; padding:10px 12px 4px">
       <button class="brbtn on" id="brMkd">🏢 МКД</button>
@@ -8387,6 +8387,33 @@ const WD_PROC_IMPACT={
           m:'осмотр и ремонтные мероприятия по ведомостям'}}
 };
 function wdCache(){ try{ return JSON.parse(localStorage.getItem('ngk_warnduty')||'null'); }catch(e){ return null; } }
+/* текущая дата по времени Норильска (Asia/Krasnoyarsk) в формате прогноза YYYY-MM-DD */
+function wdToday(){ try{ return new Intl.DateTimeFormat('sv',{timeZone:'Asia/Krasnoyarsk'}).format(new Date()); }catch(e){ const n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0'); } }
+/* --- журнал прошедших событий дежурного метеоконтроля: события, ушедшие в прошлое или отменённые прогнозом,
+   автоматически убираются из активной карточки и сохраняются сюда; журнал — вход контура самообучения
+   (сверка «прогноз → факт», калибровка порогов и вероятностных моделей предупреждений) --- */
+function wdLog(){ try{ return JSON.parse(localStorage.getItem('ngk_wxlog')||'[]'); }catch(e){ return []; } }
+function wdLogSave(a){ try{ localStorage.setItem('ngk_wxlog', JSON.stringify(a.slice(-500))); }catch(e){} }
+function wdLogIngest(events){ // регистрация событий, ушедших в прошлое (дата < сегодня); дедупликация по дате+явлению+точке
+  const today=wdToday(), log=wdLog(), keys={};
+  log.forEach(e=>keys[e.date+'|'+e.haz+'|'+e.pt]=1);
+  let add=0;
+  (events||[]).forEach(x=>{ if(!x||x.date>=today) return; const k=x.date+'|'+x.haz+'|'+x.pt; if(keys[k]) return; keys[k]=1;
+    log.push({date:x.date, haz:x.haz, lvl:x.lvl, val:x.val, pt:x.pt, d:x.d, ts:Date.now()}); add++; });
+  if(add) wdLogSave(log);
+  return add;
+}
+function wdPrevSync(cur){ // сверка с предыдущим активным списком: исчезнувшие из прогноза события = отменённые (материал калибровки)
+  let prev=[]; try{ prev=JSON.parse(localStorage.getItem('ngk_wxprev')||'[]'); }catch(e){}
+  const ck={}, log=wdLog(), lk={}, today=wdToday();
+  (cur||[]).forEach(x=>ck[x.date+'|'+x.haz+'|'+x.pt]=1);
+  log.forEach(e=>lk[e.date+'|'+e.haz+'|'+e.pt]=1);
+  let add=0;
+  prev.forEach(x=>{ const k=x.date+'|'+x.haz+'|'+x.pt; if(ck[k]||lk[k]) return; if(x.date<today) return; // прошедшие забирает wdLogIngest
+    log.push({date:x.date, haz:x.haz, lvl:x.lvl, val:x.val, pt:x.pt, d:x.d, ts:Date.now(), cnc:1}); add++; lk[k]=1; });
+  if(add) wdLogSave(log);
+  try{ localStorage.setItem('ngk_wxprev', JSON.stringify(cur||[])); }catch(e){}
+}
 async function wdFetch(){
   const url='https://api.open-meteo.com/v1/forecast?latitude='+WD_PTS.map(p=>p.lat).join(',')+'&longitude='+WD_PTS.map(p=>p.lon).join(',')
     +'&hourly=temperature_2m,rain,snowfall,weather_code,wind_gusts_10m,wind_speed_10m,snow_depth,soil_temperature_0_to_7cm&wind_speed_unit=ms&forecast_days=10&timezone=Asia%2FKrasnoyarsk';
@@ -8400,7 +8427,7 @@ function wdGroupCounts(dd){
   try{ DB.objects.forEach(o=>{ if(o.d!==dd) return; if(branchOf(o)==='mkd') m++; else if(o.br==='skb') s++; }); }catch(e){}
   return {m,s};
 }
-function wdAnalyze(d){
+function wdAnalyzeAll(d){ // полный разбор прогноза без фильтрации по датам (в т.ч. прошедшие сутки)
   const out=[];
   (d.pts||[]).forEach((pt,pi)=>{
     const meta=WD_PTS[pi]; if(!meta||!pt||!pt.hourly) return;
@@ -8437,6 +8464,10 @@ function wdAnalyze(d){
   });
   return out.sort((x,y)=>x.date<y.date?-1:1);
 }
+function wdAnalyze(d){ // активная карточка: только сегодня и будущие сутки; прошедшие события — в журнале (wdLog)
+  const today=wdToday();
+  return wdAnalyzeAll(d).filter(x=>x.date>=today);
+}
 /* --- вероятностные модели опасных процессов (городская адаптация, горизонт 10 сут) --- */
 function wdProcAnalyze(d){
   const out=[];
@@ -8466,8 +8497,10 @@ function wdProcAnalyze(d){
     const best={};
     const push=(proc,prob,peak,basis)=>{ if(prob<30) return; prob=Math.min(95,Math.round(prob));
       if(!best[proc]||prob>best[proc].prob) best[proc]={proc,prob,lvl:prob>=60?'high':'mod',peak,basis}; };
+    const wdT0=wdToday();
     for(let di=0;di<order.length;di++){
       const key=order[di], a=days[key], pv=di>0?days[order[di-1]]:null, pv2=di>1?days[order[di-2]]:null;
+      if(key<wdT0) continue; // прошедшие сутки не показываем в активной карточке (остаются в журнале)
       const month=+key.slice(5,7), coldSeason=(month>=10||month<=5);
       let pm=0; for(let k=Math.max(0,di-7);k<di;k++){ pm+=days[order[k]].rain+days[order[k]].snow*2; }
       let pm3=1e9; for(let k=Math.max(0,di-3);k<di;k++) pm3=Math.min(pm3,days[order[k]].tmin);
@@ -8547,7 +8580,9 @@ function wdClimCmp(d){ // для каждой точки: пиковые дни 
       if(t<a.tmin)a.tmin=t; if(t>a.tmax)a.tmax=t;
     }
     const best={};
+    const wdT0c=wdToday();
     order.forEach(key=>{
+      if(key<wdT0c) return; // прошедшие сутки не сравниваем с нормой в активной карточке
       const a=days[key], mo=+key.slice(5,7)-1;
       const wn=cw.mean[mo], pn=cp.mean[mo], tn=ct.mean[mo];
       const tm=(a.tmin+a.tmax)/2;
@@ -8624,9 +8659,52 @@ function wdStripSet(d, ws, stale){
 async function wdTick(force){
   let d=wdCache();
   const hasNew=d&&d.pts&&d.pts[0]&&d.pts[0].hourly&&d.pts[0].hourly.snow_depth;
-  if(!force&&d&&hasNew&&Date.now()-d.ts<55*60*1000){ wdStripSet(d,warnListSafe(d),false); return d; }
-  try{ d=await wdFetch(); wdStripSet(d,wdAnalyze(d),false); return d; }
+  if(!force&&d&&hasNew&&Date.now()-d.ts<55*60*1000){ wdStripSet(d,warnListSafe(d),false); wxDutyRerender(); return d; }
+  try{
+    d=await wdFetch();
+    const act=wdAnalyze(d);
+    try{ wdLogIngest(wdAnalyzeAll(d)); wdPrevSync(act); }catch(e){ console.warn('wxlog:',e); }
+    wdStripSet(d,act,false); wxDutyRerender();
+    return d;
+  }
   catch(e){ if(d){ wdStripSet(d,wdAnalyze(d),true); return d; } wdStripSet(null,null,false); return null; }
+}
+function wxDutyRerender(){ const m=document.getElementById('wxDutyModal'); if(m&&m.style.display==='block') wxDutyOpen(); }
+async function wdRefreshManual(){ // ручное обновление прогноза по кнопке в окне дежурства
+  try{ await wdTick(true); }catch(e){ console.warn('wdRefresh:',e); }
+  wxDutyOpen();
+}
+/* --- журнал прошедших событий: таблица + выгрузка CSV (вход контура самообучения) --- */
+function wdLogHtml(){
+  const log=wdLog().slice().sort((a,b)=>a.date<b.date?1:(a.date>b.date?-1:0));
+  let h='<div class="warn-card" style="border-left:4px solid #546a7b"><h3>📖 Журнал прошедших событий <span class="note">— записей: '+log.length+' · хранение локальное (до 500)</span></h3>';
+  h+='<div class="wxd-duty" style="margin-bottom:6px">Сюда автоматически переносятся предупреждения, ушедшие в прошлое или отменённые обновлённым прогнозом; в активной карточке дежурства они не отражаются. Журнал — вход контура самообучения: записи используются для сверки «прогноз → факт», калибровки порогов классификации и настройки вероятностных моделей (см. «Центр управления ГТМ»).</div>';
+  if(!log.length){ h+='<div class="warn-none">Журнал пока пуст: прошедших событий не зарегистрировано. Записи появятся автоматически по мере ухода предупреждений в прошлое.</div></div>'; return h; }
+  h+='<table style="width:100%; border-collapse:collapse; font-size:12px">'
+    +'<tr style="background:#546a7b; color:#fff"><th style="padding:4px 6px; text-align:left">Дата явления</th><th style="padding:4px 6px; text-align:left">Район</th><th style="padding:4px 6px; text-align:left">Явление</th><th style="padding:4px 6px; text-align:left">Уровень</th><th style="padding:4px 6px; text-align:left">Прогноз</th><th style="padding:4px 6px; text-align:left">Итог</th><th style="padding:4px 6px; text-align:left">Записано</th></tr>';
+  log.forEach(e=>{
+    const hz=WD_HAZ[e.haz]||{ic:'•', nm:e.haz};
+    const col=e.cnc?'#546a7b':(e.lvl==='crit'?'#93321f':'#7a6015');
+    h+='<tr style="border-bottom:1px solid var(--line)">'
+      +'<td style="padding:3px 6px; white-space:nowrap">'+String(e.date).split('-').reverse().join('.')+'</td>'
+      +'<td style="padding:3px 6px">'+esc(e.d||e.pt||'—')+'</td>'
+      +'<td style="padding:3px 6px">'+hz.ic+' '+esc(hz.nm)+'</td>'
+      +'<td style="padding:3px 6px; color:'+col+'; font-weight:600">'+(e.lvl==='crit'?'ОПАСНО':'предупр.')+'</td>'
+      +'<td style="padding:3px 6px">'+esc(e.val||'—')+'</td>'
+      +'<td style="padding:3px 6px; color:'+col+'">'+(e.cnc?'отменено прогнозом':'прошло')+'</td>'
+      +'<td style="padding:3px 6px; color:var(--mut); white-space:nowrap">'+new Date(e.ts).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td></tr>';
+  });
+  h+='</table><div style="margin-top:6px"><button class="wxd-regBtn" id="wxDutyLogCsv" title="Выгрузить журнал для сверки «прогноз → факт» и калибровки порогов">⬇ Выгрузить журнал (CSV)</button></div></div>';
+  return h;
+}
+function wdLogWire(box){
+  const csv=box.querySelector('#wxDutyLogCsv'); if(!csv) return;
+  csv.onclick=()=>{
+    const rows=[['date','district','point','hazard','level','forecast','outcome','logged_at'].join(';')];
+    wdLog().forEach(e=>rows.push([e.date, e.d||'', e.pt||'', (WD_HAZ[e.haz]||{}).nm||e.haz, e.lvl||'', String(e.val||'').replace(/;/g,','), e.cnc?'cancelled':'passed', new Date(e.ts).toISOString()].join(';')));
+    const blob=new Blob(['﻿'+rows.join('\n')],{type:'text/csv;charset=utf-8'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='Журнал_метеособытий_Норильск.csv'; a.click();
+  };
 }
 function warnListSafe(d){ try{ return wdAnalyze(d); }catch(e){ return []; } }
 setInterval(()=>wdTick(false),60*60*1000);
@@ -8643,7 +8721,12 @@ function wxDutyOpen(){
     +'<b>Задачи.</b> ежечасная сверка прогноза на 10 суток по трём районам города; классификация предупреждений по группам объектов (M — МКД на свайных основаниях по ММГ; S — объекты соцкультбыта Администрации: школы, детсады, культура, спорт); формирование рекомендаций дежурным службам УК и подразделений; связь оттепельных предупреждений с геотермикой объектов базы (сверка с Tрасч и флагом снегозапаса в паспортах ГТМ).<br>'
     +'<b>Источник и пороги.</b> Open-Meteo (модели ECMWF IFS / GFS), точки: Центральный (69.349°N, 88.201°E), Талнах (69.493°N, 88.398°E), Кайеркан (69.357°N, 87.740°E). Пороги — по критериям опасных явлений Росгидромета: дождь ≥ 15 мм/сут (предупреждение) и ≥ 30 мм/сут (опасно); снегопад ≥ 8 и ≥ 20 см/сут; порывы ветра ≥ 17 и ≥ 22 м/с; метель (снег ≥ 5 см + порывы ≥ 15 м/с); гололёдные явления (коды 56/57/66/67).<br>'
     +'<b>Нормативные основания.</b> ЖК РФ ст. 161 (содержание общего имущества МКД); Правила технической эксплуатации жилищного фонда № 170 (Госстрой, 27.09.2003): п. 3.6.21–3.6.24 — очистка кровель от снега, наледи и сосулек, противогололёдные мероприятия; Правила благоустройства г. Норильска (сроки уборки снега и наледи); ГОСТ Р 50597-2017 (тротуары и дороги); СП 20.13330.2016 «Нагрузки и воздействия» (снеговая нагрузка на кровли); СП 25.13330.2020 (учёт снегозапаса и талых вод у оснований на ММГ); ГОСТ 31937-2024 (обследования после воздействий).<br>'
-    +'<b>Вероятностные модели опасных процессов.</b> Состав метеоданных (почасово, 10 суток): температура воздуха, дождь, снегопад, код погоды, порывы и средняя скорость ветра, высота снежного покрова, температура грунта 0–7 см. Вычисляются вероятности: подтопления подполий (водный баланс стока, k=0,9 на мёрзлом грунте), сосулек и наледи на кровлях (покров + таяние после морозов), снежных заносов (метелевый перенос), снеговой нагрузки на кровли (накопление за 3 сут, мокрый снег ×1,3) и переходов через 0 °C (морозное выветривание). Вероятности ≥ 30 % выводятся ниже с мерами по группам объектов; ≥ 60 % — высокая, выводится в полосу дежурного контроля.</div>';
+    +'<b>Вероятностные модели опасных процессов.</b> Состав метеоданных (почасово, 10 суток): температура воздуха, дождь, снегопад, код погоды, порывы и средняя скорость ветра, высота снежного покрова, температура грунта 0–7 см. Вычисляются вероятности: подтопления подполий (водный баланс стока, k=0,9 на мёрзлом грунте), сосулек и наледи на кровлях (покров + таяние после морозов), снежных заносов (метелевый перенос), снеговой нагрузки на кровли (накопление за 3 сут, мокрый снег ×1,3) и переходов через 0 °C (морозное выветривание). Вероятности ≥ 30 % выводятся ниже с мерами по группам объектов; ≥ 60 % — высокая, выводится в полосу дежурного контроля.<br>'
+    +'<b>Обновление и журнал.</b> прогноз обновляется автоматически каждый час, а также вручную кнопкой «Обновить прогноз сейчас»; в активной карточке отражаются только текущие и будущие события — прошедшие и отменённые прогнозом предупреждения автоматически переносятся в «Журнал событий», где хранятся и используются контуром самообучения для сверки «прогноз → факт» и калибровки порогов предупреждений.</div>';
+  h+='<div style="display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 2px">'
+    +'<button class="wxd-regBtn" id="wxDutyRefresh" style="background:#2e6f40; border-color:#2e6f40" title="Принудительно перезагрузить прогноз Open-Meteo и пересчитать предупреждения">🔄 Обновить прогноз сейчас</button>'
+    +'<button class="wxd-regBtn" id="wxDutyLogBtn" style="background:#546a7b; border-color:#546a7b" title="Прошедшие и отменённые прогнозом предупреждения; вход контура самообучения и калибровки порогов">📖 Журнал событий ('+wdLog().length+')</button>'
+    +'</div><div id="wxDutyLogBox" style="display:none"></div>';
   if(!d){
     h+='<div class="warn-card crit"><h3>⚠ Нет связи с метеоисточником</h3><div class="wg">Прогноз не загружен и закэшированных данных нет. Дежурство продолжается: повторная сверка автоматически каждый час. До восстановления связи — штатный регламент наблюдений и данные дежурных метеослужб.</div></div>';
   }else{
@@ -8685,6 +8768,13 @@ function wxDutyOpen(){
   });
   const rb=document.getElementById('wxDutyReg');
   if(rb) rb.onclick=()=>{ m.style.display='none'; const b=document.getElementById('regBtn'); if(b) b.click(); };
+  const rfb=document.getElementById('wxDutyRefresh');
+  if(rfb) rfb.onclick=async()=>{ rfb.disabled=true; rfb.textContent='⏳ Обновление прогноза…';
+    try{ await wdRefreshManual(); }catch(e){ console.warn('wxDutyRefresh:',e); } };
+  const lgb=document.getElementById('wxDutyLogBtn');
+  if(lgb) lgb.onclick=()=>{ const box=document.getElementById('wxDutyLogBox'); if(!box) return;
+    if(box.style.display==='none'){ box.innerHTML=wdLogHtml(); box.style.display='block'; wdLogWire(box); lgb.textContent='📖 Скрыть журнал событий'; }
+    else{ box.style.display='none'; lgb.textContent='📖 Журнал событий ('+wdLog().length+')'; } };
 }
 /* открыть сводный реестр, отфильтрованный по району предупреждения (одним кликом из карточки дежурного контроля) */
 function wxDutyReg(d,lb){
@@ -10921,7 +11011,7 @@ function fundRecognize(cv, o){
 };
 const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"wN1WcTb0xIJMIpsh"};
 const BUILD="e6e17453";
-const BUILD_DATE="21.09.2026 10:46";
+const BUILD_DATE="28.09.2026 20:18";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
