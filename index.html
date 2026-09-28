@@ -8414,6 +8414,44 @@ function wdPrevSync(cur){ // сверка с предыдущим активны
   if(add) wdLogSave(log);
   try{ localStorage.setItem('ngk_wxprev', JSON.stringify(cur||[])); }catch(e){}
 }
+/* --- климатология календарного дня: суточный архив Open-Meteo (ERA5), нормативный период 1991–2020,
+   норма каждой даты = среднее по этой же календарной дате всех лет ряда со сглаживанием ±3 сут;
+   кэш localStorage 'ngk_wxclim' (обновление раз в 30 сут) --- */
+function wdClimDayCache(){ try{ const c=JSON.parse(localStorage.getItem('ngk_wxclim')||'null'); return (c&&c.days)?c:null; }catch(e){ return null; } }
+async function wdClimDayFetch(){
+  const url='https://archive-api.open-meteo.com/v1/archive?latitude=69.349&longitude=88.201&start_date=1991-01-01&end_date=2020-12-31&daily=temperature_2m_mean,precipitation_sum,snowfall_sum,wind_speed_10m_max&wind_speed_unit=ms&timezone=Asia%2FKrasnoyarsk';
+  const r=await fetch(url); const j=await r.json();
+  const D=j.daily||{}, T=D.time||[];
+  if(T.length<8000) throw new Error('суточный архив короткий: '+T.length);
+  const COLS=[['t','temperature_2m_mean'],['pr','precipitation_sum'],['sn','snowfall_sum'],['w','wind_speed_10m_max']];
+  const acc={};
+  for(let i=0;i<T.length;i++){
+    let md=T[i].slice(5); if(md==='02-29') md='02-28'; // високосные сутки входят в норму 28.02
+    let a=acc[md]; if(!a) a=acc[md]={t:[0,0],pr:[0,0],sn:[0,0],w:[0,0]};
+    COLS.forEach(([k,col])=>{ const arr=D[col]; if(!arr||arr[i]===null||arr[i]===undefined) return; const v=+arr[i]; if(isNaN(v)) return; a[k][0]+=v; a[k][1]++; });
+  }
+  const mds=[]; for(let i=0;i<365;i++) mds.push(new Date(Date.UTC(2001,0,1)+i*864e5).toISOString().slice(5,10));
+  const raw=(md,k)=>{ const a=acc[md]; return a&&a[k][1]>=10?a[k][0]/a[k][1]:null; };
+  const days={};
+  mds.forEach((md,i)=>{
+    const agg={t:[0,0],pr:[0,0],sn:[0,0],w:[0,0]};
+    for(let o=-3;o<=3;o++){ const md2=mds[(i+o+365)%365];
+      COLS.forEach(([k])=>{ const v=raw(md2,k); if(v!==null){ agg[k][0]+=v; agg[k][1]++; } }); }
+    const rec={}; COLS.forEach(([k])=>{ rec[k]=agg[k][1]?+(agg[k][0]/agg[k][1]).toFixed(2):null; });
+    days[md]=rec;
+  });
+  return {ts:Date.now(), y0:1991, y1:2020, win:3, src:'Open-Meteo archive (ERA5)', days};
+}
+let wdClimDayInflight=null;
+function wdClimDayEnsure(){ // фоновое обеспечение норм календарного дня (без блокировки дежурства)
+  const c=wdClimDayCache();
+  if(c&&Date.now()-c.ts<30*864e5) return;
+  if(wdClimDayInflight) return;
+  wdClimDayInflight=wdClimDayFetch()
+    .then(d=>{ try{ localStorage.setItem('ngk_wxclim', JSON.stringify(d)); }catch(e){} wxDutyRerender(); })
+    .catch(e=>{ console.warn('wxclim:', e&&e.message); })
+    .finally(()=>{ wdClimDayInflight=null; });
+}
 async function wdFetch(){
   const url='https://api.open-meteo.com/v1/forecast?latitude='+WD_PTS.map(p=>p.lat).join(',')+'&longitude='+WD_PTS.map(p=>p.lon).join(',')
     +'&hourly=temperature_2m,rain,snowfall,weather_code,wind_gusts_10m,wind_speed_10m,snow_depth,soil_temperature_0_to_7cm&wind_speed_unit=ms&forecast_days=10&timezone=Asia%2FKrasnoyarsk';
@@ -8435,12 +8473,12 @@ function wdAnalyzeAll(d){ // полный разбор прогноза без �
     for(let i=0;i<T.length;i++){
       const key=T[i].slice(0,10);
       let a=days[key];
-      if(!a){ a=days[key]={rain:0,snow:0,gust:0,frz:0,tmin:1e9,tmax:-1e9,depth:0}; order.push(key); }
+      if(!a){ a=days[key]={rain:0,snow:0,gust:0,frz:0,tmin:1e9,tmax:-1e9,depth:0,depthMax:0}; order.push(key); }
       a.rain+=H.rain?(+H.rain[i]||0):0;
       a.snow+=H.snowfall?(+H.snowfall[i]||0):0;
       const g=H.wind_gusts_10m?(+H.wind_gusts_10m[i]||0):0; if(g>a.gust) a.gust=g;
       const t=+H.temperature_2m[i]; if(!isNaN(t)){ if(t<a.tmin)a.tmin=t; if(t>a.tmax)a.tmax=t; }
-      const dep=+((H.snow_depth||[])[i]); if(!isNaN(dep)) a.depth=dep*100;
+      const dep=+((H.snow_depth||[])[i]); if(!isNaN(dep)){ a.depth=dep*100; if(dep*100>a.depthMax) a.depthMax=dep*100; }
       const c=H.weather_code?+H.weather_code[i]:null;
       if(c===66||c===67||c===56||c===57) a.frz++;
     }
@@ -8456,10 +8494,11 @@ function wdAnalyzeAll(d){ // полный разбор прогноза без �
       else if(a.gust>=17) push('wind','warn','порывы ветра до '+a.gust.toFixed(0)+' м/с');
       if(a.frz>0) push('frz','warn','гололёдный дождь/морось, '+a.frz+' ч');
       let pm3=1e9; for(let k=Math.max(0,di-3);k<di;k++) pm3=Math.min(pm3,days[order[k]].tmin);
-      if(a.depth>=3&&a.tmax>-3&&a.tmax<=1.5&&pm3<=-10)
-        push('icicle',(a.tmax>0&&a.depth>=10)?'crit':'warn','покров '+a.depth.toFixed(0)+' см, днём до '+a.tmax.toFixed(0)+' °C после морозов до '+pm3.toFixed(0)+' °C');
-      if(a.tmax>0&&a.depth>0)
-        push('thaw',(a.tmax>2&&a.depth>=15)?'crit':'warn','оттепель до +'+a.tmax.toFixed(0)+' °C при покрове '+a.depth.toFixed(0)+' см');
+      /* покров берём по максимуму за сутки: таяние/наледь физически возможны только при реальном снеге (≥ 1/≥ 3 см) */
+      if(a.depthMax>=3&&a.tmax>-3&&a.tmax<=1.5&&pm3<=-10)
+        push('icicle',(a.tmax>0&&a.depthMax>=10)?'crit':'warn','покров '+a.depthMax.toFixed(0)+' см, днём до '+a.tmax.toFixed(0)+' °C после морозов до '+pm3.toFixed(0)+' °C');
+      if(a.tmax>0&&a.depthMax>=1)
+        push('thaw',(a.tmax>2&&a.depthMax>=15)?'crit':'warn','оттепель до +'+a.tmax.toFixed(0)+' °C при покрове '+a.depthMax.toFixed(0)+' см');
     });
   });
   return out.sort((x,y)=>x.date<y.date?-1:1);
@@ -8481,13 +8520,13 @@ function wdProcAnalyze(d){
       const t=+H.temperature_2m[i]; if(isNaN(t)) continue;
       const key=T[i].slice(0,10);
       let a=days[key];
-      if(!a){ a=days[key]={date:key,rain:0,snow:0,ws:0,ws6:0,tmin:1e9,tmax:-1e9,dh:0,depth:0,soil:0,soilN:0,cross:0}; order.push(key); }
+      if(!a){ a=days[key]={date:key,rain:0,snow:0,ws:0,ws6:0,tmin:1e9,tmax:-1e9,dh:0,depth:0,depthMax:0,soil:0,soilN:0,cross:0}; order.push(key); }
       a.rain+=H.rain?(+H.rain[i]||0):0;
       a.snow+=H.snowfall?(+H.snowfall[i]||0):0;
       const w=+H.wind_speed_10m[i]||0; if(w>a.ws)a.ws=w; if(w>=6)a.ws6++;
       if(t<a.tmin)a.tmin=t; if(t>a.tmax)a.tmax=t;
       if(t>0)a.dh+=t;
-      const dep=+H.snow_depth[i]; if(!isNaN(dep)) a.depth=dep*100;
+      const dep=+H.snow_depth[i]; if(!isNaN(dep)){ a.depth=dep*100; if(dep*100>a.depthMax) a.depthMax=dep*100; }
       const st=H.soil_temperature_0_to_7cm?+H.soil_temperature_0_to_7cm[i]:NaN;
       if(!isNaN(st)){ a.soil+=st; a.soilN++; }
       const s=t>0.2?1:(t<-0.2?-1:0);
@@ -8505,31 +8544,33 @@ function wdProcAnalyze(d){
       let pm=0; for(let k=Math.max(0,di-7);k<di;k++){ pm+=days[order[k]].rain+days[order[k]].snow*2; }
       let pm3=1e9; for(let k=Math.max(0,di-3);k<di;k++) pm3=Math.min(pm3,days[order[k]].tmin);
       const soil=a.soilN?a.soil/a.soilN:null;
-      const melt=(a.depth>0&&a.dh>0)?Math.min(a.dh*0.35,a.depth*3):0;
+      /* таяние возможно только при реальном покрове: нет снега (≥ 1 см по максимуму суток) — таять нечему;
+         объём талой воды ограничен запасом покрова (≈ 3 мм воды на 1 см при плотности ~0,3) */
+      const melt=(a.depthMax>=1&&a.dh>0)?Math.min(a.dh*0.35,a.depthMax*3):0;
       // подтопление подполий и территории
       const k=soil==null?0.6:(soil<=-0.5?0.9:(soil<=2?0.6:0.4));
-      let runoff=(a.rain+melt)*k; if(a.rain>0&&a.depth>0) runoff*=1.15;
+      let runoff=(a.rain+melt)*k; if(a.rain>0&&a.depthMax>=1) runoff*=1.15;
       let flood=runoff>=20?70:(runoff>=12?55:(runoff>=8?40:(runoff>=4?20:5)));
       if(a.rain>=15) flood=Math.max(flood,50);
       if(flood>=30) push('flood',flood,key,'сток ≈ '+runoff.toFixed(0)+' мм/сут (дождь '+a.rain.toFixed(0)+' + таяние '+melt.toFixed(0)+', k='+k.toFixed(1)+(soil!=null&&soil<=-0.5?' — мёрзлый грунт':'')+')');
-      // сосульки и наледь на кровлях
+      // сосульки и наледь на кровлях — только при реальном покрове (максимум за сутки ≥ 3 см)
       let icl=0;
-      if(a.depth>=3){
+      if(a.depthMax>=3){
         if(a.tmax>-3&&a.tmax<=1.5) icl=40;
         if(icl>0&&pm3<=-10) icl+=15;
         if(icl>0&&a.dh>2) icl+=10;
-        if(icl>0&&a.tmax>0&&a.depth>=10) icl+=10;
+        if(icl>0&&a.tmax>0&&a.depthMax>=10) icl+=10;
       }
       if(!coldSeason) icl=Math.min(icl,15);
-      if(icl>=30) push('icicle',icl,key,'покров '+a.depth.toFixed(0)+' см, днём до '+a.tmax.toFixed(0)+' °C, морозы до '+pm3.toFixed(0)+' °C, таяние '+a.dh.toFixed(0)+' °C·ч');
-      // снежные заносы
+      if(icl>=30) push('icicle',icl,key,'покров '+a.depthMax.toFixed(0)+' см, днём до '+a.tmax.toFixed(0)+' °C, морозы до '+pm3.toFixed(0)+' °C, таяние '+a.dh.toFixed(0)+' °C·ч');
+      // снежные заносы — перенос возможен только при наличии снега на поверхности или свежего снегопада
       let drift=0;
-      const fresh=a.snow>=2||(pv&&pv.snow>=2), snowAvail=a.depth>2||a.snow>=1;
+      const fresh=a.snow>=2||(pv&&pv.snow>=2), snowAvail=a.depthMax>2||a.snow>=1;
       if(snowAvail){
         if(a.ws>=12) drift=60; else if(a.ws>=8) drift=40; else if(a.ws>=5) drift=20;
         if(drift>0){ drift+=15; if(fresh) drift+=15; if(a.tmax<=-10) drift+=10; drift+=Math.min(10,a.ws6*1.5); }
       }
-      if(drift>=30) push('drift',drift,key,'средний ветер до '+a.ws.toFixed(0)+' м/с ('+a.ws6+' ч ≥ 6 м/с), покров '+a.depth.toFixed(0)+' см'+(fresh?', свежий снегопад':'')+(a.tmax<=-10?', сухой снег':''));
+      if(drift>=30) push('drift',drift,key,'средний ветер до '+a.ws.toFixed(0)+' м/с ('+a.ws6+' ч ≥ 6 м/с), покров '+a.depthMax.toFixed(0)+' см'+(fresh?', свежий снегопад':'')+(a.tmax<=-10?', сухой снег':''));
       // снеговая нагрузка на кровли: накопление свежего снега за 3 суток
       let s3=a.snow+(pv?pv.snow:0)+(pv2?pv2.snow:0);
       let sl=s3>=25?70:(s3>=15?55:(s3>=10?40:0));
@@ -8562,9 +8603,26 @@ const WD_CLIM_F={
   cold:{nm:'Аномальный холод',unit:'°C',procs:'промерзание цокольных перекрытий, перемерзание инженерных сетей'}
 };
 const WD_MON=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
-function wdClimCmp(d){ // для каждой точки: пиковые дни прогноза, превышающие среднемесячную норму своего месяца
-  const md=mtData(); if(!md) return null;
-  const cw=mtClim(md,'w'), cp=mtClim(md,'pr'), ct=mtClim(md,'t');
+function wdClimCmp(d){ // для каждой точки: пиковые дни прогноза, превышающие климатическую норму
+  // ОСНОВНОЙ РЕЖИМ: норма календарной даты события (например, 28.09 сравнивается со ВСЕМИ 28.09 ряда 1991–2020, сглаживание ±3 сут);
+  // фолбэк при отсутствии кэша суточных норм — среднемесячная норма метеобазы АНИИГБ (прежняя логика)
+  const dc=wdClimDayCache();
+  let normOf=null, mode=null, y0=null, y1=null;
+  if(dc){
+    mode='day'; y0=dc.y0; y1=dc.y1;
+    normOf=(key)=>dc.days[key.slice(5)]||null; // {t,pr,sn,w} по календарной дате MM-DD
+  }else{
+    const md=mtData(); if(!md) return null;
+    const cw=mtClim(md,'w'), cp=mtClim(md,'pr'), ct=mtClim(md,'t');
+    mode='mon'; y0=md.years[0]; y1=md.years[md.years.length-1];
+    normOf=(key)=>{ const mo=+key.slice(5,7)-1;
+      const pn=cp.mean[mo];
+      return {t:ct.mean[mo], w:cw.mean[mo], sn:pn===null?null:pn/30.4, pr:pn===null?null:pn/30.4}; };
+  }
+  const normLabel=(key)=>{ // подпись нормы в тексте предупреждения
+    if(mode==='day'){ const dd=key.slice(8), mm=+key.slice(5,7)-1; return 'нормы '+dd+' '+WD_MON[mm]; }
+    return 'среднемесячной нормы '+WD_MON[+key.slice(5,7)-1];
+  };
   const out=[];
   (d.pts||[]).forEach((pt,pi)=>{
     const meta=WD_PTS[pi]; if(!meta||!pt||!pt.hourly||!pt.hourly.time) return;
@@ -8583,25 +8641,25 @@ function wdClimCmp(d){ // для каждой точки: пиковые дни 
     const wdT0c=wdToday();
     order.forEach(key=>{
       if(key<wdT0c) return; // прошедшие сутки не сравниваем с нормой в активной карточке
-      const a=days[key], mo=+key.slice(5,7)-1;
-      const wn=cw.mean[mo], pn=cp.mean[mo], tn=ct.mean[mo];
+      const a=days[key], N=normOf(key); if(!N) return;
       const tm=(a.tmin+a.tmax)/2;
-      const pk=(f,val,norm)=>{ if(!best[f]||val-norm>best[f].val-best[f].norm) best[f]={f,date:key,val:+val.toFixed(1),norm:+norm.toFixed(1)}; };
-      if(wn!==null&&a.ws>wn) pk('wind',a.ws,wn);
-      if(pn!==null){ const pday=pn/30.4; if(a.snow>pday) pk('snow',a.snow,pday); if(a.rain>pday) pk('rain',a.rain,pday); }
-      if(tn!==null){ if(tm>tn) pk('warm',tm,tn); if(tm<tn) pk('cold',tm,tn); }
+      const pk=(f,val,norm)=>{ if(norm===null||norm===undefined) return; if(!best[f]||val-norm>best[f].val-best[f].norm) best[f]={f,date:key,val:+val.toFixed(1),norm:+norm.toFixed(1)}; };
+      if(N.w!==null&&a.ws>N.w) pk('wind',a.ws,N.w);
+      if(N.sn!==null&&a.snow>N.sn) pk('snow',a.snow,N.sn);
+      if(N.pr!==null&&a.rain>N.pr) pk('rain',a.rain,N.pr);
+      if(N.t!==null){ if(tm>N.t) pk('warm',tm,N.t); if(tm<N.t) pk('cold',tm,N.t); }
     });
     const items=Object.keys(best).map(k=>{
-      const b=best[k], F=WD_CLIM_F[k], mo=+b.date.slice(5,7)-1;
+      const b=best[k], F=WD_CLIM_F[k], nl=normLabel(b.date);
       let txt;
-      if(k==='warm') txt=F.nm+': '+b.date.split('-').reverse().join('.')+' ожидается среднесуточная t '+b.val.toFixed(1)+' °C — выше среднемесячной нормы '+WD_MON[mo]+' ('+b.norm.toFixed(1)+' °C)';
-      else if(k==='cold') txt=F.nm+': '+b.date.split('-').reverse().join('.')+' ожидается среднесуточная t '+b.val.toFixed(1)+' °C — ниже среднемесячной нормы '+WD_MON[mo]+' ('+b.norm.toFixed(1)+' °C)';
-      else txt=F.nm+': '+b.date.split('-').reverse().join('.')+' ожидается до '+b.val+' '+F.unit+' — выше среднемесячной нормы '+WD_MON[mo]+' ('+b.norm+' '+F.unit+((k==='snow'||k==='rain')?' в пересчёте на сутки':'')+')';
+      if(k==='warm') txt=F.nm+': '+b.date.split('-').reverse().join('.')+' ожидается среднесуточная t '+b.val.toFixed(1)+' °C — выше '+nl+' ('+b.norm.toFixed(1)+' °C)';
+      else if(k==='cold') txt=F.nm+': '+b.date.split('-').reverse().join('.')+' ожидается среднесуточная t '+b.val.toFixed(1)+' °C — ниже '+nl+' ('+b.norm.toFixed(1)+' °C)';
+      else txt=F.nm+': '+b.date.split('-').reverse().join('.')+' ожидается до '+b.val+' '+F.unit+' — выше '+nl+' ('+b.norm+' '+F.unit+(mode==='mon'&&(k==='snow'||k==='rain')?' в пересчёте на сутки':'')+')';
       return Object.assign({},b,{txt:txt});
     }).sort((a,b)=>a.date<b.date?-1:1);
     if(items.length) out.push({pi:pi, pt:meta.nm, d:meta.d, items:items});
   });
-  return {list:out, y0:md.years[0], y1:md.years[md.years.length-1]};
+  return {list:out, y0:y0, y1:y1, mode:mode};
 }
 function wdProcHtml(d){
   const pa=wdProcAnalyze(d);
@@ -8609,7 +8667,10 @@ function wdProcHtml(d){
   let h='<div style="margin-top:10px; border-top:2px solid var(--line); padding-top:8px"><b style="font-size:13px">🧬 Вероятностная оценка опасных процессов на 10 суток</b> <span class="note">— подтопление подполий, сосульки и наледь на кровлях, снежные заносы, снеговая нагрузка на кровли, переходы через 0 °C; меры адаптированы под группы объектов городской среды</span>';
   const clim=wdClimCmp(d);
   if(clim&&clim.list.length){
-    h+='<div class="warn-card" style="border-left:4px solid #7a5c2e; background:#f7eeda"><h3>📊 Прогноз выше среднемесячной нормы текущего месяца <span class="note">— сравнение с климатическим рядом метеобазы АНИИГБ, '+clim.y0+'–'+clim.y1+' гг.</span></h3>';
+    const climHdr=clim.mode==='day'
+      ?'📊 Прогноз выше нормы календарной даты <span class="note">— сравнение с нормой именно этой даты по суточному ряду Open-Meteo (ERA5), '+clim.y0+'–'+clim.y1+' гг., сглаживание ±3 сут</span>'
+      :'📊 Прогноз выше среднемесячной нормы текущего месяца <span class="note">— сравнение с климатическим рядом метеобазы АНИИГБ, '+clim.y0+'–'+clim.y1+' гг. (нормы календарной даты ещё загружаются)</span>';
+    h+='<div class="warn-card" style="border-left:4px solid #7a5c2e; background:#f7eeda"><h3>'+climHdr+'</h3>';
     clim.list.forEach(cc=>{
       h+='<div class="wg"><b>'+esc(cc.pt)+':</b><ul style="margin:4px 0 2px 18px; padding:0">'+cc.items.map(it=>'<li style="margin:2px 0">⚠ '+esc(it.txt)+' <span class="note">→ '+esc(WD_CLIM_F[it.f].procs)+'</span></li>').join('')+'</ul></div>';
     });
@@ -8632,7 +8693,7 @@ function wdProcHtml(d){
       h+='</div>';
     });
   });
-  h+='<div class="warn-meta" style="margin-top:6px">Модели: сток — водный баланс «дождь + степень-часовое снеготаяние (≈0,35 мм/°C·ч)», k = 0,9 при t грунта (0–7 см) ≤ −0,5 °C (мёрзлый грунт ММГ, СП 25.13330.2020); сосульки/наледь — покров ≥ 3 см + дневное таяние после морозов ≤ −10 °C (п. 3.6.22 Правил № 170); заносы — метелевый перенос от средней скорости ≥ 5 м/с, усиление при свежем и сухом снеге; снеговая нагрузка — свежий снег за 3 сут ≥ 10/15/25 см, мокрый снег ×1,3 (СП 20.13330.2016); переходы через 0 °C — смены знака t при наличии влаги (морозное выветривание цоколей и отмосток, ГОСТ 31937-2024).</div>';
+  h+='<div class="warn-meta" style="margin-top:6px">Модели: сток — водный баланс «дождь + степень-часовое снеготаяние (≈0,35 мм/°C·ч)», таяние учитывается только при реальном снежном покрове ≥ 1 см (по максимуму суток) и ограничено его запасом (≈ 3 мм воды на 1 см), k = 0,9 при t грунта (0–7 см) ≤ −0,5 °C (мёрзлый грунт ММГ, СП 25.13330.2020); сосульки/наледь — покров ≥ 3 см + дневное таяние после морозов ≤ −10 °C (п. 3.6.22 Правил № 170); заносы — метелевый перенос от средней скорости ≥ 5 м/с при наличии снега, усиление при свежем и сухом снеге; снеговая нагрузка — свежий снег за 3 сут ≥ 10/15/25 см, мокрый снег ×1,3 (СП 20.13330.2016); переходы через 0 °C — смены знака t при наличии влаги (морозное выветривание цоколей и отмосток, ГОСТ 31937-2024). Аномалии — сравнение с нормой календарной даты события по суточному ряду 1991–2020 (Open-Meteo, ERA5), сглаживание ±3 сут.</div>';
   h+='</div>';
   return h;
 }
@@ -8657,6 +8718,7 @@ function wdStripSet(d, ws, stale){
   st.innerHTML='<span>'+(critN?'⛔':'⚠')+' <b>Метеопредупреждения: '+ws.length+'</b>'+(critN?' · из них ОПАСНЫХ: '+critN:'')+' · ближайшее: '+hz.ic+' '+hz.nm+' — '+w0.date.split('-').reverse().join('.')+', '+esc(w0.pt)+' ('+esc(w0.val)+')'+phTxt+' · сверка '+upd+' · подробности и меры — клик</span>';
 }
 async function wdTick(force){
+  try{ wdClimDayEnsure(); }catch(e){}
   let d=wdCache();
   const hasNew=d&&d.pts&&d.pts[0]&&d.pts[0].hourly&&d.pts[0].hourly.snow_depth;
   if(!force&&d&&hasNew&&Date.now()-d.ts<55*60*1000){ const a0=wdAnalyze(d); try{ wdLogIngest(wdAnalyzeAll(d)); wdPrevSync(a0); }catch(e){} wdStripSet(d,a0,false); wxDutyRerender(); return d; }
@@ -8722,6 +8784,7 @@ function wxDutyOpen(){
     +'<b>Источник и пороги.</b> Open-Meteo (модели ECMWF IFS / GFS), точки: Центральный (69.349°N, 88.201°E), Талнах (69.493°N, 88.398°E), Кайеркан (69.357°N, 87.740°E). Пороги — по критериям опасных явлений Росгидромета: дождь ≥ 15 мм/сут (предупреждение) и ≥ 30 мм/сут (опасно); снегопад ≥ 8 и ≥ 20 см/сут; порывы ветра ≥ 17 и ≥ 22 м/с; метель (снег ≥ 5 см + порывы ≥ 15 м/с); гололёдные явления (коды 56/57/66/67).<br>'
     +'<b>Нормативные основания.</b> ЖК РФ ст. 161 (содержание общего имущества МКД); Правила технической эксплуатации жилищного фонда № 170 (Госстрой, 27.09.2003): п. 3.6.21–3.6.24 — очистка кровель от снега, наледи и сосулек, противогололёдные мероприятия; Правила благоустройства г. Норильска (сроки уборки снега и наледи); ГОСТ Р 50597-2017 (тротуары и дороги); СП 20.13330.2016 «Нагрузки и воздействия» (снеговая нагрузка на кровли); СП 25.13330.2020 (учёт снегозапаса и талых вод у оснований на ММГ); ГОСТ 31937-2024 (обследования после воздействий).<br>'
     +'<b>Вероятностные модели опасных процессов.</b> Состав метеоданных (почасово, 10 суток): температура воздуха, дождь, снегопад, код погоды, порывы и средняя скорость ветра, высота снежного покрова, температура грунта 0–7 см. Вычисляются вероятности: подтопления подполий (водный баланс стока, k=0,9 на мёрзлом грунте), сосулек и наледи на кровлях (покров + таяние после морозов), снежных заносов (метелевый перенос), снеговой нагрузки на кровли (накопление за 3 сут, мокрый снег ×1,3) и переходов через 0 °C (морозное выветривание). Вероятности ≥ 30 % выводятся ниже с мерами по группам объектов; ≥ 60 % — высокая, выводится в полосу дежурного контроля.<br>'
+    +'<b>Климатические нормы и снежный покров.</b> аномальные явления определяются сравнением с нормой календарной даты события — например, прогноз на 28 сентября сравнивается со всеми 28 сентября суточного ряда 1991–2020 (Open-Meteo, ERA5; сглаживание ±3 сут); если суточные нормы ещё не загружены — временно со среднемесячной нормой метеобазы АНИИГБ. Таяние снега при оттепели и связанные процессы (талая составляющая стока, наледь, оттепельные предупреждения) учитываются только при наличии снежного покрова в прогнозе (≥ 1 см по максимуму за сутки): нет покрова — таять нечему.<br>'
     +'<b>Обновление и журнал.</b> прогноз обновляется автоматически каждый час, а также вручную кнопкой «Обновить прогноз сейчас»; в активной карточке отражаются только текущие и будущие события — прошедшие и отменённые прогнозом предупреждения автоматически переносятся в «Журнал событий», где хранятся и используются контуром самообучения для сверки «прогноз → факт» и калибровки порогов предупреждений.</div>';
   h+='<div style="display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 2px">'
     +'<button class="wxd-regBtn" id="wxDutyRefresh" style="background:#2e6f40; border-color:#2e6f40" title="Принудительно перезагрузить прогноз Open-Meteo и пересчитать предупреждения">🔄 Обновить прогноз сейчас</button>'
@@ -11011,7 +11074,7 @@ function fundRecognize(cv, o){
 };
 const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"wN1WcTb0xIJMIpsh"};
 const BUILD="e6e17453";
-const BUILD_DATE="28.09.2026 20:28";
+const BUILD_DATE="28.09.2026 21:53";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
