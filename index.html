@@ -956,14 +956,14 @@
   </div>
 </div>
 
-<script src="db_p1.js?v=e24f4394"></script>
-<script src="db_p2.js?v=e24f4394"></script>
-<script src="db_p3.js?v=e24f4394"></script>
-<script src="db_p4.js?v=e24f4394"></script>
-<script src="db_p5.js?v=e24f4394"></script>
-<script src="db_p6.js?v=e24f4394"></script>
-<script src="db_p7.js?v=e24f4394"></script>
-<script src="db_p8.js?v=e24f4394"></script>
+<script src="db_p1.js?v=e9d87c9b"></script>
+<script src="db_p2.js?v=e9d87c9b"></script>
+<script src="db_p3.js?v=e9d87c9b"></script>
+<script src="db_p4.js?v=e9d87c9b"></script>
+<script src="db_p5.js?v=e9d87c9b"></script>
+<script src="db_p6.js?v=e9d87c9b"></script>
+<script src="db_p7.js?v=e9d87c9b"></script>
+<script src="db_p8.js?v=e9d87c9b"></script>
 
 <div id="loginModal">
   <form class="lbox" id="loginForm">
@@ -3962,7 +3962,7 @@ function renderRows(o, el, scope, keys, selects){
 }
 
 /* --- извлечённый паспорт (годовые отчёты НПО «Фундамент» + «Жилье-архив» ЖКС) --- */
-const PF2_LABELS=[['year_in','Ввод в эксплуатацию'],['project','Проект / серия'],['dims','Основные размеры'],['floors_txt','Этажность'],['konstr','Конструктивная схема'],['princip','Принцип использования грунтов'],['grunts','Грунты основания'],['fund','Фундаменты'],['rostverk','Ростверк'],['podpol_plan','Подполье / планировка'],['lotok','Водоотводной лоток'],['vent','Вентилирование подполья'],['otmostka','Отмостка'],['cokol','Цокольное ограждение'],['heating','Отопление и канализация'],['walls','Наружные стены'],['walls_in','Внутренние стены'],['roof','Кровля'],['windows','Оконные заполнения'],['arc_year','Год постройки (архив)'],['arc_series','Серия (архив)'],['arc_floors','Этажей (архив)'],['arc_walls_mat','Материал стен (архив)'],['arc_volume','Объём здания, м³'],['arc_area','Площадь по дому, м²'],['arc_piles','Кол-во свай'],['arc_area_podpol','Площадь подполья, м²'],['arc_vol_podpol','Объём подполья, м³'],['geoterm_obs','Геотермические наблюдения'],['geod_obs','Геодезические наблюдения']];
+const PF2_LABELS=[['year_in','Ввод в эксплуатацию'],['project','Проект / серия'],['dims','Основные размеры'],['floors_txt','Этажность'],['konstr','Конструктивная схема'],['stiff','Пространств. жёсткость'],['princip','Принцип использования грунтов'],['grunts','Грунты основания'],['fund','Фундаменты'],['rostverk','Ростверк'],['podpol_plan','Подполье / планировка'],['lotok','Водоотводной лоток'],['vent','Вентилирование подполья'],['perekrytie','Цокольное перекрытие'],['perekrytie_nad','Перекрытие'],['otmostka','Отмостка'],['cokol','Цокольное ограждение'],['heating','Отопление и канализация'],['walls','Наружные стены'],['walls_finish','Отделка наружных стен'],['walls_in','Внутренние стены'],['finish_in','Отделка помещений'],['roof','Кровля'],['windows','Оконные заполнения'],['arc_year','Год постройки (архив)'],['arc_series','Серия (архив)'],['arc_floors','Этажей (архив)'],['arc_walls_mat','Материал стен (архив)'],['arc_volume','Объём здания, м³'],['arc_area','Площадь по дому, м²'],['arc_piles','Кол-во свай'],['arc_area_podpol','Площадь подполья, м²'],['arc_vol_podpol','Объём подполья, м³'],['geoterm_obs','Геотермические наблюдения'],['geod_obs','Геодезические наблюдения']];
 function passportBlock(o){
   const p=o.pf2; if(!p) return '';
   const rows=PF2_LABELS.filter(([k])=>p[k]).map(([k,l])=>`<tr><td>${l}</td><td>${escT(p[k])}</td></tr>`).join('');
@@ -3993,7 +3993,7 @@ function tabPassport(o, el){
   <div class="normref">${o.br==='kos'
     ?'Состав сведений: ГОСТ 31937-2024 «Здания и сооружения. Правила обследования и мониторинга технического состояния» (паспорт объекта мониторинга); ГОСТ 53778-2010 (постановка геотехнического мониторинга); СП 25.13330.2020 (разд. 5 — принципы использования вечномерзлых грунтов); СП 32.13330.2018 «Канализация. Наружные сети и сооружения». Технологические характеристики — из официальных источников предприятия и Схемы водоснабжения и водоотведения МО г. Норильск до 2042 г. Поля редактируются и сохраняются локально в браузере.'
     :'Состав сведений: ГОСТ 31937-2024 «Здания и сооружения. Правила обследования и мониторинга технического состояния» (паспорт объекта мониторинга); СП 25.13330.2020 (разд. 5 — принципы использования вечномерзлых грунтов); ПП РФ № 491 (п. 24–26, состав технической документации на МКД). Поля редактируются и сохраняются локально в браузере.'}</div>
-  ${o.br==='kos'?kosTechBlock(o):passportBlock(o)}
+  ${o.br==='kos'?kosTechBlock(o)+passportBlock(o):passportBlock(o)}
   <table class="kv">
     <tr><td>Адрес</td><td>г. Норильск, ${esc(o.a)}</td></tr>
     ${o.ao?`<tr><td>Официальный адрес (ГИС ЖКХ / ginfo.ru)</td><td><b>${esc(o.ao)}</b></td></tr>`:''}
@@ -11137,9 +11137,9 @@ function fundRecognize(cv, o){
 }
 
 };
-const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"cU33XNXtOkBCU+fO"};
-const BUILD="e24f4394";
-const BUILD_DATE="29.09.2026 12:35";
+const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"SWHksQlE/aBWG8ZF"};
+const BUILD="e9d87c9b";
+const BUILD_DATE="29.09.2026 13:50";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
