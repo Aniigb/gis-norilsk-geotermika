@@ -956,14 +956,14 @@
   </div>
 </div>
 
-<script src="db_p1.js?v=bf722b01"></script>
-<script src="db_p2.js?v=bf722b01"></script>
-<script src="db_p3.js?v=bf722b01"></script>
-<script src="db_p4.js?v=bf722b01"></script>
-<script src="db_p5.js?v=bf722b01"></script>
-<script src="db_p6.js?v=bf722b01"></script>
-<script src="db_p7.js?v=bf722b01"></script>
-<script src="db_p8.js?v=bf722b01"></script>
+<script src="db_p1.js?v=497bd973"></script>
+<script src="db_p2.js?v=497bd973"></script>
+<script src="db_p3.js?v=497bd973"></script>
+<script src="db_p4.js?v=497bd973"></script>
+<script src="db_p5.js?v=497bd973"></script>
+<script src="db_p6.js?v=497bd973"></script>
+<script src="db_p7.js?v=497bd973"></script>
+<script src="db_p8.js?v=497bd973"></script>
 
 <div id="loginModal">
   <form class="lbox" id="loginForm">
@@ -2007,7 +2007,6 @@ function covPass(o){
 }
 const COV_LABELS={tw:'термоскважины',gd:'геодезические марки',os:'осмотры (12 мес.)',full:'полный ГТМ'};
 const markers = {};
-const traces = {}; // полилинии линейных сооружений (коллекторы МУП «КОС»)
 function markerColor(o){ const st=statusOf(o); return st?SCOL[st]:'#8a97a3'; }
 function drawMarkers(){
   const kpYear=String(new Date().getFullYear());
@@ -2016,13 +2015,6 @@ function drawMarkers(){
     const has=!!o.prof;
     const kp=window.kpOn&&(o.krp||[]).some(k=>String(k.year||'').includes(kpYear));
     if(markers[i]) map.removeLayer(markers[i]);
-    if(traces[i]){ map.removeLayer(traces[i]); delete traces[i]; }
-    if(o.tr&&o.tr.length>1){ // линейное сооружение: ось трассы под маркером
-      const pl=L.polyline(o.tr,{color:'#6d4a9e', weight:5, opacity:.7, lineCap:'round', lineJoin:'round'});
-      pl.bindTooltip(o.a+' · трасса (ось по улице)',{direction:'top'});
-      pl.on('click',()=>select(i));
-      traces[i]=pl;
-    }
     const m=L.circleMarker([o.lat,o.lon],{radius:has?7:5,
       color:kp?'#4a2f6b':'#fff', weight:kp?2.2:1.2,
       fillColor:kp?'#7b5ea7':markerColor(o),
@@ -3136,9 +3128,8 @@ function ukTabReco(uk, el){
 function applyFilter(){
   DB.objects.forEach((o,i)=>{
     const m=markers[i]; if(!m) return;
-    const tr=traces[i];
-    if(passF(o)){ if(tr&&!map.hasLayer(tr)) tr.addTo(map); if(!map.hasLayer(m)) m.addTo(map); }
-    else { if(map.hasLayer(m)) map.removeLayer(m); if(tr&&map.hasLayer(tr)) map.removeLayer(tr); }
+    if(passF(o)){ if(!map.hasLayer(m)) m.addTo(map); }
+    else if(map.hasLayer(m)) map.removeLayer(m);
   });
   renderUKBlock();
 }
@@ -3740,10 +3731,6 @@ function select(i,fromList){
     const m=markers[i];
     if(m){ m.setStyle({radius:9,weight:2,color:'#1d2733'});
       setTimeout(()=>m.setStyle({radius:o.prof?7:5,weight:1.2,color:'#fff'}),1200); }
-    const tr=traces[i]; // подсветка оси линейного сооружения
-    if(tr){ tr.setStyle({weight:9,color:'#1d2733',opacity:.95});
-      setTimeout(()=>tr.setStyle({weight:5,color:'#6d4a9e',opacity:.7}),1200);
-      if(!fromList) try{ map.fitBounds(tr.getBounds().pad(0.15)); }catch(e){} }
   }
   renderDetail(o);
   if(window.matchMedia('(max-width:900px)').matches)
@@ -11176,9 +11163,9 @@ function fundRecognize(cv, o){
 }
 
 };
-const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"AUf37RSUSGqU/HfM"};
-const BUILD="bf722b01";
-const BUILD_DATE="30.09.2026 14:34";
+const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"HPH4f5iTNrb4UaA7"};
+const BUILD="497bd973";
+const BUILD_DATE="30.09.2026 15:17";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
