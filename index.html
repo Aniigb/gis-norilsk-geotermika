@@ -956,14 +956,14 @@
   </div>
 </div>
 
-<script src="db_p1.js?v=e9d87c9b"></script>
-<script src="db_p2.js?v=e9d87c9b"></script>
-<script src="db_p3.js?v=e9d87c9b"></script>
-<script src="db_p4.js?v=e9d87c9b"></script>
-<script src="db_p5.js?v=e9d87c9b"></script>
-<script src="db_p6.js?v=e9d87c9b"></script>
-<script src="db_p7.js?v=e9d87c9b"></script>
-<script src="db_p8.js?v=e9d87c9b"></script>
+<script src="db_p1.js?v=497bd973"></script>
+<script src="db_p2.js?v=497bd973"></script>
+<script src="db_p3.js?v=497bd973"></script>
+<script src="db_p4.js?v=497bd973"></script>
+<script src="db_p5.js?v=497bd973"></script>
+<script src="db_p6.js?v=497bd973"></script>
+<script src="db_p7.js?v=497bd973"></script>
+<script src="db_p8.js?v=497bd973"></script>
 
 <div id="loginModal">
   <form class="lbox" id="loginForm">
@@ -2855,11 +2855,12 @@ function skbSubTree(u){ // раскрытое подразделение: гру
 /* --- классификация и дерево сооружений МУП «КОС» --- */
 function kosCat(o){
   const nm=((o.pf2&&o.pf2.project)||'')+' '+(o.podr||'');
+  if(/коллектор/i.test(nm)) return 'Коллекторы';
   if(/ливнев/i.test(nm)) return 'Ливневая канализация';
   if(/ТП[-\s]?\d|трансформаторн/i.test(nm)) return 'Трансформаторные подстанции';
   if(/административн/i.test(nm)) return 'Административно-производственные здания';
   if(/КНС|ЛНС|насосн/i.test(nm)) return 'Насосные станции';
-  if(/очистн|КОС/i.test(nm)) return 'Очистные сооружения';
+  if(/очистн/i.test(nm)||/^КОС\s*«/.test((o.pf2&&o.pf2.project)||'')) return 'Очистные сооружения';
   return 'Прочие здания и сооружения';
 }
 function kosObjName(o){ // краткое наименование сооружения для дерева
@@ -3755,6 +3756,7 @@ function renderDetail(o){
   TABS.forEach(([k,label])=>{
     if(k==='krplan'&&(o.br==='skb'||o.br==='kos')) return; // «План ремонтов МКД» — только жилой фонд
     if(o.br==='kos'&&(k==='podpol'||k==='cokper'||k==='cokogr')) return; // инженерные сооружения КОС — разделы подполья и цоколя МКД не применяются
+    if(k==='fund'&&o.podr==='Коллекторы') label='Конструкция канала'; // линейное сооружение вместо свайного поля
     const b=document.createElement('button');
     if(k===curTab) b.className='on';
     b.textContent=label;
@@ -3779,7 +3781,8 @@ function renderTab(o){
 
 /* --- блок дефектов из годового отчёта --- */
 const DEF_TITLES={fund_piles:'Сваи', fund_rostverk:'Ростверк / продольные балки', fund_ogolovki:'Оголовки свай',
-  cok_perekrytie:'Плиты цокольного перекрытия', cok_ograd:'Цокольное ограждение / продухи', podpol:'Подполье'};
+  cok_perekrytie:'Плиты цокольного перекрытия', cok_ograd:'Цокольное ограждение / продухи', podpol:'Подполье',
+  koll_verh:'Верхний ярус', koll_nizh:'Нижний ярус', koll_kanal:'Канал / блоки коллектора'};
 function defectBlock(o, codes){
   const d=o.defects||{};
   const cx=(CARD[o.a]&&CARD[o.a].defx)||{};
@@ -3829,6 +3832,26 @@ function fundSummary(o){
   <table class="kv">${rows.map(r=>`<tr><td>${r[0]}</td><td>${escT(r[1])}</td></tr>`).join('')}</table>`;
 }
 function tabFund(o, el){
+  if(o.podr==='Коллекторы'){ // линейные сооружения: конструкция канала вместо свайного фундамента
+    el.innerHTML=`
+    <div class="normref">СП 32.13330.2018 «Канализация. Наружные сети и сооружения»; СП 13-102-2003 (обследование); СП 25.13330.2020 (основания на ММГ); ГОСТ 31937-2024 (классификация повреждений).</div>
+    <div class="sect">Конструкция канала и сведения</div>
+    <table class="kv">
+      ${pfRow(o,'koll_type','Тип коллектора')}
+      ${pfRow(o,'koll_len','Протяжённость, м')}
+      ${pfRow(o,'koll_section','Сечение канала (Ш×В), м')}
+      ${pfRow(o,'koll_yarus','Ярусность / рядность')}
+      ${pfRow(o,'koll_konstr','Конструктив')}
+      ${pfRow(o,'koll_vol','Объём коллектора, м³')}
+      ${pfRow(o,'koll_opis','Объёмно-планировочное решение')}
+      ${pfRow(o,'princip','Принцип использования ММГ')}
+      ${pfRow(o,'koll_state','Техническое состояние (обслед.)')}
+    </table>
+    <div class="sect">Дефекты и повреждения</div>
+    ${defectBlock(o,['koll_verh','koll_nizh','koll_kanal'])}
+    ${reportSrc(o)}`;
+    return;
+  }
   el.innerHTML=`
   <div class="normref">СП 497.1325800.2020 «Основания и фундаменты зданий и сооружений на многолетнемерзлых грунтах. Правила эксплуатации»; СП 25.13330.2020; ГОСТ 31937-2024 (классификация повреждений).</div>
   ${(o.fund||(typeof fundUserSheet==='function'&&fundUserSheet(o)))?'<div class="note" style="margin-bottom:8px">📐 Интерактивная схема расположения фундаментов (свайное поле, оси, реестр элементов) — во вкладке «Проектная документация».</div>':''}
@@ -3975,14 +3998,17 @@ function passportBlock(o){
 }
 
 /* --- технологические характеристики сооружений МУП «КОС» --- */
-const KOS_LABELS=[['project','Наименование сооружения'],['kos_cap','Производительность'],['kos_tech','Технологическая схема / состав'],['kos_zone','Зона обслуживания'],['kos_year','Ввод в эксплуатацию'],['kos_own','Собственность / балансодержатель'],['kos_note','Примечание']];
+const KOS_LABELS=[['project','Наименование сооружения'],['kos_cap','Производительность'],['kos_tech','Технологическая схема / состав'],['kos_zone','Зона обслуживания'],['kos_year','Ввод в эксплуатацию'],['kos_own','Собственность / балансодержатель'],['kos_note','Примечание'],
+  ['koll_type','Тип коллектора'],['koll_len','Протяжённость, м'],['koll_section','Сечение канала (Ш×В), м'],['koll_yarus','Ярусность / рядность'],['koll_konstr','Конструктив'],['koll_vol','Объём коллектора, м³'],['koll_state','Техническое состояние (обслед.)']];
 function kosTechBlock(o){
   const p=o.pf2; if(!p) return '';
   const rows=KOS_LABELS.filter(([k])=>p[k]).map(([k,l])=>`<tr><td>${l}</td><td>${escT(p[k])}</td></tr>`).join('');
   if(!rows) return '';
   return `<div class="sect">Технологические характеристики сооружения</div>
   <table class="kv">${rows}</table>
-  <div class="note">Источники: официальный сайт МУП «КОС» (mupkosnorilsk.ru); Схема водоснабжения и водоотведения МО г. Норильск до 2042 г.; Программа комплексного развития систем коммунальной инфраструктуры МО г. Норильск 2025–2042 гг. (пост. Адм. № 210 от 04.02.2025). Значения приведены как в источниках, без редактирования.</div>`;
+  <div class="note">Источники: ${o.podr==='Коллекторы'
+    ?'информационные отчёты ООО «НПО «Фундамент» по мерзлотно-техническому надзору МУП «КОС» (2015 г. — Центральный р-н; 2016 г. — Талнах, ж/о Оганер); приложение к договору МТН — реестр коллекторов р-на Талнах (ред. 2021). Значения приведены как в источниках, без редактирования.'
+    :'официальный сайт МУП «КОС» (mupkosnorilsk.ru); Схема водоснабжения и водоотведения МО г. Норильск до 2042 г.; Программа комплексного развития систем коммунальной инфраструктуры МО г. Норильск 2025–2042 гг. (пост. Адм. № 210 от 04.02.2025). Значения приведены как в источниках, без редактирования.'}</div>`;
 }
 
 function tabPassport(o, el){
@@ -11137,9 +11163,9 @@ function fundRecognize(cv, o){
 }
 
 };
-const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"SWHksQlE/aBWG8ZF"};
-const BUILD="e9d87c9b";
-const BUILD_DATE="29.09.2026 13:50";
+const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"HPH4f5iTNrb4UaA7"};
+const BUILD="497bd973";
+const BUILD_DATE="30.09.2026 13:39";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
