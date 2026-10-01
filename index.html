@@ -416,7 +416,7 @@
   #legalModal h2{font-size:16px; margin:0 0 8px}
   #legalModal h3{font-size:13.5px; margin:14px 0 4px}
   #legalModal p{margin:4px 0}
-  /* ---------- Центр управления ГТМ ---------- */
+  /* ---------- Центр контроля ГТМ ---------- */
   @keyframes gsBlink{0%,100%{background:#c8372d; color:#fff}50%{background:#7e1f18; color:#ffd9d4}}
   #gsBox{margin:8px 10px 10px; border:1px solid #b3a8c9; border-top:3px solid #5b4a7a; border-radius:8px; background:linear-gradient(180deg,#e9e4f0,#efeadd 60%); overflow:hidden; flex:none}
   #gsHead{padding:7px 10px 6px; font-size:12px; font-weight:700; color:#fff; letter-spacing:.3px; border-bottom:1px solid #cfc4e2; background:linear-gradient(90deg,#16283a 0%,#3d5a73 55%,#5b4a7a 100%)}
@@ -651,7 +651,7 @@
     <input id="search" placeholder="Поиск: адрес, объект, УК, район…">
     <div id="list"></div>
     <div id="gsBox">
-      <div id="gsHead">◉ ЦЕНТР УПРАВЛЕНИЯ ГТМ<small>контур раннего предупреждения и развития геотехнического мониторинга зданий · каждый раздел открывается отдельным окном</small></div>
+      <div id="gsHead">◉ ЦЕНТР КОНТРОЛЯ ГТМ<small>контур раннего предупреждения и развития геотехнического мониторинга зданий · каждый раздел открывается отдельным окном</small></div>
       <div id="gsMenu">
         <button data-gs="alerts" title="Журнал тревог и эскалация при переходе объектов через контрольные критерии превентивной шкалы (НОРМА/ВНИМАНИЕ/РИСК/КРИТИЧНО/АВАРИЯ): СП 25.13330.2020, СП 497.1325800.2020, ГОСТ 31937-2024, ГОСТ 24846-2019">⚠ Тревоги и эскалация<i class="bdg" id="gsBdgA" style="display:none"></i></button>
         <button data-gs="risk" title="Матрица рисков 5×5 (вероятность × тяжесть последствий по категории здания) и скоринг объектов 0–100">🎯 Матрица рисков и скоринг</button>
@@ -719,7 +719,7 @@
     <div id="hMenuCtl">
       <div class="hmc-h">Данные · копирование · скачивание</div>
       <button id="hmcCsv" title="CSV по объектам, проходящим текущий фильтр (ветка, район, УК, поиск): адрес, район, УК, статус, замеры">⬇ Реестр объектов (CSV, текущий фильтр)</button>
-      <button id="hmcBackup" title="Резервная копия локальных данных браузера: журналы переходов, предписания, телефонограммы, замеры АМС, настройки Центра управления ГТМ">⬇ Бэкап локальных данных (JSON)</button>
+      <button id="hmcBackup" title="Резервная копия локальных данных браузера: журналы переходов, предписания, телефонограммы, замеры АМС, настройки Центра контроля ГТМ">⬇ Бэкап локальных данных (JSON)</button>
       <button id="hmcRestore" title="Восстановить локальные данные из файла бэкапа (текущие будут замещены)">⤴ Восстановить данные из файла</button>
       <input type="file" id="hmcRestoreFile" accept=".json,application/json" style="display:none">
       <button id="hmcCopyObj" title="Текстовая карточка выбранного объекта: адрес, район, УК, статус, наблюдения — в буфер обмена">⧉ Копировать карточку объекта</button>
@@ -784,7 +784,7 @@
   </div>
 </div>
 
-<div id="gsModal" title="Раздел Центра управления ГТМ">
+<div id="gsModal" title="Раздел Центра контроля ГТМ">
   <div class="box">
     <button class="close" id="gsClose">✕</button>
     <h2 id="gsModalTitle"></h2>
@@ -8156,7 +8156,7 @@ function mtRender(d){
     <label style="font-size:12.5px">с <input id="mtY0" type="number" value="${mtY0}" style="width:64px; padding:3px 5px; border:1px solid var(--line); border-radius:5px"> по <input id="mtY1" type="number" value="${mtY1}" style="width:64px; padding:3px 5px; border:1px solid var(--line); border-radius:5px"></label>
     <label style="font-size:12px; cursor:pointer"><input type="checkbox" id="mtAn"${mtShowAnom?' checked':''}> выделять аномалии</label>
     <button id="mtUpd" style="margin-left:auto; border:1px solid #2e7d32; color:#2e7d32; background:#f2eee4; border-radius:6px; padding:4px 12px; font-size:12.5px; cursor:pointer" title="Дозагрузить недостающие месяцы из открытого метеоархива Open-Meteo (ERA5 + оперативный анализ)">⟳ Обновить из метеоархива</button>
-    <button id="mtAms" style="border:1px solid #2f6fb2; color:#2f6fb2; background:#f2eee4; border-radius:6px; padding:4px 12px; font-size:12.5px; cursor:pointer" title="Городская АМС: реестр местных замеров и валидация метеомодели (Open-Meteo/rp5) по факту — раздел Центра управления ГТМ (этап В, C5)">🌡 АМС · валидация</button>
+    <button id="mtAms" style="border:1px solid #2f6fb2; color:#2f6fb2; background:#f2eee4; border-radius:6px; padding:4px 12px; font-size:12.5px; cursor:pointer" title="Городская АМС: реестр местных замеров и валидация метеомодели (Open-Meteo/rp5) по факту — раздел Центра контроля ГТМ (этап В, C5)">🌡 АМС · валидация</button>
     <span id="mtUpdSt" style="font-size:11.5px; color:var(--mut)"></span>
   </div>
   <div class="mt-tabs" id="mtTabs">
@@ -8831,7 +8831,7 @@ async function wdRefreshManual(){ // ручное обновление прог�
 function wdLogHtml(){
   const log=wdLog().slice().sort((a,b)=>a.date<b.date?1:(a.date>b.date?-1:0));
   let h='<div class="warn-card" style="border-left:4px solid #546a7b"><h3>📖 Журнал прошедших событий <span class="note">— записей: '+log.length+' · хранение локальное (до 500)</span></h3>';
-  h+='<div class="wxd-duty" style="margin-bottom:6px">Сюда автоматически переносятся предупреждения, ушедшие в прошлое или отменённые обновлённым прогнозом; в активной карточке дежурства они не отражаются. Журнал — вход контура самообучения: записи используются для сверки «прогноз → факт», калибровки порогов классификации и настройки вероятностных моделей (см. «Центр управления ГТМ»).</div>';
+  h+='<div class="wxd-duty" style="margin-bottom:6px">Сюда автоматически переносятся предупреждения, ушедшие в прошлое или отменённые обновлённым прогнозом; в активной карточке дежурства они не отражаются. Журнал — вход контура самообучения: записи используются для сверки «прогноз → факт», калибровки порогов классификации и настройки вероятностных моделей (см. «Центр контроля ГТМ»).</div>';
   if(!log.length){ h+='<div class="warn-none">Журнал пока пуст: прошедших событий не зарегистрировано. Записи появятся автоматически по мере ухода предупреждений в прошлое.</div></div>'; return h; }
   h+='<table style="width:100%; border-collapse:collapse; font-size:12px">'
     +'<tr style="background:#546a7b; color:#fff"><th style="padding:4px 6px; text-align:left">Дата явления</th><th style="padding:4px 6px; text-align:left">Район</th><th style="padding:4px 6px; text-align:left">Явление</th><th style="padding:4px 6px; text-align:left">Уровень</th><th style="padding:4px 6px; text-align:left">Прогноз</th><th style="padding:4px 6px; text-align:left">Итог</th><th style="padding:4px 6px; text-align:left">Записано</th></tr>';
@@ -9022,7 +9022,7 @@ setTimeout(()=>{ try{
   mtAutoupdate().then(()=>{}).catch(()=>{});
 }catch(e){} }, 5000); // тихое ежедневное пополнение метеоряда при открытии приложения
 
-/* ================== ◉ ЦЕНТР УПРАВЛЕНИЯ ГТМ ==================
+/* ================== ◉ ЦЕНТР КОНТРОЛЯ ГТМ ==================
    Контур раннего предупреждения и развития геотехнического мониторинга зданий г. Норильска.
    Журнал тревог, матрица рисков 5×5, прогноз состояния ММГ, измерительная база,
    данные/аудит/интеграции, дорожная карта. Статусы — превентивная шкала
@@ -9040,11 +9040,11 @@ const GS_ROAD=[
    {k:'A2', t:'Тренды температуры на глубине НГК с 95% ДИ и прогноз выхода на предельную температуру по каждой скважине', d0:'готово'},
    {k:'A3', t:'Глубина оттаивания грунтов по профилям замеров (ГОСТ 25358-2020, прил. Д) — в карточках объектов', d0:'готово'},
    {k:'A4', t:'Паспорта объектов ГТМ и автовыгрузка программы ГТМ одним документом (docx) по ГОСТ/СП', d0:'готово'},
-   {k:'A5', t:'Центр управления ГТМ: тревоги и эскалация, скоринг рисков, прогноз, дорожная карта', d0:'готово'},
+   {k:'A5', t:'Центр контроля ГТМ: тревоги и эскалация, скоринг рисков, прогноз, дорожная карта', d0:'готово'},
    {k:'A6', t:'Версионирование замеров и аудит изменений в общем реестре (кто/когда/что — неизменяемая история)', d0:'план'}]},
  {g:'Этап Б · 3–9 мес — непрерывность данных', items:[
    {k:'B1', t:'Дежурный метеоконтроль городской среды (ливни/снегопады/гололёд/сосульки) с авто-предписаниями дежурным службам', d0:'готово'},
-   {k:'B2', t:'Уведомления дежурному при тревогах РИСК/КРИТИЧНО/АВАРИЯ (шлюз WhatsApp/Telegram/e-mail + квитирование) — Центр управления ГТМ', d0:'готово'},
+   {k:'B2', t:'Уведомления дежурному при тревогах РИСК/КРИТИЧНО/АВАРИЯ (шлюз WhatsApp/Telegram/e-mail + квитирование) — Центр контроля ГТМ', d0:'готово'},
    {k:'B3', t:'PDF-ингест журналов мерзлотного надзора (НЖЭК, ОК-1, СБ ТГ, архив ЖилКомСервис) — парсер в модуле «Загрузка данных»', d0:'готово'},
    {k:'B4', t:'API-ингест электронных журналов замеров эксплуатации (термометрия/геодезия) без ручного ввода', d0:'план'},
    {k:'B5', t:'Автономные термокосы (LoRa/GPRS) на контрольных зданиях — ежесуточная термометрия свайных полей', d0:'план'},
@@ -9142,7 +9142,7 @@ function gsDutyCard(){
   const links=n=>{
     const t=encodeURIComponent(gsNtfText(n));
     const wa=tel?`<a class="dbtn" target="_blank" rel="noopener" href="https://wa.me/${tel}?text=${t}">WhatsApp</a>`:'';
-    const tgu=tg?`https://t.me/${tg}`:`https://t.me/share/url?url=${encodeURIComponent('Центр управления ГТМ')}&text=${t}`;
+    const tgu=tg?`https://t.me/${tg}`:`https://t.me/share/url?url=${encodeURIComponent('Центр контроля ГТМ')}&text=${t}`;
     const tgl=`<a class="dbtn" target="_blank" rel="noopener" href="${tgu}">Telegram</a>`;
     const ml=mail?`<a class="dbtn" href="mailto:${encodeURIComponent(mail)}?subject=${encodeURIComponent('ТРЕВОГА ГТМ: '+n.name)}&body=${t}">E-mail</a>`:'';
     return wa+tgl+ml||'<span class="mut">заполните контакты дежурного</span>';
@@ -9214,7 +9214,7 @@ function gsViewAlerts(){
         attn=snap.filter(s=>s.status==='ВНИМАНИЕ'), norm=snap.filter(s=>s.status==='НОРМА'), nod=snap.filter(s=>s.status==='нет данных');
   const active=snap.filter(s=>s.status==='АВАРИЯ'||s.status==='КРИТИЧНО'||s.status==='РИСК');
   const j=gsJournalMerged();
-  return `<h2>◉ ЦЕНТР УПРАВЛЕНИЯ ГТМ · Тревоги и эскалация</h2>
+  return `<h2>◉ ЦЕНТР КОНТРОЛЯ ГТМ · Тревоги и эскалация</h2>
   <div class="gsCard"><div style="display:flex;gap:8px;flex-wrap:wrap;font-size:12px;align-items:center">
     <span class="gsPill" style="background:#5a0d0d">АВАРИЯ: ${avar.length}</span>
     <span class="gsPill" style="background:#c8372d">КРИТИЧНО: ${crit.length}</span>
@@ -10732,7 +10732,7 @@ const backChip=document.getElementById('backChip');
 let backChipWin=null, backChipTimer=null;
 function backChipShow(id){
   backChipWin=id;
-  const names={sumModal:'Свод МКД', skbModal:'Свод СКБ', kosModal:'Свод КОС', nzModal:'Надзор', admModal:'Администрация', regModal:'Реестр', gsModal:'Центр управления ГТМ', meteoModal:'Метеоданные', wxDutyModal:'Метеодежурство'};
+  const names={sumModal:'Свод МКД', skbModal:'Свод СКБ', kosModal:'Свод КОС', nzModal:'Надзор', admModal:'Администрация', regModal:'Реестр', gsModal:'Центр контроля ГТМ', meteoModal:'Метеоданные', wxDutyModal:'Метеодежурство'};
   backChip.textContent='← '+(names[id]||'Назад к окну');
   backChip.style.display='block';
   clearTimeout(backChipTimer); backChipTimer=setTimeout(()=>{ backChip.style.display='none'; },12000);
@@ -11165,7 +11165,7 @@ function fundRecognize(cv, o){
 };
 const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"HPH4f5iTNrb4UaA7"};
 const BUILD="497bd973";
-const BUILD_DATE="30.09.2026 15:17";
+const BUILD_DATE="01.10.2026 15:42";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
