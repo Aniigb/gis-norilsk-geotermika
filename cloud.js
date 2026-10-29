@@ -98,9 +98,24 @@
     const form = new FormData(); form.append('file', file); form.append('address', address); form.append('kind', kind || 'attachment');
     return request('/v1/files', { method: 'POST', body: form });
   }
+  async function listFiles(address) {
+    const data = await request('/v1/files?address=' + encodeURIComponent(address || ''));
+    return data.rows || [];
+  }
+  async function downloadFile(fileId) {
+    let response;
+    try { response = await fetch(API + '/v1/files/' + encodeURIComponent(fileId), { credentials: 'same-origin', cache: 'no-store' }); }
+    catch (error) { throw new CloudError('Файловое хранилище недоступно', 0, 'cloud_unavailable', true); }
+    if (!response.ok) {
+      let message = `Ошибка загрузки файла (${response.status})`;
+      try { message = (await response.json()).message || message; } catch (_) {}
+      throw new CloudError(message, response.status, 'file_download_error');
+    }
+    return response.blob();
+  }
   window.NGKCloud = {
     login, bootstrap, logout, applyClientStates, saveState, stateDebounced,
-    createStaging, listStaging, moderateStaging, saveObject, saveRecord, uploadFile,
+    createStaging, listStaging, moderateStaging, saveObject, saveRecord, uploadFile, listFiles, downloadFile,
     get active() { return active; },
     get session() { return session; },
     get pendingStates() { return [...statePending.keys()]; }
