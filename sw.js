@@ -1,23 +1,34 @@
-/* Миграция GitHub Pages → https://gis.aniigb.ru/.
-   Старые кэши удаляются, навигация всегда получает страницу переадресации из сети. */
-self.addEventListener('install', event => {
+/* Service Worker ГИС-ГТМ Норильск: устанавливаемость (PWA) + офлайн-открытие.
+   Стратегия: network-first с фолбэком в кэш — актуальность данных важнее офлайна;
+   кэш обновляется в фоне при каждом успешном ответе. Версия кэша — в имени. */
+const NGK_CACHE = 'ngk-pwa-v2';
+
+self.addEventListener('install', e => {
   self.skipWaiting();
 });
 
-self.addEventListener('activate', event => {
-  event.waitUntil(
+self.addEventListener('activate', e => {
+  e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.map(key => caches.delete(key))))
+      .then(keys => Promise.all(keys.filter(k => k !== NGK_CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
 
-self.addEventListener('fetch', event => {
-  if (event.request.mode !== 'navigate') return;
-  event.respondWith(
-    fetch(event.request).catch(() => new Response(
-      '<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ГИС-ГТМ Норильск</title><body style="font-family:Arial,sans-serif;padding:32px"><h1>ГИС-ГТМ Норильск переехала</h1><p><a href="https://gis.aniigb.ru/">Открыть новый адрес</a></p></body></html>',
-      { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
-    ))
+self.addEventListener('fetch', e => {
+  const req = e.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (url.origin !== location.origin) return; // сторонние (тайлы OSM, метео) — напрямую
+  e.respondWith(
+    fetch(req)
+      .then(resp => {
+        if (resp && resp.ok) {
+          const copy = resp.clone();
+          caches.open(NGK_CACHE).then(c => c.put(req, copy)).catch(() => {});
+        }
+        return resp;
+      })
+      .catch(() => caches.match(req).then(cached => cached || Promise.reject(new Error('offline'))))
   );
 });
