@@ -69,6 +69,7 @@
 <script src="vendor/xlsx.full.min.js"></script>
 <script src="vendor/docx.umd.js"></script>
 <script src="vendor/pako_inflate.min.js"></script>
+<script src="cloud.js"></script>
 <style>
   :root{
     --bg:#0b151d; --panel:#e7e2d4; --ink:#1d2733; --mut:#5b6572;
@@ -771,7 +772,7 @@
     <h3>Статус сведений</h3>
     <p>Ресурс носит информационно-аналитический характер и предназначен для превентивного (раннего предупредительного) геотехнического мониторинга. Размещённые сведения не заменяют официальные заключения специализированных организаций, акты обследований, программы ГТМ и решения уполномоченных органов. Правообладатель не несёт ответственности за решения, принятые исключительно на основании материалов ресурса без должной инженерной проверки.</p>
     <h3>Персональные данные</h3>
-    <p>Сайт не собирает и не обрабатывает персональные данные посетителей: вход выполняется локально в браузере (sessionStorage), пароли ролей и данные сессии не передаются на сервер (152-ФЗ «О персональных данных»). Подробности — в Политике обработки персональных данных (документ ниже).</p>
+    <p>При серверном входе пароль роли передаётся по HTTPS только для проверки доступа; в D1 сохраняются необратимый PBKDF2-хеш и соль, а не открытый пароль. Серверная сессия хранится в HttpOnly-cookie. При офлайн-входе используется локальная расшифровка в браузере. Сведения об исполнителях осмотров и предписаний обрабатываются для ведения журнала работ (152-ФЗ «О персональных данных»). Подробности — в Политике обработки персональных данных (документ ниже).</p>
     <h3>Правовые документы</h3>
     <p class="noprint">
       <a href="user_agreement.docx" style="color:#1f3864">⬇ Пользовательское соглашение (проект, docx)</a><br>
@@ -946,13 +947,13 @@
       <div id="tplMemLine" class="note" style="margin-top:4px"></div>
     </div>
     <div style="margin-top:12px; border-top:2px solid var(--c-centr); padding-top:10px">
-      <b>📥 Локальная очередь приёмки</b> <span class="note">— каждая загрузка сохраняется в этом браузере со статусом «ожидает приёмки»; принятые данные доступны для дальнейшего переноса в основную базу</span>
+      <b>📥 Очередь приёмки</b> <span class="note">— при серверном входе загрузка сохраняется в D1 со статусом «ожидает приёмки»; при недоступности API используется локальная очередь браузера</span>
       <div id="stgList" style="margin-top:6px"></div>
     </div>
     <div id="upPreview"></div>
     <div id="uplLog"></div>
-    <div class="note">Загруженные замеры сохраняются в браузере (localStorage) и сразу участвуют в графиках и статусах.
-    Для включения в центральную базу передайте файл в АНО «АНИИГБ» им. М.В. Кима.</div>
+    <div class="note">Загруженные замеры сразу участвуют в графиках и статусах. При серверном входе рабочие данные синхронизируются с D1; локальная копия остаётся офлайн-резервом.
+    Принятие загрузки и перенос в основную базу фиксируются в журнале версий.</div>
   </div>
 </div>
 
@@ -989,7 +990,8 @@ const DB = window.DB;
 /* ---------- пороги ---------- */
 const DEF_TH = {tcrit:-0.5, depth:3, trend:0.10, trendDepth:10, above:0.5, geodRiskSpeed:10, geodCritSpeed:20, geodCritTotal:100, bearRisk:0.91, bearCrit:0.77, attnTrend:0.05, geodAttnSpeed:2};
 let TH = Object.assign({}, DEF_TH, JSON.parse(localStorage.getItem('ngk_th')||'{}'));
-function saveTH(){ localStorage.setItem('ngk_th', JSON.stringify(TH)); }
+function cloudSave(k,v){ if(window.NGKCloud&&NGKCloud.active) NGKCloud.stateDebounced(k,v); }
+function saveTH(){ localStorage.setItem('ngk_th', JSON.stringify(TH)); cloudSave('ngk_th',TH); }
 
 /* ---------- миграция ключей localStorage по карте переименований адресов (канонизация) ---------- */
 (function(){
@@ -1021,16 +1023,16 @@ function saveTH(){ localStorage.setItem('ngk_th', JSON.stringify(TH)); }
 
 /* ---------- расчётные температуры (ввод пользователя, по адресу) ---------- */
 let TCALC = JSON.parse(localStorage.getItem('ngk_tcalc')||'{}');
-function saveTCALC(){ localStorage.setItem('ngk_tcalc', JSON.stringify(TCALC)); }
+function saveTCALC(){ localStorage.setItem('ngk_tcalc', JSON.stringify(TCALC)); cloudSave('ngk_tcalc',TCALC); }
 
 /* ---------- карточные данные объекта (ввод пользователя, по адресу) ---------- */
 let CARD = JSON.parse(localStorage.getItem('ngk_card_v1')||'{}');
-function saveCARD(){ try{ localStorage.setItem('ngk_card_v1', JSON.stringify(CARD)); }catch(e){ alert('Хранилище браузера переполнено (фото/файлы слишком большие) — данные не сохранены.'); } }
+function saveCARD(){ try{ localStorage.setItem('ngk_card_v1', JSON.stringify(CARD)); cloudSave('ngk_card_v1',CARD); }catch(e){ alert('Хранилище браузера переполнено (фото/файлы слишком большие) — данные не сохранены.'); } }
 function cardOf(a){ return CARD[a]||(CARD[a]={}); }
 
 /* ---------- пользовательские замеры (загрузка по шаблону) ---------- */
 let USERDATA = JSON.parse(localStorage.getItem('ngk_userdata')||'[]');  // [{a,w,date,dep,pts:[[d,t]..],src,tOut,tSa}]
-function saveUSERDATA(){ localStorage.setItem('ngk_userdata', JSON.stringify(USERDATA)); }
+function saveUSERDATA(){ localStorage.setItem('ngk_userdata', JSON.stringify(USERDATA)); cloudSave('ngk_userdata',USERDATA); }
 const AIR4={}; // 'адрес|скважина|дата' → {tOut,tSa,src,est} — температура наружного воздуха / воздуха подполья на дату замера
 function air4Set(a,w,dt,x){ AIR4[a+'|'+w+'|'+dt]={tOut:(x.tOut!=null?x.tOut:null), tSa:(x.tSa!=null?x.tSa:null), src:x.tOutSrc||null, est:!!x.tSaEst}; }
 
@@ -5360,15 +5362,22 @@ function detectOrg(text){
 }
 function orgOf(text, fname){ return detectOrg(text)||TPLMEM['_file:'+fname]&&TPLMEM['_file:'+fname].org||null; }
 
-/* --- локальная очередь приёмки загрузок (localStorage, без внешней БД) --- */
+/* --- очередь приёмки: D1 при активном серверном контуре, localStorage как офлайн-резерв --- */
 const STG_KEY='ngk_uploads_staging_v1';
+let STG_CACHE=[];
 function stgRows(){ try{ const rows=JSON.parse(localStorage.getItem(STG_KEY)||'[]'); return Array.isArray(rows)?rows:[]; }catch(e){ return []; } }
 function stgSaveRows(rows){ localStorage.setItem(STG_KEY,JSON.stringify(rows)); }
 async function stgPush(kind, addr, payload, filename, org){
+  const row={created_at:new Date().toISOString(),status:'pending',addr,kind,payload,filename,org:org||null,by_user:'оператор'};
+  if(window.NGKCloud&&NGKCloud.active){
+    try{
+      await NGKCloud.createStaging(row);
+      upLog('→ сохранено в серверной очереди D1: ожидает приёмки'); stgRefresh(); return true;
+    }catch(e){ upLog('⚠ D1 недоступна ('+e.message+'); запись сохранена локально'); }
+  }
   try{
     const rows=stgRows();
-    rows.push({id:'u'+Date.now()+Math.random().toString(36).slice(2,7),created_at:new Date().toISOString(),status:'pending',
-      addr,kind,payload,filename,org:org||null,by_user:'оператор (браузер)'});
+    rows.push(Object.assign(row,{id:'u'+Date.now()+Math.random().toString(36).slice(2,7),by_user:'оператор (браузер)'}));
     stgSaveRows(rows);
     upLog('→ сохранено в локальной очереди: ожидает приёмки');
     stgRefresh();
@@ -5378,7 +5387,13 @@ async function stgPush(kind, addr, payload, filename, org){
 async function stgRefresh(){
   const el=document.getElementById('stgList'); if(!el) return;
   try{
-    const rows=stgRows().filter(r=>r.status==='pending').sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
+    let rows=stgRows();
+    if(window.NGKCloud&&NGKCloud.active){
+      try{ rows=rows.concat((await NGKCloud.listStaging()).map(r=>Object.assign(r,{_cloud:true}))); }
+      catch(e){ upLog('⚠ не удалось обновить серверную очередь: '+e.message); }
+    }
+    STG_CACHE=rows;
+    rows=rows.filter(r=>r.status==='pending').sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
     if(!rows.length){ el.innerHTML='<span class="note">Ожидающих приёмки загрузок нет.</span>'; return; }
     el.innerHTML='<table class="rows static" style="font-size:11.5px"><thead><tr><th>Дата</th><th>Адрес</th><th>Тип</th><th>Файл</th><th>Организация</th><th></th></tr></thead><tbody>'+
       rows.map(r=>`<tr><td>${String(r.created_at).slice(0,16).replace('T',' ')}</td><td>${esc(r.addr)}</td><td>${esc(r.kind)}</td><td>${esc(r.filename||'')}</td><td>${esc(r.org||'—')}</td>
@@ -5389,8 +5404,12 @@ async function stgRefresh(){
 }
 async function stgSet(id, status){
   try{
-    const rows=stgRows(), row=rows.find(r=>String(r.id)===String(id));
-    if(row){ row.status=status; row.moderated_at=new Date().toISOString(); stgSaveRows(rows); }
+    const cached=STG_CACHE.find(r=>String(r.id)===String(id));
+    if(cached&&cached._cloud){ await NGKCloud.moderateStaging(cached,status); }
+    else{
+      const rows=stgRows(), row=rows.find(r=>String(r.id)===String(id));
+      if(row){ row.status=status; row.moderated_at=new Date().toISOString(); stgSaveRows(rows); }
+    }
     stgRefresh();
   }catch(e){ alert('Не удалось обновить статус: '+e.message); }
 }
@@ -6703,8 +6722,8 @@ function tabCalc(o, el){
 /* ---------- телефонограммы (скрытый раздел, свой доступ) ---------- */
 const TG_PWH='86551b783a42adbab63463e091b77083bc72cd51b9a77fb8a8e8c3d3c9b5d25a'; // пароль раздела
 let TG=JSON.parse(localStorage.getItem('ngk_tg_v1')||'{"users":[],"recs":{}}');
-function saveTG(){ try{ localStorage.setItem('ngk_tg_v1', JSON.stringify(TG)); }catch(e){ alert('Хранилище переполнено — данные не сохранены.'); } }
-/* --- локальный реестр предписаний: записи хранятся только в этом браузере --- */
+function saveTG(){ try{ localStorage.setItem('ngk_tg_v1', JSON.stringify(TG)); cloudSave('ngk_tg_v1',TG); }catch(e){ alert('Хранилище переполнено — данные не сохранены.'); } }
+/* --- реестр предписаний: синхронизируется через D1, локальная копия служит офлайн-резервом --- */
 function tgUser(){ return TG.users.find(u=>u.verified)||null; }
 function tgStatus(rr){ // rr — уже объединённая запись (база + правки)
   if(rr.done) return 'устранено';
@@ -6979,7 +6998,7 @@ const INSP_RECS_KV={
 };
 const INSP_ST={ok:'норма',warn:'замечание',viol:'нарушение'};
 let INSP=JSON.parse(localStorage.getItem('ngk_insp_v1')||'{}');
-function saveINSP(){ try{ localStorage.setItem('ngk_insp_v1', JSON.stringify(INSP)); return true; }catch(e){ alert('Хранилище переполнено — уменьшите количество или размер фотографий. Изменения НЕ сохранены.'); return false; } }
+function saveINSP(){ try{ localStorage.setItem('ngk_insp_v1', JSON.stringify(INSP)); cloudSave('ngk_insp_v1',INSP); return true; }catch(e){ alert('Хранилище переполнено — уменьшите количество или размер фотографий. Изменения НЕ сохранены.'); return false; } }
 function inspList(o){ return INSP[o.a]=INSP[o.a]||[]; }
 let INSP_CUR=null;
 function newInsp(o,u,kind){ return {id:'I'+Date.now(), addr:o.a, kind:kind||'bld', created:new Date().toISOString(), status:'черновик',
@@ -7674,7 +7693,7 @@ function enterApp(role){
   if(UK_SCOPE) document.body.classList.add('role-uksc');
   if(cfg.tg) sessionStorage.setItem('ngk_tg_ok','1');
   document.getElementById('loginModal').style.display='none';
-  const rb=document.getElementById('roleBadge'); rb.textContent=UK_SCOPE?(cfg.name+': '+UK_SCOPE):cfg.name; rb.title=cfg.desc;
+  const rb=document.getElementById('roleBadge'); rb.textContent=(UK_SCOPE?(cfg.name+': '+UK_SCOPE):cfg.name)+(window.NGKCloud&&NGKCloud.active?' · Cloudflare':''); rb.title=cfg.desc+(window.NGKCloud&&NGKCloud.active?' · серверная сессия, D1/R2':'');
   if(UK_SCOPE&&curBranch!=='mkd') setBranch('mkd');
   renderList();
 }
@@ -7695,7 +7714,7 @@ function enterApp(role){
   }catch(e){ say(''); }
 })();
 (function initAuth(){
-  document.getElementById('logoutBtn').onclick=()=>{ sessionStorage.removeItem('ngk_role'); sessionStorage.removeItem('ngk_k'); sessionStorage.removeItem('ngk_tg_ok'); sessionStorage.removeItem('ngk_uk_scope'); location.reload(); };
+  document.getElementById('logoutBtn').onclick=async()=>{ if(window.NGKCloud) await NGKCloud.logout(); sessionStorage.removeItem('ngk_role'); sessionStorage.removeItem('ngk_k'); sessionStorage.removeItem('ngk_cloud'); sessionStorage.removeItem('ngk_tg_ok'); sessionStorage.removeItem('ngk_uk_scope'); location.reload(); };
   const role=sessionStorage.getItem('ngk_role');
   if(role&&ROLES[role]&&(role!=='uk'||sessionStorage.getItem('ngk_uk_scope'))){ enterApp(role); return; }
   let picked=null;
@@ -10965,7 +10984,7 @@ function fundRecognize(cv, o){
 };
 const ENC={saltV:"uVPl6fmPJ9C/BXsIhVIIKw==",ivV:"ildiMUjIk9xNhIew",wrapV:"dpY1GtqUYnOp5wD6JnS1QOCaIf2jxOWl3MfRWxmHXfZsO89V1QRT+XB8ARf8qs7L",saltE:"anoAXfWvoB0CqXzRhZsb/w==",ivE:"TGS+TlS5myuTb3r1",wrapE:"ciQyMy9dTomS5QKGw+D/gzQScsYNbtnVbh/onmSx+DGiiBaKwDlR4o7L6iM/of1Y",saltX:"W2zKwA4ppbUPQgleOCxVsQ==",ivX:"n4BTNZXyHpENLnmg",wrapX:"5qz+z297alJ4jWeuZx90KsoOgh8pYHFLYbwyrVLbIPX7SJj9koDiF7eijsnG3F6x",saltU:"iqjaQDYH6mTzR+e6SxzIzw==",ivU:"7M7VtXtS24QpRfAO",wrapU:"bqN7wTOeBEaGmJ5sSRlA/cYp4ZIqTFZpnrtudFLZuaWC535o53wJGhG3K0jJr52l",saltN:"TlJcrGuxgEFFJpTHN+W0xQ==",ivN:"Jydtb5fNFX+spNNB",wrapN:"XcsOqwD3L12Q5ehRHn7XQcrVuA9qRQmmn7e4jIx2y8Pu10IVjvACuzLcBHLIG4G2",saltS:"6BgcB8g7xrMX0zx/8038Hw==",ivS:"CqCn6BkKYZAsCH7F",wrapS:"VKu2jRh/AdnnPRT6xKazrjEmSaNq6R5cJAK905ypcYsxyBAy2EOSXxYI9gzl70v4",saltA:"I37D11uL1G1OYJCa+dA7XA==",ivA:"moSNZ7aOG2pBoOsd",wrapA:"Pki05ID4jxvr7hZ44X3r7lNTtHoYyMWK7qidNc2oHpnjdBvlVWcvK2ZrN4OHWJsr",ivD:"HPH4f5iTNrb4UaA7"};
 const BUILD="497bd973";
-const BUILD_DATE="29.10.2026 17:46";
+const BUILD_DATE="29.10.2026 22:17";
 const BOOT_ROLES=[["view", "Наблюдатель", "Просмотр карты, карточек объектов, графиков температур, тепловых карт, метеоданных, реестров и презентации проекта. Редактирование и надзорные разделы закрыты."], ["edit", "Оператор", "Полный доступ: ведение карточек объектов и УК, загрузка данных, настройка порогов, позиционирование, раздел предписаний и осмотров."], ["uk", "Управляющая компания", "Доступ только к объектам вашей УК (выбирается ниже): карта, карточки, графики, предписания и осмотры без дополнительного пароля; карточка УК с планами ремонтов и рекомендациями модели."], ["nadzor", "Организация, ведущая мерзлотный надзор", "Просмотр базы + телефонограммы, чек-листы текущих осмотров, формирование актов осмотров."], ["stroy", "Служба строительного надзора и жилищного контроля", "Просмотр базы + надзорные разделы (предписания, осмотры), сводные реестры РИСК/КРИТИЧНО и охват ГТМ."], ["admin", "Администрация города Норильска", "Полный доступ, включая надзорные разделы, реестры и планы ремонтов."]];
 const BOOT_UK=["Администрация г. Норильска (канцелярия, мэрия)", "МКУ «Управление социальной политики»", "ООО «Будущее»", "ООО «Заполярный жилищный трест»", "ООО «Нордсервис»", "ООО «СеверныйБыт»", "ООО «СеверныйУправдом»", "ООО «Талнахбыт»", "ООО «Уютный дом»", "УК «Город»", "УК «ЖКС-Норильск»", "Управление общего и дошкольного образования", "Управление по делам культуры и искусства", "Управление по спорту"];
 const BOOT_ENC={view:"V",edit:"E",uk:"U",nadzor:"N",stroy:"S",admin:"A"};
@@ -11006,21 +11025,35 @@ async function _decrypt(rawK){
     return;
   }
   sessionStorage.removeItem("ngk_rl");
-  async function init(rawK,role,silent){
+  async function init(rawK,role,silent,cloudData){
     try{
-      const txt=await _decrypt(rawK);
-      window.DB=JSON.parse(txt);
-      sessionStorage.setItem("ngk_k",btoa(String.fromCharCode.apply(null,rawK)));
+      if(cloudData){
+        window.DB=cloudData.db;
+        if(window.NGKCloud) NGKCloud.applyClientStates(cloudData.clientStates);
+      }else{
+        const txt=await _decrypt(rawK);
+        window.DB=JSON.parse(txt);
+      }
+      if(rawK) sessionStorage.setItem("ngk_k",btoa(String.fromCharCode.apply(null,rawK)));
       sessionStorage.setItem("ngk_role",role);
+      sessionStorage.setItem("ngk_cloud",cloudData?"1":"0");
       window.__initApp(); // внутри initAuth увидит ngk_role и выполнит enterApp(role)
     }catch(e){
-      sessionStorage.removeItem("ngk_k"); sessionStorage.removeItem("ngk_role");
+      sessionStorage.removeItem("ngk_role"); sessionStorage.removeItem("ngk_cloud");
       lm.style.display="flex";
       if(!silent) errEl.textContent="Не удалось загрузить данные. Обновите страницу (Ctrl+F5). Если ошибка повторится — сообщите администратору. ("+e+")";
     }
   }
-  document.getElementById("logoutBtn").onclick=()=>{ sessionStorage.removeItem("ngk_role"); sessionStorage.removeItem("ngk_k"); sessionStorage.removeItem("ngk_tg_ok"); sessionStorage.removeItem("ngk_uk_scope"); location.reload(); };
+  document.getElementById("logoutBtn").onclick=async()=>{ if(window.NGKCloud) await NGKCloud.logout(); sessionStorage.removeItem("ngk_role"); sessionStorage.removeItem("ngk_k"); sessionStorage.removeItem("ngk_cloud"); sessionStorage.removeItem("ngk_tg_ok"); sessionStorage.removeItem("ngk_uk_scope"); location.reload(); };
   const ck=sessionStorage.getItem("ngk_k"), cr=sessionStorage.getItem("ngk_role");
+  if(cr&&sessionStorage.getItem("ngk_cloud")==="1"&&window.NGKCloud&&(cr!=="uk"||sessionStorage.getItem("ngk_uk_scope"))){
+    NGKCloud.bootstrap().then(data=>init(ck?_b64(ck):null,cr,true,data)).catch(async e=>{
+      await NGKCloud.logout().catch(()=>{});
+      if(ck) init(_b64(ck),cr,true);
+      else{ sessionStorage.removeItem("ngk_role"); sessionStorage.removeItem("ngk_cloud"); location.reload(); }
+    });
+    return;
+  }
   if(ck&&cr&&(cr!=="uk"||sessionStorage.getItem("ngk_uk_scope"))){ init(_b64(ck),cr,true); return; }
   // --- окно входа: выбор роли → (для УК выбор компании) → пароль роли ---
   let picked=null;
@@ -11064,10 +11097,31 @@ async function _decrypt(rawK){
       if(!ss.value){ errEl.textContent="Выберите вашу управляющую компанию из списка"; return; }
       sessionStorage.setItem("ngk_uk_scope",ss.value);
     } else sessionStorage.removeItem("ngk_uk_scope");
+    go.disabled=true;
     const K=BOOT_ENC[picked];
-    const rawK=await _unwrap(pwEl.value,ENC["salt"+K],ENC["iv"+K],ENC["wrap"+K]);
-    if(!rawK){ errEl.textContent="Неверный пароль для выбранной роли"; return; }
-    init(rawK,picked);
+    const password=pwEl.value;
+    const rawK=await _unwrap(password,ENC["salt"+K],ENC["iv"+K],ENC["wrap"+K]);
+    try{
+      if(!window.NGKCloud) throw new Error("Модуль облачной синхронизации не загружен");
+      errEl.textContent="Проверка серверной сессии…";
+      await NGKCloud.login(picked,password,picked==="uk"?ss.value:null);
+      errEl.textContent="Загрузка актуальной базы из D1…";
+      const cloudData=await NGKCloud.bootstrap();
+      await init(rawK,picked,false,cloudData);
+    }catch(e){
+      if(e.network&&rawK){
+        await NGKCloud.logout().catch(()=>{});
+        await init(rawK,picked,false);
+        const rb=document.getElementById("roleBadge");
+        if(rb) rb.title+=" · офлайн-резерв: изменения сохраняются локально";
+      }else if(e.status===401){
+        errEl.textContent="Неверный пароль или контур доступа";
+      }else if(!e.network&&rawK&&e.message==="Модуль облачной синхронизации не загружен"){
+        await init(rawK,picked,false);
+      }else{
+        errEl.textContent=e.network?"Серверный контур недоступен, а локальный резерв не расшифрован. Проверьте пароль и сеть.":("Ошибка серверного контура: "+e.message);
+      }
+    }finally{ go.disabled=false; }
   };
 })();
 </script>

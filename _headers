@@ -6,6 +6,14 @@
 /index.html
   Cache-Control: public, max-age=0, must-revalidate
 
+/api/*
+  Cache-Control: private, no-store, no-cache, must-revalidate
+  CDN-Cache-Control: no-store
+  Cloudflare-CDN-Cache-Control: no-store
+
+/cloud.js
+  Cache-Control: public, max-age=0, must-revalidate
+
 /sw.js
   Cache-Control: public, max-age=0, must-revalidate
 

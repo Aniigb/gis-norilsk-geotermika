@@ -1,7 +1,7 @@
 /* Service Worker ГИС-ГТМ Норильск: устанавливаемость (PWA) + офлайн-открытие.
    Стратегия: network-first с фолбэком в кэш — актуальность данных важнее офлайна;
    кэш обновляется в фоне при каждом успешном ответе. Версия кэша — в имени. */
-const NGK_CACHE = 'ngk-pwa-v2';
+const NGK_CACHE = 'ngk-pwa-v3';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -20,6 +20,7 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== location.origin) return; // сторонние (тайлы OSM, метео) — напрямую
+  if (url.pathname.startsWith('/api/')) return; // приватные ответы API никогда не кэшируем
   e.respondWith(
     fetch(req)
       .then(resp => {
